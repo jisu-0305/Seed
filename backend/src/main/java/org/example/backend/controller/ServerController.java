@@ -1,6 +1,7 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.controller.request.server.DeleteServerFolderRequest;
 import org.example.backend.controller.request.server.NewServerRequest;
 import org.example.backend.domain.server.service.ServerService;
 import org.springframework.http.MediaType;
@@ -24,5 +25,13 @@ public class ServerController {
 
         serverService.registerServer(newServerRequest, keyFile);
         return ResponseEntity.ok("등록 완료 및 폴더 생성 완료");
+    }
+
+    @DeleteMapping("/delete-folder")
+    public ResponseEntity<String> deleteFolder(
+            @RequestBody DeleteServerFolderRequest request) {
+
+        serverService.deleteFolderOnServer(request);
+        return ResponseEntity.ok("폴더 삭제 완료");
     }
 }

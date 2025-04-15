@@ -4,6 +4,7 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.Session;
 import lombok.RequiredArgsConstructor;
+import org.example.backend.controller.request.server.DeleteServerFolderRequest;
 import org.example.backend.controller.request.server.NewServerRequest;
 import org.example.backend.domain.server.entity.ServerInfo;
 import org.example.backend.domain.server.repository.ServerInfoRepository;
@@ -45,6 +46,37 @@ public class ServerServiceImpl implements ServerService {
 
         // 5. EC2 SSH 폴더 생성
         createFolderOnEC2(server.getIpAddress(), server.getKeyFilePath(), "/home/ubuntu/test-folder");
+    }
+
+    @Override
+    public void deleteFolderOnServer(DeleteServerFolderRequest request) {
+        String ip = request.ipAddress();
+
+        // 1. DB에서 keyFilePath 조회
+        ServerInfo server = repository.findByIpAddress(ip)
+                .orElseThrow(() -> new IllegalArgumentException("해당 IP의 서버 정보가 없습니다: " + ip));
+
+        String keyFilePath = server.getKeyFilePath();
+        String folderPath = "/home/ubuntu/test-folder"; // 고정 경로 (테스트 전용)
+
+        try {
+            JSch jsch = new JSch();
+            jsch.addIdentity(keyFilePath);
+
+            Session session = jsch.getSession("ubuntu", ip, 22);
+            session.setConfig("StrictHostKeyChecking", "no");
+            session.connect();
+
+            ChannelExec channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand("rm -rf " + folderPath);
+            channel.connect();
+
+            channel.disconnect();
+            session.disconnect();
+
+        } catch (Exception e) {
+            throw new RuntimeException("EC2 폴더 삭제 실패", e);
+        }
     }
 
     private void createFolderOnEC2(String ip, String pemPath, String folderPath) {
