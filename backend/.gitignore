@@ -35,3 +35,6 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### 🔐 PEM 파일 저장 폴더 ###
+/keys/
