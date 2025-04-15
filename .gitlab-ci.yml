@@ -1,0 +1,64 @@
+stages:
+  - notify
+
+# ✅ Merge Request 발생 시 Mattermost로 알림 전송
+notify_mattermost:
+  stage: notify
+  tags: 
+    - docker
+    - runner
+    - gitlab
+  script:
+    - apt-get update && apt-get install -y curl jq
+    - >
+      if [ -n "$CI_MERGE_REQUEST_IID" ]; then 
+        JSON_PAYLOAD=$(jq -n \
+          --arg project "$CI_PROJECT_NAME" \
+          --arg author "$GITLAB_USER_LOGIN" \
+          --arg branch "$CI_COMMIT_REF_NAME" \
+          --arg title "${CI_MERGE_REQUEST_TITLE:-"제목 없음"}" \
+          --arg url "$CI_PROJECT_URL/-/merge_requests/$CI_MERGE_REQUEST_IID" \
+          '{
+            text: "🔀 *새로운 Merge Request가 생성되었습니다!* 🎉\n
+            **프로젝트:** \($project)\n
+            **작성자:** \($author)\n
+            **브랜치:** \($branch)\n
+            **MR 제목:** \($title)\n
+            [**Merge Request 보기**](\($url))"
+          }')
+
+        curl -X POST -H "Content-Type: application/json" \
+          -d "$JSON_PAYLOAD" https://meeting.ssafy.com/hooks/iub1x4tcb7gw98auz3ar9o1d5h
+      else
+        echo "❌ MR 정보 없음"
+      fi
+
+# ✅ 이슈 발생 시 Mattermost로 알림 전송
+notify_issue:
+  stage: notify
+  tags:
+    - docker
+    - runner
+    - gitlab
+  script:
+    - apt-get update && apt-get install -y curl jq
+    - >
+      if [ -n "$CI_COMMIT_MESSAGE" ]; then 
+        JSON_PAYLOAD=$(jq -n \
+          --arg project "$CI_PROJECT_NAME" \
+          --arg author "$GITLAB_USER_LOGIN" \
+          --arg message "${CI_COMMIT_MESSAGE:-"제목 없음"}" \
+          --arg url "$CI_PROJECT_URL/-/issues/$CI_JOB_ID" \
+          '{
+            text: "📌 *새로운 이슈가 생성되었습니다!* 📝\n
+            **프로젝트:** \($project)\n
+            **작성자:** \($author)\n
+            **이슈 제목:** \($message)\n
+            [**이슈 보기**](\($url))"
+          }')
+
+        curl -X POST -H "Content-Type: application/json" \
+          -d "$JSON_PAYLOAD" https://meeting.ssafy.com/hooks/iub1x4tcb7gw98auz3ar9o1d5h
+      else
+        echo "❌ 이슈 정보 없음"
+      fi
