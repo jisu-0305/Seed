@@ -19,7 +19,7 @@ public class ErrorResponse {
 
     public static ErrorResponse error(ErrorCode errorCode) {
         return ErrorResponse.builder()
-                .errorCode(errorCode.getErrorCode())
+                .errorCode(errorCode.getCode())
                 .message(errorCode.getMessage())
                 .build();
     }

@@ -56,13 +56,13 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
         GitlabOauthToken oauthToken = getGitlabOauthToken(code);
 
         if (oauthToken == null) {
-            throw new BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER);
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_FORBIDDEN);
         }
 
         GitlabUser gitlabUser = getGitlabUser(oauthToken.getAccessToken());
 
         if (gitlabUser == null) {
-            throw new BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER);
+            throw new BusinessException(ErrorCode.OAUTH_USER_NOT_FOUND);
         }
 
         String oauthUserId = gitlabUser.getOauthUserId();
