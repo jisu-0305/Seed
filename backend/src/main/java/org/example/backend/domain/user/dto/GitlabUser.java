@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 @Builder
 public class GitlabUser {
-    private String oauthUserId;
+    private String id;
 }

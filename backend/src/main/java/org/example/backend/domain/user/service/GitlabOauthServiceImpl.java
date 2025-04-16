@@ -65,7 +65,7 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
             throw new BusinessException(ErrorCode.OAUTH_USER_NOT_FOUND);
         }
 
-        String oauthUserId = gitlabUser.getOauthUserId();
+        String oauthUserId = gitlabUser.getId();
 
         User user = userRepository.findByOauthUserId(oauthUserId)
                 .map(existingUser -> {
