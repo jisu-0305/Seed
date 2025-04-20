@@ -17,6 +17,7 @@ public enum ErrorCode {
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "요청한 자원을 찾을 수 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
+    GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3201, "GitLab API 요청이 실패했습니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
