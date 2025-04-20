@@ -9,5 +9,5 @@ public interface GitlabTokenRepository extends JpaRepository<GitlabToken, Long> 
 
     Optional<GitlabToken> findByUser_Id(Long userId);
 
-    boolean existsByUserId(Long userId);
+//    boolean existsByUserId(Long userId);
 }

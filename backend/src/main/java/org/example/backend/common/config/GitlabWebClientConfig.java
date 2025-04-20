@@ -17,7 +17,6 @@ public class GitlabWebClientConfig {
 
     @Bean("gitlabWebClient")
     public WebClient gitlabWebClient() {
-        log.info("gitlabWebClient start" + gitlabApiBaseUrl);
         return WebClient.builder()
                 .baseUrl(gitlabApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)

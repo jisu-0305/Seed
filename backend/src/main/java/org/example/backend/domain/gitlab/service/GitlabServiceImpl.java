@@ -44,9 +44,8 @@ public class GitlabServiceImpl implements GitlabService {
     @Override
     public List<GitlabProjectDto> getProjects(Long userId) {
         String token = fetchToken(userId);
-        log.info(">>>>>>>>>>> DECRYPTED PAT for user {}: {}", userId, token);
-        List<GitlabProjectDto> projects = apiClient.listProjects(token);
-        return projects;
+        log.debug(">>>>>>>>>>> DECRYPTED PAT for user {}: {}", userId, token);
+        return apiClient.listProjects(token);
     }
 
     @Override

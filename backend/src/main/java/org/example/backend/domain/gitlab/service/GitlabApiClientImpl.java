@@ -1,6 +1,5 @@
 package org.example.backend.domain.gitlab.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
 import org.example.backend.domain.gitlab.dto.GitlabProjectDto;
@@ -13,14 +12,19 @@ import java.net.URI;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class GitlabApiClientImpl implements GitlabApiClient {
 
-    @Qualifier("gitlabWebClient")
     private final WebClient webClient;
-
     private final GitlabUriBuilder uriBuilder;
+
+    public GitlabApiClientImpl(
+            @Qualifier("gitlabWebClient") WebClient webClient,
+            GitlabUriBuilder uriBuilder
+    ) {
+        this.webClient = webClient;
+        this.uriBuilder = uriBuilder;
+    }
 
     @Override
     public List<GitlabProjectDto> listProjects(String pat) {
@@ -39,7 +43,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                                             String path,
                                             boolean recursive) {
         String uri = uriBuilder.repositoryTree(projectId, path, recursive, 1, 100);
-        log.debug("listTree URI = {}", uri);
+        log.debug(">>>>>> listTree URI = {}", uri);
 
         return webClient.get()
                 .uri(uri)

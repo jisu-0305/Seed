@@ -8,10 +8,13 @@ import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.HttpHeaders;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
+import org.springframework.web.bind.support.WebDataBinderFactory;
 import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
+import org.springframework.lang.Nullable;
 
 @Component
 @RequiredArgsConstructor
@@ -26,12 +29,15 @@ public class SessionInfoArgumentResolver implements HandlerMethodArgumentResolve
     }
 
     @Override
-    public Object resolveArgument(MethodParameter parameter,
+    public Object resolveArgument(@NonNull MethodParameter parameter,
                                   ModelAndViewContainer mavContainer,
                                   NativeWebRequest webRequest,
-                                  org.springframework.web.bind.support.WebDataBinderFactory binderFactory) {
+                                  @Nullable WebDataBinderFactory binderFactory) {
 
         HttpServletRequest req = webRequest.getNativeRequest(HttpServletRequest.class);
+        if (req == null) {
+            throw new BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER);
+        }
         String auth = req.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (auth == null || !auth.startsWith("Bearer ")) {

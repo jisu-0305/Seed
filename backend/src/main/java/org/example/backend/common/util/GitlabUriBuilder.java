@@ -12,7 +12,7 @@ public class GitlabUriBuilder {
     private String baseUrl;
 
     public String projects(int page, int perPage) {
-        return UriComponentsBuilder.fromHttpUrl(baseUrl)
+        return UriComponentsBuilder.fromUriString(baseUrl)
                 .path("/projects")
                 .queryParam("membership", true)
                 .queryParam("page", page)
@@ -26,7 +26,7 @@ public class GitlabUriBuilder {
                                  int page,
                                  int perPage) {
 
-        return UriComponentsBuilder.fromHttpUrl(baseUrl)
+        return UriComponentsBuilder.fromUriString(baseUrl)
                 .path("/projects/{id}/repository/tree")
                 .queryParam("path", path)
                 .queryParam("recursive", recursive)
@@ -41,7 +41,7 @@ public class GitlabUriBuilder {
                           String ref) {
 
         return UriComponentsBuilder
-                .fromHttpUrl(baseUrl)
+                .fromUriString(baseUrl)
                 .pathSegment(
                         "projects",
                         projectId.toString(),
