@@ -6,7 +6,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GitlabProjectDto {
-    private Long   id;
+    private Long id;
     private String name;
     private String path_with_namespace;
     private String visibility;

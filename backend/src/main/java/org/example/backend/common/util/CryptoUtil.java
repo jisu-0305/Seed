@@ -1,4 +1,3 @@
-/* src/main/java/org/example/backend/common/util/CryptoUtil.java */
 package org.example.backend.common.util;
 
 import jakarta.annotation.PostConstruct;
@@ -15,7 +14,7 @@ import java.util.Base64;
 @RequiredArgsConstructor
 public class CryptoUtil {
 
-    @Value("${crypto.secret-key}")   // 32‑byte(256bit) 문자열 권장
+    @Value("${crypto.secret-key}")
     private String rawKey;
 
     private SecretKeySpec keySpec;

@@ -4,10 +4,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
+
 @Component
 public class GitlabUriBuilder {
     @Value("${gitlab.api.base-url}")
-    private String baseUrl;   // e.g. https://gitlab.com/api/v4
+    private String baseUrl;
 
     public String projects(int page, int perPage) {
         return UriComponentsBuilder.fromHttpUrl(baseUrl)
@@ -34,14 +36,24 @@ public class GitlabUriBuilder {
                 .toString();
     }
 
-    public String rawFile(Long projectId,
-                          String encodedPath,
+    public URI rawFileUri(Long projectId,
+                          String filePath,
                           String ref) {
 
-        return UriComponentsBuilder.fromHttpUrl(baseUrl)
-                .path("/projects/{id}/repository/files/{file_path}/raw")
+        return UriComponentsBuilder
+                .fromHttpUrl(baseUrl)
+                .pathSegment(
+                        "projects",
+                        projectId.toString(),
+                        "repository",
+                        "files",
+                        filePath,
+                        "raw"
+                )
                 .queryParam("ref", ref)
-                .build(projectId, encodedPath)
-                .toString();
+                .encode()
+                .build()
+                .toUri();
     }
+
 }

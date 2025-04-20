@@ -1,24 +1,23 @@
-// src/main/java/org/example/backend/common/config/GitlabWebClientConfig.java
 package org.example.backend.common.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
-import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Configuration
 public class GitlabWebClientConfig {
 
     @Value("${gitlab.api.base-url}")
-    private String gitlabApiBaseUrl; // ex) https://lab.ssafy.com/api/v4
+    private String gitlabApiBaseUrl;
 
     @Bean("gitlabWebClient")
     public WebClient gitlabWebClient() {
-        log.info("gitlabWebClient start"+gitlabApiBaseUrl);
+        log.info("gitlabWebClient start" + gitlabApiBaseUrl);
         return WebClient.builder()
                 .baseUrl(gitlabApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)

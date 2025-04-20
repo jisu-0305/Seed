@@ -21,10 +21,9 @@ public class GitlabServiceImpl implements GitlabService {
 
     private final UserRepository userRepository;
     private final GitlabTokenRepository tokenRepo;
-    private final GitlabApiClient apiClient;    // ★ page/perPage 없는 새 시그니처
+    private final GitlabApiClient apiClient;
     private final CryptoUtil cryptoUtil;
 
-    /* =============== PAT 등록 =============== */
     @Override
     public void registerToken(Long userId, String plainToken) {
 
@@ -42,32 +41,28 @@ public class GitlabServiceImpl implements GitlabService {
         );
     }
 
-    /* =============== 프로젝트 목록 =============== */
     @Override
     public List<GitlabProjectDto> getProjects(Long userId) {
         String token = fetchToken(userId);
-        log.info("▶▶▶ DECRYPTED PAT for user {}: {}", userId, token);
+        log.info(">>>>>>>>>>> DECRYPTED PAT for user {}: {}", userId, token);
         List<GitlabProjectDto> projects = apiClient.listProjects(token);
         return projects;
     }
 
-    /* =============== 레포지토리 트리 =============== */
     @Override
     public List<GitlabTreeItemDto> getTree(
             Long userId, Long projectId, String path, boolean recursive) {
 
         String pat = fetchToken(userId);
-        return apiClient.listTree(pat, projectId, path, recursive);  // ✔ page 인자 제거
+        return apiClient.listTree(pat, projectId, path, recursive);
     }
 
-    /* =============== 파일 원문 =============== */
     @Override
     public String getFile(Long userId, Long projectId, String path, String ref) {
         String pat = fetchToken(userId);
-        return apiClient.getRawFile(pat, projectId, path, ref);      // ✔ 인코딩 내부 처리
+        return apiClient.getRawFile(pat, projectId, path, ref);
     }
 
-    /* =============== 내부 메서드 =============== */
     private String fetchToken(Long userId) {
         return tokenRepo.findByUser_Id(userId)
                 .map(token -> token.getDecryptedToken(cryptoUtil))

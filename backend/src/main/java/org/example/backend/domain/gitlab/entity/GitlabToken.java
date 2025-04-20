@@ -24,7 +24,6 @@ public class GitlabToken {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-
     @Column(name = "encrypted_token", nullable = false, length = 512)
     private String encryptedToken;
 
@@ -51,7 +50,7 @@ public class GitlabToken {
         this.updatedAt = LocalDateTime.now();
     }
 
-    @Transient       // DB 컬럼 아님
+    @Transient
     public String getDecryptedToken(CryptoUtil cryptoUtil) {
         return cryptoUtil.decrypt(this.encryptedToken);
     }

@@ -1,4 +1,3 @@
-/* src/main/java/org/example/backend/common/session/SessionInfoArgumentResolver.java */
 package org.example.backend.common.session;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,7 +17,7 @@ import org.springframework.web.method.support.ModelAndViewContainer;
 @RequiredArgsConstructor
 public class SessionInfoArgumentResolver implements HandlerMethodArgumentResolver {
 
-    private final JwtTokenProvider jwtTokenProvider;   // stateless
+    private final JwtTokenProvider jwtTokenProvider;
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -45,10 +44,9 @@ public class SessionInfoArgumentResolver implements HandlerMethodArgumentResolve
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
-        /* --- JWT Claims 추출 --- */
-        Long userId      = Long.valueOf(jwtTokenProvider.getSubjectFromToken(jwt));
-        String oauthId   = jwtTokenProvider.getClaim(jwt, "oauthUserId", String.class);
-        String provider  = jwtTokenProvider.getClaim(jwt, "provider", String.class);
+        Long userId = Long.valueOf(jwtTokenProvider.getSubjectFromToken(jwt));
+        String oauthId = jwtTokenProvider.getClaim(jwt, "oauthUserId", String.class);
+        String provider = jwtTokenProvider.getClaim(jwt, "provider", String.class);
 
         return SessionInfoDto.builder()
                 .userId(userId)

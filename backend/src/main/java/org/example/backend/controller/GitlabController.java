@@ -1,5 +1,6 @@
 package org.example.backend.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.common.session.SessionInfo;
 import org.example.backend.common.session.dto.SessionInfoDto;
@@ -23,10 +24,10 @@ public class GitlabController {
 
     @PostMapping("/token")
     public ResponseEntity<ApiResponse<Void>> registerToken(
-            @RequestBody RegisterGitlabTokenRequest req,
+            @RequestBody @Valid RegisterGitlabTokenRequest req,
             @SessionInfo SessionInfoDto session) {
 
-        gitlabService.registerToken(session.getUserId(), req.getToken());
+        gitlabService.registerToken(session.getUserId(), req.token());
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success(null));
@@ -44,7 +45,7 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<List<GitlabTreeItemDto>>> listTree(
             @PathVariable Long id,
             @RequestParam(defaultValue = "") String path,
-            @RequestParam(defaultValue = "false") boolean recursive,
+            @RequestParam(defaultValue = "true") boolean recursive, //기본적으로 모든 트리구조 불러오기
             @SessionInfo SessionInfoDto session) {
 
         List<GitlabTreeItemDto> tree = gitlabService.getTree(
