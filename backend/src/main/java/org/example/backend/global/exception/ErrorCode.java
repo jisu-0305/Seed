@@ -18,6 +18,7 @@ public enum ErrorCode {
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, 3002, "프로젝트를 찾을 수 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
+    GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3201, "GitLab API 요청이 실패했습니다."),
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3201, "초대를 찾을 수 없습니다."),
     ALREADY_JOINED_PROJECT(HttpStatus.BAD_REQUEST, 3202, "이미 참여 중인 프로젝트입니다."),
     DUPLICATE_INVITATION(HttpStatus.BAD_REQUEST, 3203, "이미 초대된 사용자입니다."),
