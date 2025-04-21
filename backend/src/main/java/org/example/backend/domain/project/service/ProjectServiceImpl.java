@@ -30,7 +30,8 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public ProjectResponse createProject(ProjectCreateRequest request, String accessToken) {
-        Long userId = getUserIdFromAccessToken(accessToken);
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
 
         Project project = Project.create(request.getProjectName());
         Project savedProject = projectRepository.save(project);
@@ -42,11 +43,15 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProjectResponse getProject(Long id, String accessToken) {
-        Long userId = getUserIdFromAccessToken(accessToken);
-        validateUserAccess(id, userId);
+    public ProjectResponse getProject(Long projectId, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
 
-        Project project = projectRepository.findById(id)
+        if (userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
+        }
+
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
         return toResponse(project);
@@ -54,7 +59,8 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public List<ProjectResponse> getAllProjects(String accessToken) {
-        Long userId = getUserIdFromAccessToken(accessToken);
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
 
         List<UserProject> mappings = userProjectRepository.findByUserId(userId);
         List<Long> projectIdList = mappings.stream()
@@ -68,30 +74,17 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public void deleteProject(Long id, String accessToken) {
-        Long userId = getUserIdFromAccessToken(accessToken);
-        validateUserAccess(id, userId);
+    public void deleteProject(Long projectId, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
 
-        Project project = projectRepository.findById(id)
+        if (userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
+        }
+
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
         projectRepository.delete(project);
     }
-
-    private Long getUserIdFromAccessToken(String rawAccessToken) {
-        String jwtToken = rawAccessToken.replace("Bearer", "").trim();
-        SessionInfoDto session = redisSessionManager.getSession(jwtToken);
-        if (session == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        return session.getUserId();
-    }
-
-    private void validateUserAccess(Long projectId, Long userId) {
-        boolean exists = userProjectRepository.existsByProjectIdAndUserId(projectId, userId);
-        if (!exists) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-    }
-
 }

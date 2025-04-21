@@ -16,6 +16,8 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long ownerId;
+
     private String projectName;
 
     private LocalDateTime createdAt;

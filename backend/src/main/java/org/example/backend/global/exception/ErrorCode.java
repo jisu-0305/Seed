@@ -18,11 +18,12 @@ public enum ErrorCode {
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, 3002, "프로젝트를 찾을 수 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
-    GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3201, "GitLab API 요청이 실패했습니다."),
-    INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3201, "초대를 찾을 수 없습니다."),
-    ALREADY_JOINED_PROJECT(HttpStatus.BAD_REQUEST, 3202, "이미 참여 중인 프로젝트입니다."),
-    DUPLICATE_INVITATION(HttpStatus.BAD_REQUEST, 3203, "이미 초대된 사용자입니다."),
-    CANNOT_INVITE_SELF(HttpStatus.BAD_REQUEST, 3204, "자기 자신에게는 초대를 보낼 수 없습니다."),
+    GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3203, "GitLab API 요청이 실패했습니다."),
+    INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3204, "초대를 찾을 수 없습니다."),
+    ALREADY_JOINED_PROJECT(HttpStatus.BAD_REQUEST, 3205, "이미 참여 중인 프로젝트입니다."),
+    DUPLICATE_INVITATION(HttpStatus.BAD_REQUEST, 3206, "이미 초대된 사용자입니다."),
+    CANNOT_INVITE_SELF(HttpStatus.BAD_REQUEST, 3207, "자기 자신에게는 초대를 보낼 수 없습니다."),
+    NOT_FOUND_USER_PROJECT(HttpStatus.BAD_REQUEST, 3208, "프로젝트에 참여하지 않은 사용자입니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
