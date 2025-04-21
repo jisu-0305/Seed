@@ -5,10 +5,10 @@ import org.example.backend.domain.project.entity.Project;
 
 public class ProjectMapper {
     public static ProjectResponse toResponse(Project project) {
-        return ProjectResponse.from(
-                project.getId(),
-                project.getProjectName(),
-                project.getCreatedAt()
-        );
+        return ProjectResponse.builder()
+                .id(project.getId())
+                .projectName(project.getProjectName())
+                .createdAt(project.getCreatedAt())
+                .build();
     }
 }

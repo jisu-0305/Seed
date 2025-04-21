@@ -6,8 +6,8 @@ import org.example.backend.controller.response.project.ProjectResponse;
 import java.util.List;
 
 public interface ProjectService {
-    ProjectResponse createProject(ProjectCreateRequest request);
-    ProjectResponse getProject(Long id);
-    List<ProjectResponse> getAllProjects();
-    void deleteProject(Long id);
+    ProjectResponse createProject(ProjectCreateRequest request, String accessToken);
+    ProjectResponse getProject(Long projectId, String accessToken);
+    List<ProjectResponse> getAllProjects(String accessToken);
+    void deleteProject(Long projectId, String accessToken);
 }
