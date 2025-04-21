@@ -48,7 +48,7 @@ public class ProjectServiceImpl implements ProjectService {
         Long userId = session.getUserId();
 
         if (userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
         }
 
         Project project = projectRepository.findById(projectId)
@@ -79,7 +79,7 @@ public class ProjectServiceImpl implements ProjectService {
         Long userId = session.getUserId();
 
         if (userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
         }
 
         Project project = projectRepository.findById(projectId)

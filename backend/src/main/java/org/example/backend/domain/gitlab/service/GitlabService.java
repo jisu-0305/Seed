@@ -5,9 +5,9 @@ import org.example.backend.domain.gitlab.dto.*;
 import java.util.List;
 
 public interface GitlabService {
-    List<GitlabProject> getProjects(Long userId);
+    List<GitlabProject> getProjects(String accessToken);
 
-    List<GitlabTree> getTree(Long userId, Long projectId, String path, boolean recursive);
+    List<GitlabTree> getTree(String accessToken, Long projectId, String path, boolean recursive);
 
-    String getFile(Long userId, Long projectId, String path, String ref);
+    String getFile(String accessToken, Long projectId, String path, String ref);
 }
