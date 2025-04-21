@@ -33,7 +33,7 @@ public class ProjectServiceImpl implements ProjectService {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
-        Project project = Project.create(request.getProjectName());
+        Project project = Project.create(userId, request.getProjectName());
         Project savedProject = projectRepository.save(project);
 
         UserProject userProject = UserProject.create(savedProject.getId(), userId);
@@ -47,7 +47,7 @@ public class ProjectServiceImpl implements ProjectService {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
-        if (userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
         }
 
@@ -78,12 +78,19 @@ public class ProjectServiceImpl implements ProjectService {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
-        if (userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
         }
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
+        if (!project.getOwnerId().equals(userId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+
+
+        userProjectRepository.deleteAllByProjectId(projectId);
 
         projectRepository.delete(project);
     }

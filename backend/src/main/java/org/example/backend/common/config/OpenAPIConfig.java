@@ -13,7 +13,7 @@ public class OpenAPIConfig {
     @Bean
     public OpenAPI api() {
         SecurityScheme jwtScheme = new SecurityScheme()
-                .type(SecurityScheme.Type.HTTP)
+                .type(SecurityScheme.Type.APIKEY)
                 .scheme("bearer")
                 .bearerFormat("JWT")
                 .in(SecurityScheme.In.HEADER)

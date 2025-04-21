@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ProjectResponse {
     private Long id;
+    private Long ownerId;
     private String projectName;
     private LocalDateTime createdAt;
 }

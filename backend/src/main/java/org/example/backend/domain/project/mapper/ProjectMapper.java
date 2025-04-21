@@ -7,6 +7,7 @@ public class ProjectMapper {
     public static ProjectResponse toResponse(Project project) {
         return ProjectResponse.builder()
                 .id(project.getId())
+                .ownerId(project.getOwnerId())
                 .projectName(project.getProjectName())
                 .createdAt(project.getCreatedAt())
                 .build();
