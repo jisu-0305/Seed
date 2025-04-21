@@ -5,7 +5,7 @@ import org.example.backend.domain.gitlab.dto.*;
 import java.util.List;
 
 public interface GitlabService {
-    void registerToken(Long userId, String token);
+//    void registerToken(Long userId, String token);
 
     List<GitlabProjectDto> getProjects(Long userId);
 

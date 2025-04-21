@@ -27,10 +27,10 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public List<GitlabProjectDto> listProjects(String pat) {
+    public List<GitlabProjectDto> listProjects(String accessToken) {
         return webClient.get()
                 .uri(uriBuilder.projects(1, 100))
-                .header("PRIVATE-TOKEN", pat)
+                .headers(h -> h.setBearerAuth(accessToken))
                 .retrieve()
                 .bodyToFlux(GitlabProjectDto.class)
                 .collectList()
@@ -38,7 +38,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public List<GitlabTreeItemDto> listTree(String pat,
+    public List<GitlabTreeItemDto> listTree(String accessToken,
                                             Long projectId,
                                             String path,
                                             boolean recursive) {
@@ -47,7 +47,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
         return webClient.get()
                 .uri(uri)
-                .header("PRIVATE-TOKEN", pat)
+                .headers(h -> h.setBearerAuth(accessToken))
                 .retrieve()
                 .bodyToFlux(GitlabTreeItemDto.class)
                 .collectList()
@@ -55,7 +55,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public String getRawFile(String pat,
+    public String getRawFile(String accessToken,
                              Long projectId,
                              String path,
                              String ref) {
@@ -65,7 +65,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
         return webClient.get()
                 .uri(uri)
-                .header("PRIVATE-TOKEN", pat)
+                .headers(h -> h.setBearerAuth(accessToken))
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();

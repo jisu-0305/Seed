@@ -2,10 +2,8 @@ package org.example.backend.domain.gitlab.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.backend.common.util.CryptoUtil;
-import org.example.backend.domain.gitlab.dto.*;
-import org.example.backend.domain.gitlab.entity.GitlabToken;
-import org.example.backend.domain.gitlab.repository.GitlabTokenRepository;
+import org.example.backend.domain.gitlab.dto.GitlabProjectDto;
+import org.example.backend.domain.gitlab.dto.GitlabTreeItemDto;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -20,51 +18,32 @@ import java.util.List;
 public class GitlabServiceImpl implements GitlabService {
 
     private final UserRepository userRepository;
-    private final GitlabTokenRepository tokenRepo;
     private final GitlabApiClient apiClient;
-    private final CryptoUtil cryptoUtil;
-
-    @Override
-    public void registerToken(Long userId, String plainToken) {
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        String encrypted = cryptoUtil.encrypt(plainToken);
-
-        tokenRepo.findByUser_Id(userId).ifPresentOrElse(
-                existing -> {
-                    existing.changeToken(encrypted);
-                    tokenRepo.save(existing);
-                },
-                () -> tokenRepo.save(GitlabToken.of(user, encrypted))
-        );
-    }
 
     @Override
     public List<GitlabProjectDto> getProjects(Long userId) {
         String token = fetchToken(userId);
-        log.debug(">>>>>>>>>>> DECRYPTED PAT for user {}: {}", userId, token);
+        log.debug(">>>>>>>>>>>>>    사용자 {} 의 GitLab 토큰: {}", userId, token);
         return apiClient.listProjects(token);
     }
 
     @Override
-    public List<GitlabTreeItemDto> getTree(
-            Long userId, Long projectId, String path, boolean recursive) {
-
-        String pat = fetchToken(userId);
-        return apiClient.listTree(pat, projectId, path, recursive);
+    public List<GitlabTreeItemDto> getTree(Long userId, Long projectId, String path, boolean recursive) {
+        String token = fetchToken(userId);
+        return apiClient.listTree(token, projectId, path, recursive);
     }
 
     @Override
     public String getFile(Long userId, Long projectId, String path, String ref) {
-        String pat = fetchToken(userId);
-        return apiClient.getRawFile(pat, projectId, path, ref);
+        String token = fetchToken(userId);
+        return apiClient.getRawFile(token, projectId, path, ref);
     }
 
     private String fetchToken(Long userId) {
-        return tokenRepo.findByUser_Id(userId)
-                .map(token -> token.getDecryptedToken(cryptoUtil))
-                .orElseThrow(() -> new BusinessException(ErrorCode.OAUTH_TOKEN_FORBIDDEN));
+        return userRepository.findById(userId)
+                .map(User::getAccessToken)                   // User.accessToken 필드에서 꺼내고
+                .filter(t -> !t.isBlank())                   // 비어있지 않은지 확인
+                .orElseThrow(() -> new BusinessException(
+                        ErrorCode.OAUTH_TOKEN_FORBIDDEN));   // 없거나 공백이면 예외
     }
 }
