@@ -22,8 +22,9 @@ public class Project {
 
     private LocalDateTime createdAt;
 
-    public static Project create(String projectName) {
+    public static Project create(Long ownerId, String projectName) {
         return Project.builder()
+                .ownerId(ownerId)
                 .projectName(projectName)
                 .createdAt(LocalDateTime.now())
                 .build();

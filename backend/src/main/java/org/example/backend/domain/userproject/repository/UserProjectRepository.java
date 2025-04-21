@@ -9,4 +9,5 @@ public interface UserProjectRepository extends JpaRepository<UserProject, Long> 
     boolean existsByProjectIdAndUserId(Long projectId, Long userId);
     List<UserProject> findByProjectId(Long projectId);
     List<UserProject> findByUserId(Long userId);
+    void deleteAllByProjectId(Long projectId);
 }
