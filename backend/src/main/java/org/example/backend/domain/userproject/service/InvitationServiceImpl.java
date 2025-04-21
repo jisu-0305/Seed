@@ -39,7 +39,7 @@
             }
 
             if (!userProjectRepository.existsByProjectIdAndUserId(request.getProjectId(), senderId)) {
-                throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
+                throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
             }
 
             if (invitationRepository.existsByProjectIdAndReceiverId(request.getProjectId(), request.getReceiverId())) {

@@ -2,6 +2,8 @@ package org.example.backend.domain.gitlab.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.common.session.RedisSessionManager;
+import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.user.entity.User;
@@ -18,32 +20,51 @@ import java.util.List;
 public class GitlabServiceImpl implements GitlabService {
 
     private final UserRepository userRepository;
-    private final GitlabApiClient apiClient;
+    private final GitlabApiClient gitlabApiClient;
+    private final RedisSessionManager redisSessionManager;
 
     @Override
-    public List<GitlabProject> getProjects(Long userId) {
-        String token = fetchToken(userId);
-        log.debug(">>>>>>>>>>>>>    사용자 {} 의 GitLab 토큰: {}", userId, token);
-        return apiClient.listProjects(token);
+    public List<GitlabProject> getProjects(String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        return gitlabApiClient.listProjects(user.getAccessToken());
     }
 
     @Override
-    public List<GitlabTree> getTree(Long userId, Long projectId, String path, boolean recursive) {
-        String token = fetchToken(userId);
-        return apiClient.listTree(token, projectId, path, recursive);
+    public List<GitlabTree> getTree(String accessToken, Long projectId, String path, boolean recursive) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        return gitlabApiClient.listTree(user.getAccessToken(), projectId, path, recursive);
     }
 
     @Override
-    public String getFile(Long userId, Long projectId, String path, String ref) {
-        String token = fetchToken(userId);
-        return apiClient.getRawFile(token, projectId, path, ref);
-    }
+    public String getFile(String accessToken, Long projectId, String path, String ref) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
 
-    private String fetchToken(Long userId) {
-        return userRepository.findById(userId)
-                .map(User::getAccessToken) // User.accessToken 필드에서 꺼내고
-                .filter(t -> !t.isBlank()) // 비어있지 않은지 확인하고
-                .orElseThrow(() -> new BusinessException(
-                        ErrorCode.OAUTH_TOKEN_FORBIDDEN)); // 없거나 공백이면 예외하기
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        return gitlabApiClient.getRawFile(user.getAccessToken(), projectId, path, ref);
     }
 }

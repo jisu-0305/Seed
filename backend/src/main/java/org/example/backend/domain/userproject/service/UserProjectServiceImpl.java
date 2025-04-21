@@ -27,7 +27,7 @@ public class UserProjectServiceImpl implements UserProjectService {
         Long userId = session.getUserId();
 
         if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
         }
 
         List<Long> userIdList = userProjectRepository.findByProjectId(projectId).stream()
