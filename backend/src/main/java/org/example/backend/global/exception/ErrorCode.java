@@ -15,6 +15,7 @@ public enum ErrorCode {
 
     // 3xxx: 리소스(자원) 관련 오류
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "요청한 자원을 찾을 수 없습니다."),
+    PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, 3002, "프로젝트를 찾을 수 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
     GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3201, "GitLab API 요청이 실패했습니다."),
