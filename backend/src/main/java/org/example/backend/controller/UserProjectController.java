@@ -23,7 +23,7 @@ public class UserProjectController {
     @GetMapping("/project/{projectId}")
     @Operation(summary = "프로젝트 참여자 목록 조회", description = "프로젝트 ID로 참여한 사용자 ID들을 조회합니다.", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<UserProjectListResponse>> getUsersByProjectId(@PathVariable Long projectId, @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
-        UserProjectListResponse result = userProjectService.getUserIdsByProjectId(projectId, accessToken);
+        UserProjectListResponse result = userProjectService.getUserIdListByProjectId(projectId, accessToken);
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 }

@@ -57,11 +57,11 @@ public class ProjectServiceImpl implements ProjectService {
         Long userId = getUserIdFromAccessToken(accessToken);
 
         List<UserProject> mappings = userProjectRepository.findByUserId(userId);
-        List<Long> projectIds = mappings.stream()
+        List<Long> projectIdList = mappings.stream()
                 .map(UserProject::getProjectId)
                 .toList();
 
-        return projectRepository.findAllById(projectIds).stream()
+        return projectRepository.findAllById(projectIdList).stream()
                 .map(ProjectMapper::toResponse)
                 .toList();
     }

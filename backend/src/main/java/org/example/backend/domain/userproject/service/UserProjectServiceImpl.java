@@ -35,10 +35,10 @@ public class UserProjectServiceImpl implements UserProjectService {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
-        List<Long> userIds = userProjectRepository.findByProjectId(projectId).stream()
+        List<Long> userIdList = userProjectRepository.findByProjectId(projectId).stream()
                 .map(userProject -> userProject.getUserId())
                 .toList();
 
-        return toListResponse(projectId, userIds);
+        return toListResponse(projectId, userIdList);
     }
 }
