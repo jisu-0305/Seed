@@ -43,7 +43,7 @@ public class RedisSessionManager {
 
     public SessionInfoDto getSession(String jwtToken) {
         // 1) Bearer 접두사 제거
-        String token = jwtToken.substring(7);
+        String token = jwtToken.substring(7).trim();
 
         // 2) JWT에서 userId 추출
         String userId = jwtTokenProvider.getSubjectFromToken(token);
@@ -64,7 +64,8 @@ public class RedisSessionManager {
     }
 
     public void deleteSession(String jwtToken) {
-        String userId = jwtTokenProvider.getSubjectFromToken(jwtToken);
+        String token = jwtToken.substring(7).trim();
+        String userId = jwtTokenProvider.getSubjectFromToken(token);
         String sessionKey = SESSION_PREFIX + userId;
         redisTemplate.delete(sessionKey);
         log.info("Session deleted for userId: {}", userId);
