@@ -4,5 +4,5 @@ import org.example.backend.controller.response.userproject.UserProjectListRespon
 
 
 public interface UserProjectService {
-    UserProjectListResponse getUserIdsByProjectId(Long projectId, String accessToken);
+    UserProjectListResponse getUserIdListByProjectId(Long projectId, String accessToken);
 }

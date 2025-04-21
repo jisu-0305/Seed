@@ -21,7 +21,7 @@ public class UserProjectServiceImpl implements UserProjectService {
     private final RedisSessionManager redisSessionManager;
 
     @Override
-    public UserProjectListResponse getUserIdsByProjectId(Long projectId, String accessToken) {
+    public UserProjectListResponse getUserIdListByProjectId(Long projectId, String accessToken) {
         String jwtToken = accessToken.replace("Bearer", "").trim();
         SessionInfoDto session = redisSessionManager.getSession(jwtToken);
         if (session == null) {
@@ -32,7 +32,7 @@ public class UserProjectServiceImpl implements UserProjectService {
 
         boolean isMember = userProjectRepository.existsByProjectIdAndUserId(projectId, userId);
         if (!isMember) {
-            throw new BusinessException(ErrorCode.FORBIDDEN); // 혹은 ErrorCode.NOT_PROJECT_MEMBER 같은 코드로 구체화 가능
+            throw new BusinessException(ErrorCode.FORBIDDEN);
         }
 
         List<Long> userIds = userProjectRepository.findByProjectId(projectId).stream()
