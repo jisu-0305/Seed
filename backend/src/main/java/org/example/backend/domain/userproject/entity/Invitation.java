@@ -1,15 +1,12 @@
 package org.example.backend.domain.userproject.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Data
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -28,4 +25,14 @@ public class Invitation {
     private LocalDateTime createdAt;
 
     private LocalDateTime expiresAt;
+
+    public static Invitation create(Long projectId, Long senderId, Long receiverId) {
+        return Invitation.builder()
+                .projectId(projectId)
+                .senderId(senderId)
+                .receiverId(receiverId)
+                .createdAt(LocalDateTime.now())
+                .expiresAt(LocalDateTime.now().plusDays(7))
+                .build();
+    }
 }
