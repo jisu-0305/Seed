@@ -19,7 +19,7 @@ public class UserController {
     private final GitlabOauthService gitlabOauthService;
 
     @GetMapping("/oauth/gitlab/login")
-    public void gitlabLogin(
+    public ResponseEntity<ApiResponse<Void>> gitlabLogin(
             HttpServletResponse httpServletResponse,
             @RequestHeader(value = "Authorization", required = false) String accessToken) throws IOException {
 
@@ -29,6 +29,8 @@ public class UserController {
             String authorizationUrl = gitlabOauthService.buildGitlabAuthorizationUrl();
             httpServletResponse.sendRedirect(authorizationUrl);
         }
+
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     @GetMapping("/oauth/gitlab/callback")
