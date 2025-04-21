@@ -15,6 +15,7 @@
     import org.springframework.stereotype.Service;
     import org.springframework.transaction.annotation.Transactional;
 
+    import java.time.LocalDateTime;
     import java.util.List;
 
     import static org.example.backend.domain.userproject.mapper.InvitationMapper.toResponse;
@@ -103,7 +104,10 @@
         @Transactional(readOnly = true)
         public List<InvitationResponse> getReceivedInvitations(String accessToken) {
             Long receiverId = getUserIdFromToken(accessToken);
-            return invitationRepository.findByReceiverId(receiverId).stream()
+
+            return invitationRepository
+                    .findByReceiverIdAndExpiresAtAfter(receiverId, LocalDateTime.now())
+                    .stream()
                     .map(InvitationMapper::toResponse)
                     .toList();
         }

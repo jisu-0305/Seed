@@ -9,5 +9,5 @@ import java.util.List;
 @Builder
 public class UserProjectListResponse {
     private Long projectId;
-    private List<Long> userIds;
+    private List<Long> userIdList;
 }

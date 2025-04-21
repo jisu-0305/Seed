@@ -6,10 +6,10 @@ import java.util.List;
 
 public class UserProjectMapper {
 
-    public static UserProjectListResponse toListResponse(Long projectId, List<Long> userIds) {
+    public static UserProjectListResponse toListResponse(Long projectId, List<Long> userIdList) {
         return UserProjectListResponse.builder()
                 .projectId(projectId)
-                .userIds(userIds)
+                .userIdList(userIdList)
                 .build();
     }
 }
