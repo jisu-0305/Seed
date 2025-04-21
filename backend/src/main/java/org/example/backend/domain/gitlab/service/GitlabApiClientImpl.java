@@ -1,12 +1,12 @@
 package org.example.backend.domain.gitlab.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -17,21 +17,17 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class GitlabApiClientImpl implements GitlabApiClient {
 
-    private final WebClient webClient;
+    private final WebClient gitlabWebClient;
     private final GitlabUriBuilder uriBuilder;
-
-    public GitlabApiClientImpl(@Qualifier("gitlabWebClient") WebClient webClient, GitlabUriBuilder uriBuilder) {
-        this.webClient = webClient;
-        this.uriBuilder = uriBuilder;
-    }
 
     @Override
     public List<GitlabProject> listProjects(String accessToken) {
         List<GitlabProject> projects;
         try {
-            projects = webClient.get().uri(uriBuilder.projects(1, 100)).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToFlux(GitlabProject.class).collectList().block();
+            projects = gitlabWebClient.get().uri(uriBuilder.projects(1, 100)).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToFlux(GitlabProject.class).collectList().block();
         } catch (Exception e) {
             if (e instanceof WebClientResponseException && ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
@@ -49,7 +45,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         log.debug(">>>>>> listTree URI = {}", uri);
 
         try {
-            tree = webClient.get().uri(uri).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToFlux(GitlabTree.class).collectList().block();
+            tree = gitlabWebClient.get().uri(uri).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToFlux(GitlabTree.class).collectList().block();
         } catch (Exception e) {
             if (e instanceof WebClientResponseException && ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
@@ -67,7 +63,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         log.debug(">>>>>>>>> getRawFile URI = {}", uri);
 
         try {
-            content = webClient.get().uri(uri).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToMono(String.class).block();
+            content = gitlabWebClient.get().uri(uri).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToMono(String.class).block();
         } catch (Exception e) {
             if (e instanceof WebClientResponseException && ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
