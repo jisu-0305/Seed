@@ -39,6 +39,13 @@ public class ProjectServiceImpl implements ProjectService {
                 .collect(Collectors.toList());
     }
 
+    @Override
+    public void deleteProject(Long id) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+        projectRepository.delete(project);
+    }
+
     private ProjectResponse toDto(Project project) {
         return ProjectResponse.from(
                 project.getId(),
