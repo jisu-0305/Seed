@@ -5,9 +5,10 @@ import org.example.backend.controller.request.project.ProjectCreateRequest;
 import org.example.backend.controller.response.project.ProjectResponse;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.repository.ProjectRepository;
+import org.example.backend.global.exception.BusinessException;
+import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,7 +28,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public ProjectResponse getProject(Long id) {
         Project project = projectRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Project not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
         return toDto(project);
     }
 
