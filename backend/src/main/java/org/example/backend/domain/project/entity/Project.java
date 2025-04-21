@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 
 @Entity
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "projects")
@@ -22,4 +21,11 @@ public class Project {
     private String projectName;
 
     private LocalDateTime createdAt;
+
+    public static Project create(String projectName) {
+        Project project = new Project();
+        project.projectName = projectName;
+        project.createdAt = LocalDateTime.now();
+        return project;
+    }
 }
