@@ -8,10 +8,8 @@ import org.example.backend.domain.user.entity.User;
 import java.time.LocalDateTime;
 
 @Entity
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "gitlab_tokens",
         uniqueConstraints = @UniqueConstraint(name = "uk_gitlab_token_user", columnNames = "user_id"))
 public class GitlabToken {
@@ -32,12 +30,12 @@ public class GitlabToken {
     private LocalDateTime updatedAt;
 
     public static GitlabToken of(User user, String encryptedToken) {
-        return GitlabToken.builder()
-                .user(user)
-                .encryptedToken(encryptedToken)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
+        GitlabToken token = new GitlabToken();
+        token.user = user;
+        token.encryptedToken = encryptedToken;
+        token.createdAt = LocalDateTime.now();
+        token.updatedAt = LocalDateTime.now();
+        return token;
     }
 
     @PreUpdate
