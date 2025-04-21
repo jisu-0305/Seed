@@ -27,22 +27,6 @@ public class ProjectServiceImpl implements ProjectService {
     private final UserProjectRepository userProjectRepository;
     private final RedisSessionManager redisSessionManager;
 
-    private Long getUserIdFromAccessToken(String rawAccessToken) {
-        String jwtToken = rawAccessToken.replace("Bearer", "").trim();
-        SessionInfoDto session = redisSessionManager.getSession(jwtToken);
-        if (session == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-        return session.getUserId();
-    }
-
-    private void validateUserAccess(Long projectId, Long userId) {
-        boolean exists = userProjectRepository.existsByProjectIdAndUserId(projectId, userId);
-        if (!exists) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
-        }
-    }
-
     @Override
     @Transactional
     public ProjectResponse createProject(ProjectCreateRequest request, String accessToken) {
@@ -92,6 +76,22 @@ public class ProjectServiceImpl implements ProjectService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
         projectRepository.delete(project);
+    }
+
+    private Long getUserIdFromAccessToken(String rawAccessToken) {
+        String jwtToken = rawAccessToken.replace("Bearer", "").trim();
+        SessionInfoDto session = redisSessionManager.getSession(jwtToken);
+        if (session == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        return session.getUserId();
+    }
+
+    private void validateUserAccess(Long projectId, Long userId) {
+        boolean exists = userProjectRepository.existsByProjectIdAndUserId(projectId, userId);
+        if (!exists) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
     }
 
 }

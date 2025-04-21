@@ -28,13 +28,6 @@
         private final UserProjectRepository userProjectRepository;
         private final RedisSessionManager redisSessionManager;
 
-        private Long getUserIdFromToken(String rawToken) {
-            String jwtToken = rawToken.replace("Bearer", "").trim();
-            SessionInfoDto session = redisSessionManager.getSession(jwtToken);
-            if (session == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
-            return session.getUserId();
-        }
-
         @Override
         @Transactional
         public InvitationResponse sendInvitation(InvitationRequest request, String accessToken) {
@@ -110,5 +103,12 @@
                     .stream()
                     .map(InvitationMapper::toResponse)
                     .toList();
+        }
+
+        private Long getUserIdFromToken(String rawToken) {
+            String jwtToken = rawToken.replace("Bearer", "").trim();
+            SessionInfoDto session = redisSessionManager.getSession(jwtToken);
+            if (session == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
+            return session.getUserId();
         }
     }
