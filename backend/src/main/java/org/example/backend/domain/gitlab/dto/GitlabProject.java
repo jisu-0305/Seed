@@ -5,10 +5,10 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class GitlabProjectDto {
+public class GitlabProject {
     private Long id;
     private String name;
-    private String path_with_namespace;
+    private String pathWithNamespace;
     private String visibility;
-    private String http_url_to_repo;
+    private String httpUrlToRepo;
 }

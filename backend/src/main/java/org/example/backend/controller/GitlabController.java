@@ -3,8 +3,8 @@ package org.example.backend.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.common.session.SessionInfo;
 import org.example.backend.common.session.dto.SessionInfoDto;
-import org.example.backend.domain.gitlab.dto.GitlabProjectDto;
-import org.example.backend.domain.gitlab.dto.GitlabTreeItemDto;
+import org.example.backend.domain.gitlab.dto.GitlabProject;
+import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
@@ -20,21 +20,21 @@ public class GitlabController {
     private final GitlabService gitlabService;
 
     @GetMapping("/projects")
-    public ResponseEntity<ApiResponse<List<GitlabProjectDto>>> listProjects(
+    public ResponseEntity<ApiResponse<List<GitlabProject>>> listProjects(
             @SessionInfo SessionInfoDto session) {
 
-        List<GitlabProjectDto> projects = gitlabService.getProjects(session.getUserId());
+        List<GitlabProject> projects = gitlabService.getProjects(session.getUserId());
         return ResponseEntity.ok(ApiResponse.success(projects));
     }
 
     @GetMapping("/projects/{id}/tree")
-    public ResponseEntity<ApiResponse<List<GitlabTreeItemDto>>> listTree(
+    public ResponseEntity<ApiResponse<List<GitlabTree>>> listTree(
             @PathVariable Long id,
             @RequestParam(defaultValue = "") String path,
             @RequestParam(defaultValue = "true") boolean recursive, //기본적으로 모든 트리구조 불러오기
             @SessionInfo SessionInfoDto session) {
 
-        List<GitlabTreeItemDto> tree = gitlabService.getTree(
+        List<GitlabTree> tree = gitlabService.getTree(
                 session.getUserId(), id, path, recursive);
         return ResponseEntity.ok(ApiResponse.success(tree));
     }

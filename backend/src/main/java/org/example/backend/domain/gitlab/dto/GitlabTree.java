@@ -6,7 +6,7 @@ import lombok.*;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class GitlabTreeItemDto {
+public class GitlabTree {
     private String id;
     private String name; // 파일 또는 디렉토리 이름
     private String path; // 루트기준 path

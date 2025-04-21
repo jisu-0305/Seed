@@ -2,8 +2,8 @@ package org.example.backend.domain.gitlab.service;
 
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
-import org.example.backend.domain.gitlab.dto.GitlabProjectDto;
-import org.example.backend.domain.gitlab.dto.GitlabTreeItemDto;
+import org.example.backend.domain.gitlab.dto.GitlabProject;
+import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,21 +27,21 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public List<GitlabProjectDto> listProjects(String accessToken) {
+    public List<GitlabProject> listProjects(String accessToken) {
         return webClient.get()
                 .uri(uriBuilder.projects(1, 100))
                 .headers(h -> h.setBearerAuth(accessToken))
                 .retrieve()
-                .bodyToFlux(GitlabProjectDto.class)
+                .bodyToFlux(GitlabProject.class)
                 .collectList()
                 .block();
     }
 
     @Override
-    public List<GitlabTreeItemDto> listTree(String accessToken,
-                                            Long projectId,
-                                            String path,
-                                            boolean recursive) {
+    public List<GitlabTree> listTree(String accessToken,
+                                     Long projectId,
+                                     String path,
+                                     boolean recursive) {
         String uri = uriBuilder.repositoryTree(projectId, path, recursive, 1, 100);
         log.debug(">>>>>> listTree URI = {}", uri);
 
@@ -49,7 +49,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                 .uri(uri)
                 .headers(h -> h.setBearerAuth(accessToken))
                 .retrieve()
-                .bodyToFlux(GitlabTreeItemDto.class)
+                .bodyToFlux(GitlabTree.class)
                 .collectList()
                 .block();
     }

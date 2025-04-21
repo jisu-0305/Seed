@@ -1,14 +1,14 @@
 package org.example.backend.domain.gitlab.service;
 
-import org.example.backend.domain.gitlab.dto.GitlabProjectDto;
-import org.example.backend.domain.gitlab.dto.GitlabTreeItemDto;
+import org.example.backend.domain.gitlab.dto.GitlabProject;
+import org.example.backend.domain.gitlab.dto.GitlabTree;
 
 import java.util.List;
 
 public interface GitlabApiClient {
-    List<GitlabProjectDto> listProjects(String pat);
+    List<GitlabProject> listProjects(String pat);
 
-    List<GitlabTreeItemDto> listTree(String pat, Long projectId, String path, boolean recursive);
+    List<GitlabTree> listTree(String pat, Long projectId, String path, boolean recursive);
 
     String getRawFile(String pat, Long projectId, String path, String ref);
 }
