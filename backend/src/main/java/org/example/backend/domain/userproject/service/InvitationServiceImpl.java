@@ -31,21 +31,18 @@
         @Override
         @Transactional
         public InvitationResponse sendInvitation(InvitationRequest request, String accessToken) {
-            Long senderId = getUserIdFromToken(accessToken);
+            SessionInfoDto session = redisSessionManager.getSession(accessToken);
+            Long senderId = session.getUserId();
 
             if (senderId.equals(request.getReceiverId())) {
                 throw new BusinessException(ErrorCode.CANNOT_INVITE_SELF);
             }
 
-            boolean isSenderMember = userProjectRepository.existsByProjectIdAndUserId(request.getProjectId(), senderId);
-            if (!isSenderMember) {
-                throw new BusinessException(ErrorCode.FORBIDDEN);
+            if (!userProjectRepository.existsByProjectIdAndUserId(request.getProjectId(), senderId)) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
             }
 
-            boolean alreadyInvited = invitationRepository.existsByProjectIdAndReceiverId(
-                    request.getProjectId(), request.getReceiverId()
-            );
-            if (alreadyInvited) {
+            if (invitationRepository.existsByProjectIdAndReceiverId(request.getProjectId(), request.getReceiverId())) {
                 throw new BusinessException(ErrorCode.DUPLICATE_INVITATION);
             }
 
@@ -54,13 +51,15 @@
             );
 
             Invitation saved = invitationRepository.save(invitation);
+
             return toResponse(saved);
         }
 
         @Override
         @Transactional
         public void acceptInvitation(Long invitationId, String accessToken) {
-            Long userId = getUserIdFromToken(accessToken);
+            SessionInfoDto session = redisSessionManager.getSession(accessToken);
+            Long userId = session.getUserId();
 
             Invitation invitation = invitationRepository.findById(invitationId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.INVITATION_NOT_FOUND));
@@ -81,7 +80,8 @@
         @Override
         @Transactional
         public void rejectInvitation(Long invitationId, String accessToken) {
-            Long userId = getUserIdFromToken(accessToken);
+            SessionInfoDto session = redisSessionManager.getSession(accessToken);
+            Long userId = session.getUserId();
 
             Invitation invitation = invitationRepository.findById(invitationId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.INVITATION_NOT_FOUND));
@@ -96,19 +96,13 @@
         @Override
         @Transactional(readOnly = true)
         public List<InvitationResponse> getReceivedInvitations(String accessToken) {
-            Long receiverId = getUserIdFromToken(accessToken);
+            SessionInfoDto session = redisSessionManager.getSession(accessToken);
+            Long receiverId = session.getUserId();
 
             return invitationRepository
                     .findByReceiverIdAndExpiresAtAfter(receiverId, LocalDateTime.now())
                     .stream()
                     .map(InvitationMapper::toResponse)
                     .toList();
-        }
-
-        private Long getUserIdFromToken(String rawToken) {
-            String jwtToken = rawToken.replace("Bearer", "").trim();
-            SessionInfoDto session = redisSessionManager.getSession(jwtToken);
-            if (session == null) throw new BusinessException(ErrorCode.UNAUTHORIZED);
-            return session.getUserId();
         }
     }

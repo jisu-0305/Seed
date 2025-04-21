@@ -6,6 +6,8 @@ import org.example.backend.common.jwt.JwtTokenProvider;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.enums.ProviderType;
+import org.example.backend.global.exception.BusinessException;
+import org.example.backend.global.exception.ErrorCode;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -40,15 +42,25 @@ public class RedisSessionManager {
     }
 
     public SessionInfoDto getSession(String jwtToken) {
-        String userId = jwtTokenProvider.getSubjectFromToken(jwtToken);
+        // 1) Bearer 접두사 제거
+        String token = jwtToken.substring(7);
+
+        // 2) JWT에서 userId 추출
+        String userId = jwtTokenProvider.getSubjectFromToken(token);
         String sessionKey = SESSION_PREFIX + userId;
+
+        // 3) Redis에서 세션 객체 조회
         Object sessionObj = redisTemplate.opsForValue().get(sessionKey);
-        if (sessionObj instanceof SessionInfoDto sessionInfoDto) {
+
+        // 4) 타입 검사 + 반환
+        if (sessionObj instanceof SessionInfoDto sessionInfo) {
             log.info("Session retrieved for userId: {}", userId);
-            return sessionInfoDto;
+            return sessionInfo;
         }
-        log.warn("No session found for userId: {}", userId);
-        return null;
+
+        // 5) 없거나 타입이 맞지 않으면 인증 실패
+        log.warn("No valid session found for userId: {}", userId);
+        throw new BusinessException(ErrorCode.UNAUTHORIZED);
     }
 
     public void deleteSession(String jwtToken) {

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.response.userproject.UserProjectListResponse;
+import org.example.backend.domain.userproject.entity.UserProject;
 import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
@@ -22,21 +23,15 @@ public class UserProjectServiceImpl implements UserProjectService {
 
     @Override
     public UserProjectListResponse getUserIdListByProjectId(Long projectId, String accessToken) {
-        String jwtToken = accessToken.replace("Bearer", "").trim();
-        SessionInfoDto session = redisSessionManager.getSession(jwtToken);
-        if (session == null) {
-            throw new BusinessException(ErrorCode.UNAUTHORIZED);
-        }
-
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
-        boolean isMember = userProjectRepository.existsByProjectIdAndUserId(projectId, userId);
-        if (!isMember) {
-            throw new BusinessException(ErrorCode.FORBIDDEN);
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_USER_PROJECT);
         }
 
         List<Long> userIdList = userProjectRepository.findByProjectId(projectId).stream()
-                .map(userProject -> userProject.getUserId())
+                .map(UserProject::getUserId)
                 .toList();
 
         return toListResponse(projectId, userIdList);
