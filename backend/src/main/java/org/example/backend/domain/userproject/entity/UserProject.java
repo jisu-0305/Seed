@@ -1,13 +1,10 @@
 package org.example.backend.domain.userproject.entity;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
-@Data
+@Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,4 +17,11 @@ public class UserProject {
     private Long projectId;
 
     private Long userId;
+
+    public static UserProject create(Long projectId, Long userId) {
+        return UserProject.builder()
+                .projectId(projectId)
+                .userId(userId)
+                .build();
+    }
 }
