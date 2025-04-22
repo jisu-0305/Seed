@@ -5,8 +5,8 @@
     import org.example.backend.common.session.dto.SessionInfoDto;
     import org.example.backend.controller.request.userProject.InvitationRequest;
     import org.example.backend.controller.response.userproject.InvitationResponse;
-    import org.example.backend.domain.fcm.entity.NotificationType;
     import org.example.backend.domain.fcm.service.NotificationService;
+    import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
     import org.example.backend.domain.project.repository.ProjectRepository;
     import org.example.backend.domain.userproject.entity.Invitation;
     import org.example.backend.domain.userproject.entity.UserProject;
@@ -58,7 +58,7 @@
             Invitation saved = invitationRepository.save(invitation);
 
             String projectName = projectRepository.findProjectNameById(request.getProjectId());
-            notificationService.notifyUsers(List.of(request.getReceiverId()), NotificationType.INVITATION_CREATED, projectName);
+            notificationService.notifyUsers(List.of(request.getReceiverId()), NotificationMessageTemplate.INVITATION_CREATED, projectName);
 
             return toResponse(saved);
         }
@@ -89,7 +89,7 @@
                     .filter(id -> !id.equals(userId))
                     .toList();
 
-            notificationService.notifyUsers(otherUserIdList, NotificationType.INVITATION_ACCEPTED, projectName);
+            notificationService.notifyUsers(otherUserIdList, NotificationMessageTemplate.INVITATION_ACCEPTED, projectName);
         }
 
         @Override
