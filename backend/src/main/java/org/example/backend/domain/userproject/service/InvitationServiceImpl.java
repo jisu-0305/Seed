@@ -5,6 +5,9 @@
     import org.example.backend.common.session.dto.SessionInfoDto;
     import org.example.backend.controller.request.userProject.InvitationRequest;
     import org.example.backend.controller.response.userproject.InvitationResponse;
+    import org.example.backend.domain.fcm.entity.NotificationType;
+    import org.example.backend.domain.fcm.service.NotificationService;
+    import org.example.backend.domain.project.repository.ProjectRepository;
     import org.example.backend.domain.userproject.entity.Invitation;
     import org.example.backend.domain.userproject.entity.UserProject;
     import org.example.backend.domain.userproject.mapper.InvitationMapper;
@@ -27,6 +30,8 @@
         private final InvitationRepository invitationRepository;
         private final UserProjectRepository userProjectRepository;
         private final RedisSessionManager redisSessionManager;
+        private final NotificationService notificationService;
+        private final ProjectRepository projectRepository;
 
         @Override
         @Transactional
@@ -52,6 +57,9 @@
 
             Invitation saved = invitationRepository.save(invitation);
 
+            String projectName = projectRepository.findProjectNameById(request.getProjectId());
+            notificationService.notifyUsers(List.of(request.getReceiverId()), NotificationType.INVITATION_CREATED, projectName);
+
             return toResponse(saved);
         }
 
@@ -75,6 +83,13 @@
             UserProject userProject = UserProject.create(invitation.getProjectId(), userId);
             userProjectRepository.save(userProject);
             invitationRepository.delete(invitation);
+
+            String projectName = projectRepository.findProjectNameById(invitation.getProjectId());
+            List<Long> otherUserIdList = userProjectRepository.findUserIdsByProjectId(invitation.getProjectId()).stream()
+                    .filter(id -> !id.equals(userId))
+                    .toList();
+
+            notificationService.notifyUsers(otherUserIdList, NotificationType.INVITATION_ACCEPTED, projectName);
         }
 
         @Override
