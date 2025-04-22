@@ -2,6 +2,7 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
@@ -45,8 +46,20 @@ public class GitlabController {
             @RequestParam(defaultValue = "main") String ref,
             @RequestHeader("Authorization") String accessToken) {
 
-        String content = gitlabService.getFile(
-                accessToken, id, path, ref);
+        String content = gitlabService.getFile(accessToken, id, path, ref);
         return ResponseEntity.ok(ApiResponse.success(content));
     }
+
+    @GetMapping("/diff")
+    public ResponseEntity<ApiResponse<GitlabCompareResponse>> getDiff(
+            @RequestParam("projectId") Long projectId,
+            @RequestParam("from") String from,
+            @RequestParam("to") String to,
+            @RequestHeader("Authorization") String accessToken) {
+
+        GitlabCompareResponse diff = gitlabService.getDiff(accessToken, projectId, from, to);
+
+        return ResponseEntity.ok(ApiResponse.success(diff));
+    }
+
 }
