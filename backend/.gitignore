@@ -38,3 +38,6 @@ out/
 
 ### 🔐 PEM 파일 저장 폴더 ###
 /keys/
+
+# Firebase service key
+src/main/resources/firebase/serviceAccountKey.json

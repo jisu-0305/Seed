@@ -34,6 +34,7 @@ public enum ErrorCode {
     DOCKER_PORTS_FAILED(HttpStatus.BAD_REQUEST, 3215, "default port를 불러오는 데 싫패했습니다"),
     DOCKER_SEARCH_API_FAILED(HttpStatus.BAD_REQUEST, 3216, "도커 이미지 검색 api 요청이 실패했습니다."),
     DOCKER_TAGS_API_FAILED(HttpStatus.BAD_REQUEST, 3217, "도커 이미지 태그 검색 api 요청이 실패했습니다."),
+    UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3218, "지원하지 않는 알림 타입입니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
@@ -41,7 +42,8 @@ public enum ErrorCode {
     OAUTH_TOKEN_FORBIDDEN(HttpStatus.NOT_FOUND, 4101, "Oauth 토큰 발급에 실패했습니다."),
 
     // 6xxx: 내부 서버 오류
-    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 6001, "내부 서버 오류입니다.");
+    INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 6001, "내부 서버 오류입니다."),
+    FCM_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6002, "FCM 메시지 전송에 실패했습니다.");
 
     private final HttpStatus status;
     private final int code;
