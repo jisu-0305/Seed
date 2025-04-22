@@ -13,6 +13,9 @@ public class WebClientConfig {
     @Value("${gitlab.api.base-url}")
     private String gitlabApiBaseUrl;
 
+    @Value("${docker.hub.api.base-url}")
+    private String dockerHubApiBaseUrl;
+
     @Bean("webClient")
     public WebClient webClient() {
         return WebClient.builder().build();
@@ -22,6 +25,14 @@ public class WebClientConfig {
     public WebClient gitlabWebClient() {
         return WebClient.builder()
                 .baseUrl(gitlabApiBaseUrl)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean("dockerHubWebClient")
+    public WebClient dockerHubWebClient() {
+        return WebClient.builder()
+                .baseUrl(dockerHubApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }

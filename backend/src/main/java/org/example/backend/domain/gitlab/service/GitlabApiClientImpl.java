@@ -26,10 +26,16 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     @Override
     public List<GitlabProject> listProjects(String accessToken) {
         List<GitlabProject> projects;
+        String uri =uriBuilder.projects(1, 100);
         try {
-            projects = gitlabWebClient.get().uri(uriBuilder.projects(1, 100)).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToFlux(GitlabProject.class).collectList().block();
+            projects = gitlabWebClient.get().uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve().bodyToFlux(GitlabProject.class)
+                    .collectList()
+                    .block();
         } catch (Exception e) {
-            if (e instanceof WebClientResponseException && ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
+            if (e instanceof WebClientResponseException &&
+                    ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             log.error("listProjects 메서드에서 예외 발생", e);
@@ -45,9 +51,15 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         log.debug(">>>>>> listTree URI = {}", uri);
 
         try {
-            tree = gitlabWebClient.get().uri(uri).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToFlux(GitlabTree.class).collectList().block();
+            tree = gitlabWebClient.get().uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToFlux(GitlabTree.class)
+                    .collectList()
+                    .block();
         } catch (Exception e) {
-            if (e instanceof WebClientResponseException && ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
+            if (e instanceof WebClientResponseException &&
+                    ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             log.error("listTree 메서드에서 예외 발생", e);
@@ -63,9 +75,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         log.debug(">>>>>>>>> getRawFile URI = {}", uri);
 
         try {
-            content = gitlabWebClient.get().uri(uri).headers(h -> h.setBearerAuth(accessToken)).retrieve().bodyToMono(String.class).block();
+            content = gitlabWebClient.get().uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(String.class)
+                    .block();
         } catch (Exception e) {
-            if (e instanceof WebClientResponseException && ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
+            if (e instanceof WebClientResponseException &&
+                    ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             log.error("getRawFile 메서드에서 예외 발생", e);
