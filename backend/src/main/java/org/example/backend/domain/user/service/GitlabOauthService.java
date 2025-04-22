@@ -6,4 +6,6 @@ public interface GitlabOauthService {
     String getAccessToken(String code);
 
     void logout(String authorizationHeader);
+
+    boolean login(String accessToken);
 }

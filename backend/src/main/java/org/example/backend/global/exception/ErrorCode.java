@@ -19,13 +19,22 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
     GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3203, "GitLab API 요청이 실패했습니다."),
+
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3204, "초대를 찾을 수 없습니다."),
     ALREADY_JOINED_PROJECT(HttpStatus.BAD_REQUEST, 3205, "이미 참여 중인 프로젝트입니다."),
     DUPLICATE_INVITATION(HttpStatus.BAD_REQUEST, 3206, "이미 초대된 사용자입니다."),
     CANNOT_INVITE_SELF(HttpStatus.BAD_REQUEST, 3207, "자기 자신에게는 초대를 보낼 수 없습니다."),
     USER_PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, 3208, "프로젝트에 참여하지 않은 사용자입니다."),
     OAUTH_TOKEN_NOT_FOUND(HttpStatus.NOT_FOUND, 3209, "Oauth Token이 존재하지 않습니다."),
-    UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3210, "지원하지 않는 알림 타입입니다."),
+    GITLAB_BAD_PROJECTS(HttpStatus.BAD_REQUEST, 3210, "GITLAB 프로젝트 API 요청이 실패했습니다."),
+    GITLAB_BAD_TREE(HttpStatus.BAD_REQUEST, 3211, "GITLAB 디렉토리 구조 API 요청이 실패했습니다."),
+    GITLAB_BAD_FILE(HttpStatus.BAD_REQUEST, 3212, "GITLAB 파일 API 요청이 실패했습니다."),
+    DOCKER_SEARCH_FAILED(HttpStatus.BAD_REQUEST, 3213, "도커 이미지 검색이 실패했습니다."),
+    DOCKER_TAGS_FAILED(HttpStatus.BAD_REQUEST, 3214, "도커 이미지 태그 검색이 실패했습니다."),
+    DOCKER_PORTS_FAILED(HttpStatus.BAD_REQUEST, 3215, "default port를 불러오는 데 싫패했습니다"),
+    DOCKER_SEARCH_API_FAILED(HttpStatus.BAD_REQUEST, 3216, "도커 이미지 검색 api 요청이 실패했습니다."),
+    DOCKER_TAGS_API_FAILED(HttpStatus.BAD_REQUEST, 3217, "도커 이미지 태그 검색 api 요청이 실패했습니다."),
+    UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3218, "지원하지 않는 알림 타입입니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),

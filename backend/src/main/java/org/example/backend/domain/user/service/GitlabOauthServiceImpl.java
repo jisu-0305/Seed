@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.jwt.JwtTokenProvider;
 import org.example.backend.common.session.RedisSessionManager;
+import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.domain.user.dto.GitlabOauthToken;
 import org.example.backend.domain.user.dto.GitlabUser;
 import org.example.backend.domain.user.entity.User;
@@ -40,6 +41,17 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
 
     @Value("${gitlab.client.secret}")
     private String clientSecret;
+
+    @Override
+    public boolean login(String accessToken) {
+        if (accessToken == null) {
+            return false;
+        }
+
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+
+        return session != null;
+    }
 
     @Override
     public String buildGitlabAuthorizationUrl() {
