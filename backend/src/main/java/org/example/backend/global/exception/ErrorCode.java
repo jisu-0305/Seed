@@ -29,6 +29,9 @@ public enum ErrorCode {
     GITLAB_BAD_PROJECTS(HttpStatus.BAD_REQUEST, 3210, "GITLAB 프로젝트 API 요청이 실패했습니다."),
     GITLAB_BAD_TREE(HttpStatus.BAD_REQUEST, 3211, "GITLAB 디렉토리 구조 API 요청이 실패했습니다."),
     GITLAB_BAD_FILE(HttpStatus.BAD_REQUEST, 3212, "GITLAB 파일 API 요청이 실패했습니다."),
+    DOCKER_SEARCH_FAILED(HttpStatus.BAD_REQUEST, 3213, "도커 이미지 검색이 실패했습니다."),
+    DOCKER_TAGS_FAILED(HttpStatus.BAD_REQUEST, 3214, "도커 이미지 태그 검색이 실패했습니다."),
+    DOCKER_PORTS_FAILED(HttpStatus.BAD_REQUEST, 3215, "default port를 불러오는 데 싫패했습니다"),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
