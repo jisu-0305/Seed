@@ -30,10 +30,10 @@ public class DockerServiceImpl implements DockerService {
         }
 
         try {
-            List<DockerImage> officialImage = imageResponse.getResults().stream()
+            List<DockerImage> officialImage = imageResponse.getImage().stream()
                     .filter(DockerImage::isOfficial)
                     .collect(Collectors.toList());
-            imageResponse.setResults(officialImage);
+            imageResponse.setImage(officialImage);
             imageResponse.setCount(officialImage.size());
             return imageResponse;
         } catch (Exception e) {

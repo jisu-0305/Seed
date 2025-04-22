@@ -1,5 +1,6 @@
 package org.example.backend.controller.response.docker;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
 import org.example.backend.domain.docker.dto.DockerImage;
@@ -12,5 +13,7 @@ public class ImageResponse {
     private int count;
     private String next;
     private String previous;
-    private List<DockerImage> results;
+
+    @JsonAlias("results")
+    private List<DockerImage> image;
 }
