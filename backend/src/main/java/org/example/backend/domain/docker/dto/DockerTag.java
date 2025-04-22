@@ -8,10 +8,10 @@ import java.util.List;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class TagDto {
+public class DockerTag {
     private long creator;
     private long id; // 태그 id
-    private List<ImageDto> images; //해당 태그에 매핑된 아키텍처별 이미지 정보 리스트
+    private List<TagImage> images; //해당 태그에 매핑된 아키텍처별 이미지 정보 리스트
 
     @JsonProperty("last_updated")
     private String lastUpdated;

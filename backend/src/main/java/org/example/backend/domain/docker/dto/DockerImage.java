@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class RepositoryDto {
+public class DockerImage {
     @JsonProperty("repo_name")
     private String repoName;
 

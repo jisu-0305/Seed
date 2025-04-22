@@ -2,11 +2,15 @@ package org.example.backend.domain.docker.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.backend.controller.response.docker.SearchResponse;
+import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
+import org.example.backend.domain.docker.dto.DockerImage;
+import org.example.backend.global.exception.BusinessException;
+import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -16,20 +20,42 @@ public class DockerServiceImpl implements DockerService {
     private final DockerApiClient dockerApiClient;
 
     @Override
-    public SearchResponse searchRepositories(String query, int page, int pageSize) {
-        // 이따가 예외처리하자
+    public ImageResponse getImages(String query, int page, int pageSize) {
         log.info(">>>>> searchRepositories,{},{},{}", query, page, pageSize);
-        return dockerApiClient.search(query, page, pageSize);
+
+        ImageResponse imageResponse = dockerApiClient.getImages(query, page, pageSize);
+
+        if (imageResponse == null) {
+            throw new BusinessException(ErrorCode.DOCKER_SEARCH_FAILED);
+        }
+
+        try {
+            List<DockerImage> officialImage = imageResponse.getResults().stream()
+                    .filter(DockerImage::isOfficial)
+                    .collect(Collectors.toList());
+            imageResponse.setResults(officialImage);
+            imageResponse.setCount(officialImage.size());
+            return imageResponse;
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.DOCKER_SEARCH_FAILED);
+        }
+
     }
 
     @Override
-    public TagResponse getTags(String namespace, String repository, int page, int pageSize) {
-        log.info(">>>>> getTags,{},{},{},{}", namespace, repository, page, pageSize);
-        return dockerApiClient.listTags(namespace, repository, page, pageSize);
+    public TagResponse getTags(String namespace, String image, int page, int pageSize) {
+        log.info(">>>>> getTags,{},{},{},{}", namespace, image, page, pageSize);
+
+        TagResponse tagResponse = dockerApiClient.getTags(namespace, image, page, pageSize);
+        if (tagResponse == null) {
+            throw new BusinessException(ErrorCode.DOCKER_TAGS_FAILED);
+        }
+
+        return tagResponse;
     }
 
-    @Override
-    public List<String> getDefaultPorts(String namespace, String repo, String tag, String os, String arch) {
-        return dockerApiClient.getExposedPorts(namespace, repo, tag, os, arch);
-    }
+//    @Override
+//    public List<String> getDefaultPorts(String namespace, String repo, String tag, String os, String arch) {
+//        return dockerApiClient.getExposedPorts(namespace, repo, tag, os, arch);
+//    }
 }

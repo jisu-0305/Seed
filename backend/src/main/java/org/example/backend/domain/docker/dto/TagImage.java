@@ -6,7 +6,7 @@ import lombok.Data;
 
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ImageDto {
+public class TagImage {
     private String architecture; // 빌드된 cpu 아키텍처 : amd64, arm64, ppc64le...
     private String features; // 아키텍처 특성 (예: RISC‑V 등), 없으면 빈 문자열
     private String variant; //아키텍처 변종 (예: v7 등), 없으면 null
