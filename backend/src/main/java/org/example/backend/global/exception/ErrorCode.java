@@ -39,6 +39,7 @@ public enum ErrorCode {
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),
+    UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, 4003, "유효하지 않은 사용자입니다."),
     OAUTH_TOKEN_FORBIDDEN(HttpStatus.NOT_FOUND, 4101, "Oauth 토큰 발급에 실패했습니다."),
 
     // 6xxx: 내부 서버 오류

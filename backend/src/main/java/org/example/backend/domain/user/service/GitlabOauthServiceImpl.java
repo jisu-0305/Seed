@@ -7,6 +7,7 @@ import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.domain.user.dto.GitlabOauthToken;
 import org.example.backend.domain.user.dto.GitlabUser;
+import org.example.backend.domain.user.dto.UserProfile;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.enums.ProviderType;
 import org.example.backend.domain.user.repository.UserRepository;
@@ -83,6 +84,9 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                 .map(existingUser -> {
                     existingUser.setAccessToken(oauthToken.getAccessToken());
                     existingUser.setRefreshToken(oauthToken.getRefreshToken());
+                    existingUser.setName(gitlabUser.getName());
+                    existingUser.setUsername(gitlabUser.getUsername());
+                    existingUser.setAvatarUrl(gitlabUser.getAvatarUrl());
                     return userRepository.save(existingUser);
                 })
                 .orElseGet(() -> {
@@ -91,6 +95,9 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                             .refreshToken(oauthToken.getRefreshToken())
                             .providerType(ProviderType.GITLAB)
                             .oauthUserId(oauthUserId)
+                            .name(gitlabUser.getName())
+                            .username(gitlabUser.getUsername())
+                            .avatarUrl(gitlabUser.getAvatarUrl())
                             .createdAt(LocalDateTime.now())
                             .build();
                     return userRepository.save(newUser);
@@ -108,6 +115,25 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
         }
         String jwtToken = authorizationHeader.substring(7);
         redisSessionManager.deleteSession(jwtToken);
+    }
+
+    @Override
+    public UserProfile getUserProfile(String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        if (session == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_USER);
+        }
+
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        return UserProfile.builder()
+                .name(user.getName())
+                .username(user.getUsername())
+                .avatarUrl(user.getAvatarUrl())
+                .build();
     }
 
     private GitlabOauthToken getGitlabOauthToken(String code) {
