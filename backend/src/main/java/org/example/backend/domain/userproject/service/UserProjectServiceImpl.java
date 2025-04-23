@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.response.userproject.UserProjectListResponse;
+import org.example.backend.domain.user.entity.User;
+import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.domain.userproject.entity.UserProject;
 import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -20,6 +22,7 @@ public class UserProjectServiceImpl implements UserProjectService {
 
     private final UserProjectRepository userProjectRepository;
     private final RedisSessionManager redisSessionManager;
+    private final UserRepository userRepository;
 
     @Override
     public UserProjectListResponse getUserIdListByProjectId(Long projectId, String accessToken) {
@@ -34,6 +37,8 @@ public class UserProjectServiceImpl implements UserProjectService {
                 .map(UserProject::getUserId)
                 .toList();
 
-        return toListResponse(projectId, userIdList);
+        List<User> users = userRepository.findAllById(userIdList);
+
+        return toListResponse(projectId, users);
     }
 }
