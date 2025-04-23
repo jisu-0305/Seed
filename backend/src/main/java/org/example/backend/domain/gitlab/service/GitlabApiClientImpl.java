@@ -14,6 +14,8 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @Service
@@ -43,6 +45,28 @@ public class GitlabApiClientImpl implements GitlabApiClient {
             throw new BusinessException(ErrorCode.GITLAB_BAD_PROJECTS);
         }
         return projects;
+    }
+
+    @Override
+    public GitlabProject getProjectInfo(String token, String projectUrlOrPath) {
+        String path = toProjectPath(projectUrlOrPath);
+        URI uri = uriBuilder.projectUri(path);
+
+        log.debug(">>>>> final URI = {}", uri);
+
+        try {
+            return gitlabWebClient.get().uri(uri)
+                    .headers(h -> h.setBearerAuth(token))
+                    .retrieve()
+                    .bodyToMono(GitlabProject.class)
+                    .block();
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode().is4xxClientError()) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            log.error("getProjectInfo 예외", ex);
+            throw new BusinessException(ErrorCode.GITLAB_BAD_PROJECTS);
+        }
     }
 
     @Override
@@ -112,6 +136,18 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.GITLAB_BAD_COMPARE);
         }
+    }
+
+
+    private static String toProjectPath(String raw) {
+        String path = raw.startsWith("http")
+                ? URI.create(raw).getPath()
+                : raw;
+
+        if (path.startsWith("/")) path = path.substring(1);
+
+        return URLEncoder.encode(path, StandardCharsets.UTF_8)
+                .replace("+", "%20");
     }
 
 }

@@ -7,6 +7,7 @@ import lombok.Data;
 @Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GitlabProject {
+
     private Long id;
     private String name;
 
@@ -17,4 +18,5 @@ public class GitlabProject {
 
     @JsonProperty("http_url_to_repo")
     private String httpUrlToRepo;
+
 }

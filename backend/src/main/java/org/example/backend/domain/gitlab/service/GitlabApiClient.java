@@ -14,6 +14,8 @@ public interface GitlabApiClient {
 
     String getRawFile(String pat, Long projectId, String path, String ref);
 
+    GitlabProject getProjectInfo(String pat, String projectUrl);
+
     GitlabCompareResponse compareCommits(String accessToken, Long projectId, String from, String to);
 
 }

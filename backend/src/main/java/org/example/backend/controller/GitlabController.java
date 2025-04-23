@@ -2,12 +2,14 @@ package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,6 +29,17 @@ public class GitlabController {
         List<GitlabProject> projects = gitlabService.getProjects(accessToken);
         return ResponseEntity.ok(ApiResponse.success(projects));
     }
+
+    @PostMapping("/projects")
+    public ResponseEntity<ApiResponse<GitlabProject>> getProjectInfoByUrl(
+            @RequestHeader("Authorization") String accessToken,
+            @Validated @RequestBody ProjectUrlRequest request) {
+
+        GitlabProject projectInfo = gitlabService.getProjectInfo(accessToken, request);
+
+        return ResponseEntity.ok(ApiResponse.success(projectInfo));
+    }
+
 
     @GetMapping("/projects/{id}/tree")
     public ResponseEntity<ApiResponse<List<GitlabTree>>> listTree(
@@ -49,6 +62,7 @@ public class GitlabController {
         String content = gitlabService.getFile(accessToken, id, path, ref);
         return ResponseEntity.ok(ApiResponse.success(content));
     }
+
 
     @GetMapping("/diff")
     public ResponseEntity<ApiResponse<GitlabCompareResponse>> getDiff(
