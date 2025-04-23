@@ -11,4 +11,6 @@ public interface GitlabApiClient {
     List<GitlabTree> listTree(String pat, Long projectId, String path, boolean recursive);
 
     String getRawFile(String pat, Long projectId, String path, String ref);
+
+    GitlabProject getProjectInfo(String pat, String projectUrl);
 }

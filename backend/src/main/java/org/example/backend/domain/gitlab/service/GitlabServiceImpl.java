@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
+import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.user.entity.User;
@@ -39,6 +40,21 @@ public class GitlabServiceImpl implements GitlabService {
     }
 
     @Override
+    public GitlabProject getProjectInfo(String accessToken, ProjectUrlRequest request) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        return gitlabApiClient.getProjectInfo(user.getAccessToken(), request.getRepositoryUrl());
+    }
+
+    @Override
     public List<GitlabTree> getTree(String accessToken, Long projectId, String path, boolean recursive) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -67,4 +83,5 @@ public class GitlabServiceImpl implements GitlabService {
 
         return gitlabApiClient.getRawFile(user.getAccessToken(), projectId, path, ref);
     }
+
 }

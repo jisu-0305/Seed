@@ -1,11 +1,13 @@
 package org.example.backend.common.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 
+@Slf4j
 @Component
 public class GitlabUriBuilder {
     @Value("${gitlab.api.base-url}")
@@ -18,6 +20,14 @@ public class GitlabUriBuilder {
                 .queryParam("page", page)
                 .queryParam("per_page", perPage)
                 .toUriString();
+    }
+
+    public URI projectUri(String namespaceAndName) {
+
+        return URI.create(UriComponentsBuilder.fromUriString(baseUrl)
+                .path("/projects/")
+                .build(false)
+                .toUriString() + namespaceAndName);
     }
 
     public String repositoryTree(Long projectId,
