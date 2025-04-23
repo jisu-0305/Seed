@@ -1,5 +1,7 @@
 package org.example.backend.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,6 +58,7 @@ public class UserController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "로그인한 사용자 정보 조회", security = @SecurityRequirement(name = "JWT") )
     public ResponseEntity<ApiResponse<UserProfile>> getUserProfile(
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
