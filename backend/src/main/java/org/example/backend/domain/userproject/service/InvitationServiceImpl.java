@@ -3,11 +3,13 @@
     import lombok.RequiredArgsConstructor;
     import org.example.backend.common.session.RedisSessionManager;
     import org.example.backend.common.session.dto.SessionInfoDto;
-    import org.example.backend.controller.request.userProject.InvitationRequest;
+    import org.example.backend.common.util.TrieSearch;
+    import org.example.backend.controller.request.userproject.InvitationRequest;
     import org.example.backend.controller.response.userproject.InvitationResponse;
     import org.example.backend.domain.fcm.service.NotificationService;
     import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
     import org.example.backend.domain.project.repository.ProjectRepository;
+    import org.example.backend.domain.userproject.dto.UserInProject;
     import org.example.backend.domain.userproject.entity.Invitation;
     import org.example.backend.domain.userproject.entity.UserProject;
     import org.example.backend.domain.userproject.mapper.InvitationMapper;
@@ -20,6 +22,9 @@
 
     import java.time.LocalDateTime;
     import java.util.List;
+    import java.util.Objects;
+    import java.util.Set;
+    import java.util.stream.Collectors;
 
     import static org.example.backend.domain.userproject.mapper.InvitationMapper.toResponse;
 
@@ -35,32 +40,34 @@
 
         @Override
         @Transactional
-        public InvitationResponse sendInvitation(InvitationRequest request, String accessToken) {
+        public List<InvitationResponse> sendInvitations(InvitationRequest request, String accessToken) {
             SessionInfoDto session = redisSessionManager.getSession(accessToken);
             Long senderId = session.getUserId();
-
-            if (senderId.equals(request.getReceiverId())) {
-                throw new BusinessException(ErrorCode.CANNOT_INVITE_SELF);
-            }
 
             if (!userProjectRepository.existsByProjectIdAndUserId(request.getProjectId(), senderId)) {
                 throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
             }
 
-            if (invitationRepository.existsByProjectIdAndReceiverId(request.getProjectId(), request.getReceiverId())) {
-                throw new BusinessException(ErrorCode.DUPLICATE_INVITATION);
-            }
-
-            Invitation invitation = Invitation.create(
-                    request.getProjectId(), senderId, request.getReceiverId()
-            );
-
-            Invitation saved = invitationRepository.save(invitation);
-
             String projectName = projectRepository.findProjectNameById(request.getProjectId());
-            notificationService.notifyUsers(List.of(request.getReceiverId()), NotificationMessageTemplate.INVITATION_CREATED, projectName);
 
-            return toResponse(saved);
+            return request.getIdList().stream()
+                    .filter(receiverId -> !Objects.equals(senderId, receiverId))
+                    .filter(receiverId -> !invitationRepository.existsByProjectIdAndReceiverId(request.getProjectId(), receiverId))
+                    .map(receiverId -> {
+                        Invitation invitation = Invitation.create(
+                                request.getProjectId(), senderId, receiverId
+                        );
+                        Invitation saved = invitationRepository.save(invitation);
+
+                        notificationService.notifyUsers(
+                                List.of(receiverId),
+                                NotificationMessageTemplate.INVITATION_CREATED,
+                                projectName
+                        );
+
+                        return toResponse(saved);
+                    })
+                    .toList();
         }
 
         @Override
@@ -118,6 +125,42 @@
                     .findByReceiverIdAndExpiresAtAfter(receiverId, LocalDateTime.now())
                     .stream()
                     .map(InvitationMapper::toResponse)
+                    .toList();
+        }
+
+        @Override
+        public List<UserInProject> getInvitableUsers(Long projectId, String keyword, String accessToken) {
+            SessionInfoDto session = redisSessionManager.getSession(accessToken);
+            Long currentUserId = session.getUserId();
+
+            List<String> matched;
+            if (keyword == null || keyword.trim().isEmpty()) {
+                matched = TrieSearch.getAll();
+            } else {
+                matched = TrieSearch.search(keyword);
+            }
+
+            List<UserInProject> allMatched = matched.stream()
+                    .map(data -> {
+                        String[] parts = data.split("::");
+                        if (parts.length < 4) return null; // 데이터 불완전 시 제외
+                        return UserInProject.builder()
+                                .userId(Long.parseLong(parts[0]))
+                                .username(parts[1])
+                                .avatarUrl(parts[2])
+                                .name(parts[3])
+                                .build();
+                    })
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            Set<Long> memberIds = userProjectRepository.findByProjectId(projectId).stream()
+                    .map(UserProject::getUserId)
+                    .collect(Collectors.toSet());
+
+            return allMatched.stream()
+                    .filter(u -> !memberIds.contains(u.getUserId()))
+                    .filter(u -> !Objects.equals(u.getUserId(), currentUserId))
                     .toList();
         }
     }

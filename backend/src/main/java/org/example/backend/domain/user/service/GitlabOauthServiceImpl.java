@@ -1,10 +1,12 @@
 package org.example.backend.domain.user.service;
 
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.jwt.JwtTokenProvider;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
+import org.example.backend.common.util.TrieSearch;
 import org.example.backend.domain.user.dto.GitlabOauthToken;
 import org.example.backend.domain.user.dto.GitlabUser;
 import org.example.backend.domain.user.dto.UserProfile;
@@ -23,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -100,7 +103,14 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                             .avatarUrl(gitlabUser.getAvatarUrl())
                             .createdAt(LocalDateTime.now())
                             .build();
-                    return userRepository.save(newUser);
+
+                    User savedUser = userRepository.save(newUser);
+
+                    TrieSearch.insert(
+                            savedUser.getName(),
+                            savedUser.getId() + "::" + savedUser.getUsername() + "::" + savedUser.getAvatarUrl() + "::" + savedUser.getName()
+                    );
+                    return savedUser;
                 });
 
         String jwtToken = jwtTokenProvider.generateToken(user, oauthUserId);
@@ -164,6 +174,17 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                 .retrieve()
                 .bodyToMono(GitlabUser.class)
                 .block();
+    }
+
+    @PostConstruct
+    public void initTrieSearch() {
+        List<User> users = userRepository.findAll();
+        for (User user : users) {
+            TrieSearch.insert(
+                    user.getName(),
+                    user.getId() + "::" + user.getUsername() + "::" + user.getAvatarUrl() + "::" + user.getName()
+            );
+        }
     }
 
 }
