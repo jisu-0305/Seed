@@ -18,4 +18,6 @@ public interface GitlabService {
 
     GitlabCompareResponse getDiff(String accessToken, Long projectId, String from, String to);
 
+    GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
+
 }

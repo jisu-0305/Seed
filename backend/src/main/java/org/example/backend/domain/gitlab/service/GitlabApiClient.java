@@ -1,6 +1,7 @@
 package org.example.backend.domain.gitlab.service;
 
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 
@@ -17,5 +18,7 @@ public interface GitlabApiClient {
     GitlabProject getProjectInfo(String pat, String projectUrl);
 
     GitlabCompareResponse compareCommits(String accessToken, Long projectId, String from, String to);
+
+    GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
 
 }

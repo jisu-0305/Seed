@@ -60,7 +60,7 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                 .queryParam("client_id", applicationId)
                 .queryParam("redirect_uri", redirectUri)
                 .queryParam("response_type", "code")
-                .queryParam("scope", "read_user+read_api")
+                .queryParam("scope", "api")
                 .build().toUriString();
     }
 

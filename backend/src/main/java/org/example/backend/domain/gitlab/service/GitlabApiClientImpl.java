@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.global.exception.BusinessException;
@@ -73,7 +74,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     public List<GitlabTree> listTree(String accessToken, Long projectId, String path, boolean recursive) {
         List<GitlabTree> tree;
         String uri = uriBuilder.repositoryTree(projectId, path, recursive, 1, 100);
-        log.debug(">>>>>> listTree URI = {}", uri);
+        log.debug(">>>>>여기여기> listTree URI = {} {}", uri, accessToken);
 
         try {
             tree = gitlabWebClient.get().uri(uri)
@@ -129,6 +130,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                     .bodyToMono(GitlabCompareResponse.class)
                     .block();
         } catch (WebClientResponseException e) {
+
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
@@ -138,11 +140,37 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         }
     }
 
+    @Override
+    public GitlabBranch createBranch(String accessToken,
+                                     Long projectId,
+                                     String branch,
+                                     String ref) {
+        URI uri = uriBuilder.createBranch(projectId, branch, ref);
+        log.debug(">>>>>>>> createBranch URI = {}", uri);
+
+        try {
+            log.debug(">>>>>>>>>>>!!! GitLab 호출용 토큰 = {}", accessToken);
+            return gitlabWebClient.post()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(GitlabBranch.class)
+                    .block();
+
+        } catch (WebClientResponseException e) {
+            log.error(">>>> GitLab API Error: status={}, body={}, uri={}",
+                    e.getStatusCode(),
+                    e.getResponseBodyAsString(),
+                    uri);
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_BRANCH);
+        }
+    }
 
     private static String toProjectPath(String raw) {
-        String path = raw.startsWith("http")
-                ? URI.create(raw).getPath()
-                : raw;
+        String path = raw.startsWith("http") ? URI.create(raw).getPath() : raw;
 
         if (path.startsWith("/")) path = path.substring(1);
 
