@@ -1,5 +1,7 @@
 package org.example.backend.domain.user.service;
 
+import org.example.backend.domain.user.dto.UserProfile;
+
 public interface GitlabOauthService {
     String buildGitlabAuthorizationUrl();
 
@@ -8,4 +10,6 @@ public interface GitlabOauthService {
     void logout(String authorizationHeader);
 
     boolean login(String accessToken);
+
+    UserProfile getUserProfile(String jwtToken);
 }

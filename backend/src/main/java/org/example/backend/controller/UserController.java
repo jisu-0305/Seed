@@ -3,8 +3,12 @@ package org.example.backend.controller;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.domain.user.dto.UserProfile;
 import org.example.backend.domain.user.service.GitlabOauthService;
+import org.example.backend.global.exception.BusinessException;
+import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.global.response.ApiResponse;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,5 +53,18 @@ public class UserController {
         gitlabOauthService.logout(authorizationHeader);
 
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserProfile>> getUserProfile(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        if (accessToken == null || !accessToken.startsWith("Bearer ")) {
+            throw new BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER);
+        }
+
+        UserProfile profile = gitlabOauthService.getUserProfile(accessToken);
+
+        return ResponseEntity.ok(ApiResponse.success(profile));
     }
 }
