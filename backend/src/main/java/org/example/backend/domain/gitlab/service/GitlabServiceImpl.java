@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
+import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.user.entity.User;
@@ -67,4 +68,20 @@ public class GitlabServiceImpl implements GitlabService {
 
         return gitlabApiClient.getRawFile(user.getAccessToken(), projectId, path, ref);
     }
+
+    @Override
+    public GitlabCompareResponse getDiff(String accessToken, Long projectId, String from, String to) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        return gitlabApiClient.compareCommits(user.getAccessToken(), projectId, from, to);
+    }
+
 }
