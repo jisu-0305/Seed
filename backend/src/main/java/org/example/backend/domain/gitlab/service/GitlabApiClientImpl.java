@@ -3,6 +3,7 @@ package org.example.backend.domain.gitlab.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
+import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.global.exception.BusinessException;
@@ -114,6 +115,29 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         }
         return content;
     }
+
+    @Override
+    public GitlabCompareResponse compareCommits(String accessToken, Long projectId, String from, String to) {
+
+        URI uri = uriBuilder.compare(projectId, from, to);
+
+        try {
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(GitlabCompareResponse.class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_COMPARE);
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.GITLAB_BAD_COMPARE);
+        }
+    }
+
 
     private static String toProjectPath(String raw) {
         String path = raw.startsWith("http")

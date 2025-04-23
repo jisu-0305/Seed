@@ -26,5 +26,11 @@ public class User {
 
     private String refreshToken;
 
+    private String name;
+
+    private String username;
+
+    private String avatarUrl;
+
     private LocalDateTime createdAt;
 }

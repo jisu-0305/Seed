@@ -66,4 +66,11 @@ public class GitlabUriBuilder {
                 .toUri();
     }
 
+    public URI compare(Long projectId, String from, String to) {
+        return URI.create(String.format(
+                "%s/projects/%d/repository/compare?from=%s&to=%s",
+                baseUrl, projectId, from, to
+        ));
+    }
+
 }

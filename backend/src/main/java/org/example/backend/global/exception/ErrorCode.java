@@ -34,11 +34,14 @@ public enum ErrorCode {
     DOCKER_PORTS_FAILED(HttpStatus.BAD_REQUEST, 3215, "default port를 불러오는 데 싫패했습니다"),
     DOCKER_SEARCH_API_FAILED(HttpStatus.BAD_REQUEST, 3216, "도커 이미지 검색 api 요청이 실패했습니다."),
     DOCKER_TAGS_API_FAILED(HttpStatus.BAD_REQUEST, 3217, "도커 이미지 태그 검색 api 요청이 실패했습니다."),
+    GITLAB_BAD_COMPARE(HttpStatus.BAD_REQUEST, 3218, "깃랩 diff를 불러오는 데 실패했습니다."),
+
     UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3218, "지원하지 않는 알림 타입입니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),
+    UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, 4003, "유효하지 않은 사용자입니다."),
     OAUTH_TOKEN_FORBIDDEN(HttpStatus.NOT_FOUND, 4101, "Oauth 토큰 발급에 실패했습니다."),
 
     // 6xxx: 내부 서버 오류
