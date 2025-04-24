@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
 @Builder
 public class ProjectResponse {
     private Long id;
-    private Long ownerId;
     private String projectName;
-    private LocalDateTime createdAt;
+    private String repositoryUrl;
+    private String ipAddress;
+    private String pemFilePath;
 }
