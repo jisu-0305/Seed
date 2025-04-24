@@ -2,6 +2,8 @@ package org.example.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
@@ -23,45 +25,57 @@ import java.util.List;
 @RequestMapping("/api/gitlab")
 @RequiredArgsConstructor
 @Slf4j
+@Tag(name = "Gitlab", description = "깃랩 API")
 public class GitlabController {
 
     private final GitlabService gitlabService;
 
     @GetMapping("/projects")
+    @Operation(summary = "전체 레포지토리 목록 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<List<GitlabProject>>> listProjects(
-            @RequestHeader("Authorization") String accessToken) {
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         List<GitlabProject> projects = gitlabService.getProjects(accessToken);
         return ResponseEntity.ok(ApiResponse.success(projects));
     }
 
     @PostMapping("/projects")
+    @Operation(summary = "레포지토리 url로 레포지토리 단건 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<GitlabProject>> getProjectInfoByUrl(
-            @RequestHeader("Authorization") String accessToken,
-            @Validated @RequestBody ProjectUrlRequest request) {
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken,
+            @Parameter(
+                    description = "조회할 레포지토리 URL",
+                    required = true,
+                    example = "https://lab.ssafy.com/s12-final/S12P31A206"
+            ) @Validated @RequestBody ProjectUrlRequest request) {
 
         GitlabProject projectInfo = gitlabService.getProjectInfo(accessToken, request);
+
         return ResponseEntity.ok(ApiResponse.success(projectInfo));
     }
 
-
     @GetMapping("/projects/{id}/tree")
+    @Operation(summary = "레포지토리 tree 구조 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<List<GitlabTree>>> listTree(
-            @PathVariable Long id,
-            @RequestParam(defaultValue = "") String path,
-            @RequestParam(defaultValue = "true") boolean recursive,
-            @RequestHeader("Authorization") String accessToken) {
+            @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long id,
+            @Parameter(description = "조회할 경로 (빈 문자열이면 루트)") @RequestParam(defaultValue = "") String path,
+            @Parameter(description = "하위 디렉토리까지 재귀적으로 조회할지 여부", example = "true") @RequestParam(defaultValue = "true") boolean recursive,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         List<GitlabTree> tree = gitlabService.getTree(accessToken, id, path, recursive);
         return ResponseEntity.ok(ApiResponse.success(tree));
     }
 
     @GetMapping("/projects/{id}/file")
+    @Operation(summary = "파일 원본 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<String>> getFile(
-            @PathVariable Long id,
-            @RequestParam String path,
-            @RequestParam(defaultValue = "main") String ref,
-            @RequestHeader("Authorization") String accessToken) {
+            @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long id,
+            @Parameter(description = "가져올 파일 경로 (예: src/main/java/…)",
+                    required = true,
+                    example = "backend/build.gradle"
+            ) @RequestParam String path,
+            @Parameter(description = "가져올 파일의 브랜치 또는 커밋 SHA (기본값: main)",example = "dev") @RequestParam(defaultValue = "main") String ref,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         String content = gitlabService.getFile(accessToken, id, path, ref);
         return ResponseEntity.ok(ApiResponse.success(content));
@@ -69,6 +83,7 @@ public class GitlabController {
 
 
     @GetMapping("/diff")
+    @Operation(summary = "커밋 간 변경사항 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<GitlabCompareResponse>> getDiff(
             @RequestParam("projectId") Long projectId,
             @RequestParam("from") String from,
@@ -76,6 +91,7 @@ public class GitlabController {
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         GitlabCompareResponse diff = gitlabService.getDiff(accessToken, projectId, from, to);
+
         return ResponseEntity.ok(ApiResponse.success(diff));
     }
 

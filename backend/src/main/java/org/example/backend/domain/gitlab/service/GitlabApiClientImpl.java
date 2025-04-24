@@ -149,7 +149,6 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         log.debug(">>>>>>>> createBranch URI = {}", uri);
 
         try {
-            log.debug(">>>>>>>>>>>!!! GitLab 호출용 토큰 = {}", accessToken);
             return gitlabWebClient.post()
                     .uri(uri)
                     .headers(h -> h.setBearerAuth(accessToken))
