@@ -21,7 +21,7 @@ public class DockerServiceImpl implements DockerService {
 
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {
-        log.info(">>>>> searchRepositories,{},{},{}", query, page, pageSize);
+        log.debug(">>>>> searchRepositories,{},{},{}", query, page, pageSize);
 
         ImageResponse imageResponse = dockerApiClient.getImages(query, page, pageSize);
 
@@ -44,7 +44,7 @@ public class DockerServiceImpl implements DockerService {
 
     @Override
     public TagResponse getTags(String namespace, String image, int page, int pageSize) {
-        log.info(">>>>> getTags,{},{},{},{}", namespace, image, page, pageSize);
+        log.debug(">>>>> getTags,{},{},{},{}", namespace, image, page, pageSize);
 
         TagResponse tagResponse = dockerApiClient.getTags(namespace, image, page, pageSize);
         if (tagResponse == null) {

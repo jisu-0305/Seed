@@ -74,7 +74,6 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     public List<GitlabTree> listTree(String accessToken, Long projectId, String path, boolean recursive) {
         List<GitlabTree> tree;
         String uri = uriBuilder.repositoryTree(projectId, path, recursive, 1, 100);
-        log.debug(">>>>>여기여기> listTree URI = {} {}", uri, accessToken);
 
         try {
             tree = gitlabWebClient.get().uri(uri)
