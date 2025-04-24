@@ -39,6 +39,10 @@ public enum ErrorCode {
 
     UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3218, "지원하지 않는 알림 타입입니다."),
 
+
+    GITLAB_BAD_CREATE_WEBHOOK(HttpStatus.BAD_REQUEST, 3219, "깃랩 웹훅 생성에 실패했습니다."),
+
+
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),

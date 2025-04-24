@@ -10,6 +10,7 @@ import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
+import org.example.backend.domain.gitlab.dto.GitlabProjectHook;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
@@ -104,6 +105,20 @@ public class GitlabController {
 
         GitlabBranch created = gitlabService.createBranch(accessToken, projectId, branch, ref);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
+    }
+
+    /* webhook _ push event */
+    @PostMapping("/projects/{projectId}/hooks")
+    @Operation(summary = "깃랩 웹훅_push", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<GitlabProjectHook>> createWebhook(
+            @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
+            @RequestParam String url,
+            @RequestParam(required = false, defaultValue = "") String wildcard,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        GitlabProjectHook hook = gitlabService.createPushWebhook(accessToken, projectId, url, wildcard);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(hook));
     }
 
 }

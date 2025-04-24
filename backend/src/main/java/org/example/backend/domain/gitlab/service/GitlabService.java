@@ -20,4 +20,6 @@ public interface GitlabService {
 
     GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
 
+    GitlabProjectHook createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter);
+
 }

@@ -6,6 +6,7 @@ import org.example.backend.common.util.GitlabUriBuilder;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
+import org.example.backend.domain.gitlab.dto.GitlabProjectHook;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
@@ -149,7 +150,6 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         log.debug(">>>>>>>> createBranch URI = {}", uri);
 
         try {
-            log.debug(">>>>>>>>>>>!!! GitLab 호출용 토큰 = {}", accessToken);
             return gitlabWebClient.post()
                     .uri(uri)
                     .headers(h -> h.setBearerAuth(accessToken))
@@ -158,14 +158,32 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                     .block();
 
         } catch (WebClientResponseException e) {
-            log.error(">>>> GitLab API Error: status={}, body={}, uri={}",
-                    e.getStatusCode(),
-                    e.getResponseBodyAsString(),
-                    uri);
             if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_BRANCH);
+        }
+    }
+
+    @Override
+    public GitlabProjectHook createProjectHook(String privateToken, Long projectId,
+                                               String hookUrl, String pushEventsBranchFilter ) {
+        URI uri = uriBuilder.createProjectHook(projectId, hookUrl, pushEventsBranchFilter);
+        log.debug(">>>> createProjectHook URI = {}", uri);
+        try {
+            return gitlabWebClient.post()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(privateToken))
+                    .retrieve()
+                    .bodyToMono(GitlabProjectHook.class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            log.error("GitLab createProjectHook Error: status={}, body={}, uri={}",
+                    e.getStatusCode(), e.getResponseBodyAsString(), uri);
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_WEBHOOK);
         }
     }
 
