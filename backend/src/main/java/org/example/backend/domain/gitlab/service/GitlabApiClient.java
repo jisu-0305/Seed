@@ -3,7 +3,6 @@ package org.example.backend.domain.gitlab.service;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
-import org.example.backend.domain.gitlab.dto.GitlabProjectHook;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 
 import java.util.List;

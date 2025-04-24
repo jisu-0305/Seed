@@ -6,7 +6,6 @@ import org.example.backend.common.util.GitlabUriBuilder;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
-import org.example.backend.domain.gitlab.dto.GitlabProjectHook;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
