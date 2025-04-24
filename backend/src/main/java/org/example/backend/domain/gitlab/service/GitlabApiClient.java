@@ -1,6 +1,7 @@
 package org.example.backend.domain.gitlab.service;
 
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
@@ -23,4 +24,16 @@ public interface GitlabApiClient {
 
     void createProjectHook(String privateToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
 
+    void deleteBranch(String accessToken, Long projectId, String branch);
+
+    MergeRequestCreateResponse createMergeRequest(
+            String accessToken,
+            Long projectId,
+            String sourceBranch,
+            String targetBranch,
+            String title,
+            String description
+    );
+
+    GitlabBranch getBranch(String accessToken, Long projectId, String branchName);
 }

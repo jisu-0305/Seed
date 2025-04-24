@@ -38,7 +38,7 @@ public class RedisSessionManager {
 
         redisTemplate.opsForValue().set(sessionKey, sessionInfoDto, ttlSeconds, TimeUnit.SECONDS);
 
-        log.info("Session stored for userId: {} with TTL: {} seconds", user.getId(), ttlSeconds);
+        log.debug("Session stored for userId: {} with TTL: {} seconds", user.getId(), ttlSeconds);
     }
 
     public SessionInfoDto getSession(String jwtToken) {
@@ -54,7 +54,7 @@ public class RedisSessionManager {
 
         // 4) 타입 검사 + 반환
         if (sessionObj instanceof SessionInfoDto sessionInfo) {
-            log.info("Session retrieved for userId: {}", userId);
+            log.debug("Session retrieved for userId: {}", userId);
             return sessionInfo;
         }
 
@@ -68,6 +68,6 @@ public class RedisSessionManager {
         String userId = jwtTokenProvider.getSubjectFromToken(token);
         String sessionKey = SESSION_PREFIX + userId;
         redisTemplate.delete(sessionKey);
-        log.info("Session deleted for userId: {}", userId);
+        log.debug("Session deleted for userId: {}", userId);
     }
 }

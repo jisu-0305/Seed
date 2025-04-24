@@ -4,13 +4,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -74,7 +77,6 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     public List<GitlabTree> listTree(String accessToken, Long projectId, String path, boolean recursive) {
         List<GitlabTree> tree;
         String uri = uriBuilder.repositoryTree(projectId, path, recursive, 1, 100);
-        log.debug(">>>>>여기여기> listTree URI = {} {}", uri, accessToken);
 
         try {
             tree = gitlabWebClient.get().uri(uri)
@@ -185,6 +187,82 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_WEBHOOK);
+        }
+    }
+
+    @Override
+    public void deleteBranch(String accessToken,
+                             Long projectId,
+                             String branch) {
+        URI uri = uriBuilder.deleteBranch(projectId, branch);
+        log.debug(">>>>>>>> deleteBranch URI = {}", uri);
+
+        try {
+            gitlabWebClient.delete()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_DELETE_BRANCH);
+        }
+    }
+
+    @Override
+    public MergeRequestCreateResponse createMergeRequest(
+            String accessToken,
+            Long projectId,
+            String sourceBranch,
+            String targetBranch,
+            String title,
+            String description
+    ) {
+        URI uri = uriBuilder.createMergeRequest(projectId);
+        log.debug(">>>>>>> createMergeRequest URI = {}", uri);
+
+        BodyInserters.FormInserter<String> form = BodyInserters
+                .fromFormData("source_branch", sourceBranch)
+                .with("target_branch", targetBranch)
+                .with("title", title);
+
+        if (description != null && !description.isBlank()) {
+            form = form.with("description", description);
+        }
+
+        try {
+            return gitlabWebClient.post()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .body(form)
+                    .retrieve()
+                    .bodyToMono(MergeRequestCreateResponse.class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            throw new BusinessException(ErrorCode.GITLAB_MERGE_REQUEST_FAILED);
+        }
+    }
+
+    @Override
+    public GitlabBranch getBranch(String accessToken, Long projectId, String branchName) {
+        URI uri = uriBuilder.getBranchUri(projectId, branchName);
+        try {
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(GitlabBranch.class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                throw new BusinessException(ErrorCode.GITLAB_BRANCH_NOT_FOUND);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
         }
     }
 
