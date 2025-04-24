@@ -4,7 +4,6 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import jakarta.websocket.DeploymentException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
@@ -20,13 +19,11 @@ import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StreamUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
@@ -281,7 +278,8 @@ public class ServerServiceImpl implements ServerService {
                 setNginx(serverIp),
                 setJenkins(),
                 setJenkinsConfiguration("admin", "admin", gitlabAccessToken),
-                setJenkinsJob()
+                makeJenkinsJob(),
+                makeDockerComposeYml()
         ).flatMap(Collection::stream).toList();
     }
 
@@ -472,6 +470,8 @@ public class ServerServiceImpl implements ServerService {
 
                 "sudo chmod 644 /var/lib/jenkins/init.groovy.d/*.groovy",
 
+
+                // plugin 설치
                 "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o jenkins-plugin-cli.jar",
 
                 "sudo systemctl stop jenkins",
@@ -479,6 +479,32 @@ public class ServerServiceImpl implements ServerService {
                 "sudo java -jar jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war \\\n" +
                         "--plugin-download-directory=/var/lib/jenkins/plugins \\\n" +
                         "--plugins gitlab-plugin github git workflow-aggregator credentials-binding configuration-as-code",
+
+                // gitlab connection 등록
+                "sudo mkdir -p /var/lib/jenkins/init.groovy.d && " +
+                        "sudo tee /var/lib/jenkins/init.groovy.d/gitlab-connection.groovy > /dev/null << 'EOF'\n" +
+                        "import jenkins.model.Jenkins\n" +
+                        "import com.dabsquared.gitlabjenkins.connection.GitLabConnectionConfig\n" +
+                        "import com.dabsquared.gitlabjenkins.connection.GitLabConnection\n\n" +
+                        "def inst = Jenkins.getInstance()\n" +
+                        "def cfg  = inst.getDescriptorByType(GitLabConnectionConfig.class)\n" +
+                        "def conns = cfg.getConnections()\n\n" +
+                        "def newConn = new GitLabConnection(\n" +
+                        "  '" + "hi" + "',\n" +
+                        "  '" + "https://lab.ssafy.com"       + "',\n" +
+                        "  '" + gitlabAccessToken   + "',\n" +
+                        "  false,   // ignoreCertificateErrors\n" +
+                        "  10,      // connectionTimeout (sec)\n" +
+                        "  10       // readTimeout (sec)\n" +
+                        ")\n\n" +
+                        "if (!conns.find { it.name == newConn.name }) {\n" +
+                        "  conns.add(newConn)\n" +
+                        "  cfg.setConnections(conns)\n" +
+                        "  cfg.save()\n" +
+                        "  inst.save()\n" +
+                        "}\n" +
+                        "EOF",
+
 
                 // 8-7. 포트 변경 (9090)
                 "sudo sed -i 's/^#*HTTP_PORT=.*/HTTP_PORT=9090/' /etc/default/jenkins",
@@ -489,8 +515,15 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> setJenkinsJob() {
+
+    private List<String> makeJenkinsJob() {
         return List.of(
+        );
+    }
+
+    private List<String> makeDockerComposeYml() {
+        return List.of(
+                ""
         );
     }
 
