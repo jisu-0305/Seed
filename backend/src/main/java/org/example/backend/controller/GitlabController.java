@@ -1,18 +1,21 @@
 package org.example.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
+import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -91,6 +94,45 @@ public class GitlabController {
         GitlabCompareResponse diff = gitlabService.getDiff(accessToken, projectId, from, to);
 
         return ResponseEntity.ok(ApiResponse.success(diff));
+    }
+
+    @PostMapping("/{projectId}/branches")
+    public ResponseEntity<ApiResponse<GitlabBranch>> createBranch(
+            @PathVariable Long projectId,
+            @RequestParam("branch") String branch,
+            @RequestParam("ref")    String ref,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        GitlabBranch created = gitlabService.createBranch(accessToken, projectId, branch, ref);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
+    }
+
+    @DeleteMapping("/{projectId}/branches")
+    @Operation(summary = "브랜치 삭제", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<String>> deleteBranch(
+            @PathVariable Long projectId,
+            @RequestParam("branch") String branch,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        gitlabService.deleteBranch(accessToken, projectId, branch);
+
+        return ResponseEntity.ok(ApiResponse.success(branch));
+    }
+
+    @PostMapping("/{projectId}/merge-requests")
+    @Operation(summary = "Merge Request 생성", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<MergeRequestCreateResponse>> createMergeRequest(
+            @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
+            @Parameter(description = "from 브랜치") @RequestParam("sourceBranch")   String sourceBranch,
+            @Parameter(description = "to 브랜치",example = "dev") @RequestParam("targetBranch")   String targetBranch,
+            @RequestParam("title") String title,
+            @RequestParam(value = "description", required = false) String description,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
+    ) {
+        MergeRequestCreateResponse created =
+                gitlabService.createMergeRequest(accessToken, projectId, sourceBranch, targetBranch, title, description);
+
+        return ResponseEntity.ok(ApiResponse.success(created));
     }
 
 }

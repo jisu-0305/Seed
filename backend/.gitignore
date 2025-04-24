@@ -41,3 +41,5 @@ out/
 
 # Firebase service key
 src/main/resources/firebase/serviceAccountKey.json
+
+/uploads
