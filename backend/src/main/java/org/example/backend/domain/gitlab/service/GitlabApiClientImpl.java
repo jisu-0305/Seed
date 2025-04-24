@@ -21,7 +21,6 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @Slf4j
@@ -226,6 +225,24 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                     .block();
         } catch (WebClientResponseException e) {
             throw new BusinessException(ErrorCode.GITLAB_MERGE_REQUEST_FAILED);
+        }
+    }
+
+    @Override
+    public GitlabBranch getBranch(String accessToken, Long projectId, String branchName) {
+        URI uri = uriBuilder.getBranchUri(projectId, branchName);
+        try {
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(GitlabBranch.class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                throw new BusinessException(ErrorCode.GITLAB_BRANCH_NOT_FOUND);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
         }
     }
 

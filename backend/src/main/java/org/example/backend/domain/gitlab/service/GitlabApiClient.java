@@ -32,4 +32,6 @@ public interface GitlabApiClient {
             String title,
             String description
     );
+
+    GitlabBranch getBranch(String accessToken, Long projectId, String branchName);
 }

@@ -153,6 +153,10 @@ public class GitlabServiceImpl implements GitlabService {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
+        // 브랜치 여부 먼저 확인하기
+        gitlabApiClient.getBranch(user.getAccessToken(), projectId, sourceBranch);
+        gitlabApiClient.getBranch(user.getAccessToken(), projectId, targetBranch);
+
         return gitlabApiClient.createMergeRequest(
                 user.getAccessToken(),
                 projectId,

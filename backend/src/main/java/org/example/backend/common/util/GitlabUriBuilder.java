@@ -109,4 +109,13 @@ public class GitlabUriBuilder {
                 .toUri();
     }
 
+    public URI getBranchUri(Long projectId, String branchName) {
+        String encoded = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        return URI.create(String.format(
+                "%s/projects/%d/repository/branches/%s",
+                baseUrl, projectId, encoded
+        ));
+    }
+
 }

@@ -119,14 +119,13 @@ public class GitlabController {
         return ResponseEntity.ok(ApiResponse.success(branch));
     }
 
-    /* merge request create */
     @PostMapping("/{projectId}/merge-requests")
     @Operation(summary = "Merge Request 생성", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<MergeRequestCreateResponse>> createMergeRequest(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @Parameter(description = "from 브랜치") @RequestParam("sourceBranch")   String sourceBranch,
             @Parameter(description = "to 브랜치",example = "dev") @RequestParam("targetBranch")   String targetBranch,
-            @RequestParam("title")          String title,
+            @RequestParam("title") String title,
             @RequestParam(value = "description", required = false) String description,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
     ) {
