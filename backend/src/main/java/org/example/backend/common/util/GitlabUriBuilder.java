@@ -90,4 +90,32 @@ public class GitlabUriBuilder {
         return URI.create(url);
     }
 
+    public URI deleteBranch(Long projectId, String branchName) {
+        String encodedBranch = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        String url = String.format(
+                "%s/projects/%d/repository/branches/%s",
+                baseUrl, projectId, encodedBranch
+        );
+
+        return URI.create(url);
+    }
+
+    public URI createMergeRequest(Long projectId) {
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "merge_requests")
+                .build()
+                .toUri();
+    }
+
+    public URI getBranchUri(Long projectId, String branchName) {
+        String encoded = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+        return URI.create(String.format(
+                "%s/projects/%d/repository/branches/%s",
+                baseUrl, projectId, encoded
+        ));
+    }
+
 }
