@@ -40,6 +40,8 @@ public enum ErrorCode {
 
     UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3221, "지원하지 않는 알림 타입입니다."),
 
+    GITLAB_MERGE_REQUEST_FAILED(HttpStatus.BAD_REQUEST, 3220, "깃랩 mr 생성을 실패했습니다."),
+
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),

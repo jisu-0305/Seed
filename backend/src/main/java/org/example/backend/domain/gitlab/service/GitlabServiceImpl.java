@@ -6,6 +6,7 @@ import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
@@ -131,6 +132,35 @@ public class GitlabServiceImpl implements GitlabService {
         gitlabApiClient.deleteBranch(user.getAccessToken(), projectId, branch);
 
         return branch;
+    }
+
+    @Override
+    public MergeRequestCreateResponse createMergeRequest(
+            String accessToken,
+            Long projectId,
+            String sourceBranch,
+            String targetBranch,
+            String title,
+            String description
+    ) {
+
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        return gitlabApiClient.createMergeRequest(
+                user.getAccessToken(),
+                projectId,
+                sourceBranch,
+                targetBranch,
+                title,
+                description
+        );
     }
 
 }

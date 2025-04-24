@@ -102,4 +102,11 @@ public class GitlabUriBuilder {
         return URI.create(url);
     }
 
+    public URI createMergeRequest(Long projectId) {
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "merge_requests")
+                .build()
+                .toUri();
+    }
+
 }
