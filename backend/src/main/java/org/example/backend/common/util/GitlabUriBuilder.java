@@ -90,4 +90,16 @@ public class GitlabUriBuilder {
         return URI.create(url);
     }
 
+    public URI deleteBranch(Long projectId, String branchName) {
+        String encodedBranch = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
+                .replace("+", "%20");
+
+        String url = String.format(
+                "%s/projects/%d/repository/branches/%s",
+                baseUrl, projectId, encodedBranch
+        );
+
+        return URI.create(url);
+    }
+
 }

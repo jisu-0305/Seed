@@ -21,4 +21,6 @@ public interface GitlabApiClient {
 
     GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
 
+    void deleteBranch(String accessToken, Long projectId, String branch);
+
 }

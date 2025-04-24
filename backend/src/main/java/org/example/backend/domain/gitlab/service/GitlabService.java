@@ -20,4 +20,5 @@ public interface GitlabService {
 
     GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
 
+    String deleteBranch(String accessToken, Long projectId, String branch);
 }

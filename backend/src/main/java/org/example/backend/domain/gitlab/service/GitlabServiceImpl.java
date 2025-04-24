@@ -116,4 +116,21 @@ public class GitlabServiceImpl implements GitlabService {
         return gitlabApiClient.createBranch(user.getAccessToken(), projectId, branch, ref);
     }
 
+    @Override
+    public String deleteBranch(String accessToken, Long projectId, String branch) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        gitlabApiClient.deleteBranch(user.getAccessToken(), projectId, branch);
+
+        return branch;
+    }
+
 }

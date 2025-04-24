@@ -169,6 +169,29 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         }
     }
 
+    @Override
+    public void deleteBranch(String accessToken,
+                             Long projectId,
+                             String branch) {
+        URI uri = uriBuilder.deleteBranch(projectId, branch);
+        log.debug(">>>>>>>> deleteBranch URI = {}", uri);
+
+        try {
+            gitlabWebClient.delete()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(Void.class)
+                    .block();
+
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_DELETE_BRANCH);
+        }
+    }
+
     private static String toProjectPath(String raw) {
         String path = raw.startsWith("http") ? URI.create(raw).getPath() : raw;
 

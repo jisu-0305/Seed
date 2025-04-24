@@ -1,5 +1,7 @@
 package org.example.backend.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
@@ -86,6 +88,18 @@ public class GitlabController {
 
         GitlabBranch created = gitlabService.createBranch(accessToken, projectId, branch, ref);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
+    }
+
+    @DeleteMapping("/{projectId}/branches")
+    @Operation(summary = "브랜치 삭제", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<String>> deleteBranch(
+            @PathVariable Long projectId,
+            @RequestParam("branch") String branch,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        gitlabService.deleteBranch(accessToken, projectId, branch);
+
+        return ResponseEntity.ok(ApiResponse.success(branch));
     }
 
 }
