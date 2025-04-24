@@ -6,6 +6,7 @@ import org.example.backend.controller.request.server.DeploymentRegistrationReque
 import org.example.backend.controller.request.server.InitServerRequest;
 import org.example.backend.controller.request.server.NewServerRequest;
 import org.example.backend.domain.server.service.ServerService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,9 +42,10 @@ public class ServerController {
     public ResponseEntity<String> registerDeployment(
             @RequestPart("request") DeploymentRegistrationRequest request,
             @RequestPart("pemFile") MultipartFile pemFile,
-            @RequestPart("envFile") MultipartFile envFile) {
+            @RequestPart("envFile") MultipartFile envFile,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.registerDeployment(request, pemFile, envFile);
+        serverService.registerDeployment(request, pemFile, envFile, accessToken);
 
         return ResponseEntity.ok("서버 자동 배포 설정 완료");
     }

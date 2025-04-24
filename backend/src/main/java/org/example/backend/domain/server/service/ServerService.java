@@ -13,7 +13,7 @@ public interface ServerService {
 
     void deleteFolderOnServer(DeleteServerFolderRequest request);
 
-    void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile envFile);
+    void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile envFile, String accessToken);
 
     void resetServer(InitServerRequest request, MultipartFile pemFile);
 }

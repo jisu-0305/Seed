@@ -7,12 +7,16 @@ import com.jcraft.jsch.Session;
 import jakarta.websocket.DeploymentException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.common.session.RedisSessionManager;
+import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.server.DeleteServerFolderRequest;
 import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
 import org.example.backend.controller.request.server.InitServerRequest;
 import org.example.backend.controller.request.server.NewServerRequest;
 import org.example.backend.domain.server.entity.ServerInfo;
 import org.example.backend.domain.server.repository.ServerInfoRepository;
+import org.example.backend.domain.user.entity.User;
+import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -35,6 +39,8 @@ import java.util.stream.Stream;
 @Slf4j
 public class ServerServiceImpl implements ServerService {
 
+    private final UserRepository userRepository;
+    private final RedisSessionManager redisSessionManager;
     private final ServerInfoRepository repository;
 
     public void registerServer(NewServerRequest newServerRequest, MultipartFile keyFile) throws IOException {
@@ -122,24 +128,28 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-
-    // 공사중
     @Override
-    public void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile envFile) {
+    public void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile envFile, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
         String host = request.getServerIp();
-        Session session = null;
+        Session sshSession = null;
 
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
-            session = createSessionWithPem(pemFile, host);
+            sshSession = createSessionWithPem(pemFile, host);
             log.info("세션 생성 성공");
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands()) {
+            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getAccessToken())) {
                 log.info("명령 수행:\n{}", cmd);
-                String output = execCommand(session, cmd);
+                String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
             }
 
@@ -154,8 +164,8 @@ public class ServerServiceImpl implements ServerService {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR);
 
         } finally {
-            if (session != null && !session.isConnected()) {
-                session.disconnect();
+            if (session != null && !sshSession.isConnected()) {
+                sshSession.disconnect();
             }
         }
     }
@@ -230,7 +240,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 3) 명령 실행 대기 (예: 1분)
             long start = System.currentTimeMillis();
-            long maxWait = 5 * 60_000;
+            long maxWait = 10 * 60_000;
             while (!channel.isClosed()) {
                 if (System.currentTimeMillis() - start > maxWait) {
                     channel.disconnect();
@@ -261,20 +271,19 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands() {
+    private List<String> serverInitializeCommands(String serverIp, String gitlabAccessToken) {
         return Stream.of(
-                setFirewall(),
+                //setFirewall(),
                 updatePackageManager(),
                 setJDK(),
                 setNodejs(),
                 setDocker(),
-                setDockerCompose(),
-                setNginx(),
+                setNginx(serverIp),
                 setJenkins(),
-                setJenkinsCoufiguration()
+                setJenkinsConfiguration("admin", "admin", gitlabAccessToken),
+                setJenkinsJob()
         ).flatMap(Collection::stream).toList();
     }
-
 
     // 1. 방화벽 설정 (optional)
     private List<String> setFirewall() {
@@ -318,36 +327,101 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 5. Docker 설치
+    // 5. Docker, Docker-Compose 설치
     private List<String> setDocker() {
         return List.of(
+                // 5-1. 공식 GPG 키 추가
                 "sudo apt-get install -y ca-certificates curl gnupg",
                 "sudo install -m 0755 -d /etc/apt/keyrings",
                 "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --batch --yes --no-tty --dearmor -o /etc/apt/keyrings/docker.gpg",
+
+                // 5-2. Docker 레포지토리 등록
                 "echo \\\n" +
                         "  \"deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \\\n" +
                         "  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable\" | \\\n" +
                         "  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
+
+                // 5-3. Docker, Docker-Compose 설치
+                "sudo apt-get update",
+                "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+
+                // 5-4. 서비스 활성화 및 시작
                 "sudo systemctl enable docker",
                 "sudo systemctl start docker",
-                "docker --version"
-        );
-    }
-
-    // 6. Docker-Compose 설치
-    private List<String> setDockerCompose() {
-        return List.of(
-                "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+                "docker --version",
                 "docker compose version"
         );
     }
 
-    // 7. Nginx 설치
-    private List<String> setNginx() {
+    // 6. Nginx 설치
+    private List<String> setNginx(String serverIp) {
+        String nginxConf =
+                "server {\n" +
+                        "    listen 80;\n" +
+                        "    server_name " + serverIp + ";\n" +
+                        "\n" +
+                        "    root /var/www/html;\n" +
+                        "    index index.html;\n" +
+                        "\n" +
+                        "    location / {\n" +
+                        "        try_files $uri $uri/ /index.html;\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    location /api/ {\n" +
+                        "        proxy_pass http://localhost:8080/api/;\n" +
+                        "        proxy_set_header Host $host;\n" +
+                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
+                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
+                        "        proxy_set_header X-Forwarded-Proto $scheme;\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    location /swagger-ui/ {\n" +
+                        "        proxy_pass http://localhost:8080/swagger-ui/;\n" +
+                        "        proxy_set_header Host $host;\n" +
+                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
+                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    location /v3/api-docs {\n" +
+                        "        proxy_pass http://localhost:8080/v3/api-docs;\n" +
+                        "        proxy_set_header Host $host;\n" +
+                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
+                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
+                        "        add_header Access-Control-Allow-Origin *;\n" +
+                        "    }\n" +
+                        "\n" +
+                        "    location /ws {\n" +
+                        "        proxy_pass http://localhost:8080/ws;\n" +
+                        "        proxy_http_version 1.1;\n" +
+                        "        proxy_set_header Upgrade $http_upgrade;\n" +
+                        "        proxy_set_header Connection \"upgrade\";\n" +
+                        "        proxy_set_header Host $host;\n" +
+                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
+                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
+                        "        proxy_read_timeout 86400;\n" +
+                        "    }\n" +
+                        "}\n";
+
         return List.of(
+                // 6-1. Nginx 설치
                 "sudo apt install -y nginx",
                 "sudo systemctl enable nginx",
-                "sudo systemctl start nginx"
+                "sudo systemctl start nginx",
+
+                // 6-2. app.conf 생성 (with IP)
+                "sudo tee /etc/nginx/sites-available/app.conf > /dev/null << 'EOF'\n" +
+                        nginxConf +
+                        "EOF",
+
+                // 6-3. 심볼릭 링크 생성
+                "sudo ln -sf /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/app.conf",
+
+                // 6-4. 기존 default 링크 제거
+                "sudo rm -f /etc/nginx/sites-enabled/default",
+
+                // 6-5. 설정 테스트 및 적용
+                "sudo nginx -t",
+                "sudo systemctl reload nginx"
         );
     }
 
@@ -359,30 +433,25 @@ public class ServerServiceImpl implements ServerService {
                 "echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \\\n" +
                         "  https://pkg.jenkins.io/debian binary/ | \\\n" +
                         "  sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
+                "sudo apt-get update",
                 "sudo apt install -y jenkins",
-                "sudo systemctl enable jenkins",
-                "sudo systemctl start jenkins",
                 "echo \"jenkins version:\" && jenkins --version"
         );
     }
 
     // 8. Jenkins 상세 설정
-    private List<String> setJenkinsCoufiguration() {
+    private List<String> setJenkinsConfiguration(String adminId, String adminPassword, String gitlabAccessToken) {
         return List.of(
                 // 6-1) Setup Wizard 비활성화
                 "sudo sed -i '/^#JAVA_ARGS=/a JAVA_ARGS=\"$JAVA_ARGS -Djenkins.install.runSetupWizard=false\"' /etc/default/jenkins",
 
                 // 6-2) init.groovy.d 디렉터리 생성
                 "sudo mkdir -p /var/lib/jenkins/init.groovy.d",
-                "sudo chmod 644 /var/lib/jenkins/init.groovy.d/*.groovy",
 
                 // 6-3) Groovy init 스크립트로 관리자 계정 자동 생성
                 "sudo tee /var/lib/jenkins/init.groovy.d/basic-security.groovy > /dev/null << 'EOF'\n" +
                         "import jenkins.model.*\n" +
                         "import hudson.security.*\n" +
-                        "import jenkins.security.*\n" +
-                        "import jenkins.security.apitoken.*\n" +
-                        "import hudson.model.User\n" +
                         "\n" +
                         "def instance = Jenkins.getInstance()\n" +
                         "\n" +
@@ -397,32 +466,31 @@ public class ServerServiceImpl implements ServerService {
                         "def strategy = new FullControlOnceLoggedInAuthorizationStrategy()\n" +
                         "strategy.setAllowAnonymousRead(false)\n" +
                         "instance.setAuthorizationStrategy(strategy)\n" +
+                        "\n" +
                         "instance.save()\n" +
-                        "\n" +
-                        "// ===== API Token 자동 생성 및 파일 저장 =====\n" +
-                        "def user = User.get(adminId)\n" +
-                        "def tokenProperty = user.getProperty(ApiTokenProperty.class)\n" +
-                        "def tokenStore = tokenProperty.tokenStore\n" +
-                        "def result = tokenStore.generateNewToken(\"init-generated-token\")\n" +
-                        "user.save()\n" +
-                        "\n" +
-                        "def tokenFile = new File(\"/var/lib/jenkins/init_admin_token.txt\")\n" +
-                        "tokenFile.write(\"Admin ID: ${adminId}\\nToken: ${result.plainValue}\\n\")\n" +
                         "EOF",
 
-                // 6-4) plugin 다운로드
+                "sudo chmod 644 /var/lib/jenkins/init.groovy.d/*.groovy",
+
                 "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o jenkins-plugin-cli.jar",
 
-                "java -jar jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war \\\n" +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins \\\n" +
-                        "--plugins gitlab-plugin github git workflow-aggregator docker-workflow credentials-binding blueocean configuration-as-code",
+                "sudo systemctl stop jenkins",
 
-                // 6-5) Port 9090으로 변경
+                "sudo java -jar jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war \\\n" +
+                        "--plugin-download-directory=/var/lib/jenkins/plugins \\\n" +
+                        "--plugins gitlab-plugin github git workflow-aggregator credentials-binding configuration-as-code",
+
+                // 8-7. 포트 변경 (9090)
                 "sudo sed -i 's/^#*HTTP_PORT=.*/HTTP_PORT=9090/' /etc/default/jenkins",
                 "sudo sed -i 's/Environment=\"JENKINS_PORT=[0-9]\\+\"/Environment=\"JENKINS_PORT=9090\"/' /usr/lib/systemd/system/jenkins.service",
 
-                // 6-6) 재시작
+                "sudo systemctl enable jenkins",
                 "sudo systemctl restart jenkins"
+        );
+    }
+
+    private List<String> setJenkinsJob() {
+        return List.of(
         );
     }
 
@@ -435,4 +503,3 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 }
-
