@@ -106,7 +106,6 @@ public class GitlabController {
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
-    /* webhook _ push event */
     @PostMapping("/projects/{projectId}/hooks")
     @Operation(summary = "깃랩 웹훅_push", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<Void>> createWebhook(
@@ -118,12 +117,6 @@ public class GitlabController {
         gitlabService.createPushWebhook(accessToken, projectId, url, wildcard);
 
         return ResponseEntity.ok(ApiResponse.success());
-    }
-
-    @GetMapping("/hook-test")
-    public ResponseEntity<ApiResponse<String>> hookTest() {
-        log.debug(">>> hook-test endpoint called");
-        return ResponseEntity.ok(ApiResponse.success("Hook test successful"));
     }
 
 }
