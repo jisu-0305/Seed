@@ -122,7 +122,7 @@ public class GitlabServiceImpl implements GitlabService {
     }
 
     @Override
-    public GitlabProjectHook createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter) {
+    public void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -134,7 +134,7 @@ public class GitlabServiceImpl implements GitlabService {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        return gitlabApiClient.createProjectHook(user.getAccessToken(), projectId, hookUrl, branchFilter);
+        gitlabApiClient.createProjectHook(user.getAccessToken(), projectId, hookUrl, branchFilter);
 
     }
 

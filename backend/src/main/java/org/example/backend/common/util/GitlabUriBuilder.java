@@ -8,6 +8,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -90,23 +91,20 @@ public class GitlabUriBuilder {
         return URI.create(url);
     }
 
-    public URI createProjectHook(Long projectId, String hookUrl, String branchFilter) {
-        String encodedUrl = URLEncoder.encode(hookUrl, StandardCharsets.UTF_8).replace("+", "%20");
-        StringBuilder sb = new StringBuilder();
-        sb.append(baseUrl)
-                .append("/projects/")
-                .append(projectId)
-                .append("/hooks")
-                .append("?url=").append(encodedUrl)
-                .append("&push_events=true")
-                .append("&enable_ssl_verification=true");
+    public URI createProjectHook(Long projectId,  String hookUrl, String branchFilter) {
+        UriComponentsBuilder b = UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "hooks")
+                .queryParam("url", hookUrl)
+                .queryParam("push_events", true)
+                .queryParam("enable_ssl_verification", true);
 
-        if (branchFilter != null && !branchFilter.isBlank()) {
-            String encodedFilter = URLEncoder.encode(branchFilter, StandardCharsets.UTF_8).replace("+", "%20");
-            sb.append("&push_events_branch_filter=").append(encodedFilter);
-        }
+        Optional.ofNullable(branchFilter)
+                .filter(f -> !f.isBlank())
+                .ifPresent(f -> b.queryParam("push_events_branch_filter", f));
 
-        return URI.create(sb.toString());
+        return b.build().encode().toUri();
+
     }
 
 }

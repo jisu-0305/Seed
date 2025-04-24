@@ -166,16 +166,18 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public GitlabProjectHook createProjectHook(String privateToken, Long projectId,
+    public void createProjectHook(String privateToken, Long projectId,
                                                String hookUrl, String pushEventsBranchFilter ) {
+
         URI uri = uriBuilder.createProjectHook(projectId, hookUrl, pushEventsBranchFilter);
         log.debug(">>>> createProjectHook URI = {}", uri);
+
         try {
-            return gitlabWebClient.post()
+            gitlabWebClient.post()
                     .uri(uri)
                     .headers(h -> h.setBearerAuth(privateToken))
                     .retrieve()
-                    .bodyToMono(GitlabProjectHook.class)
+                    .toBodilessEntity()
                     .block();
         } catch (WebClientResponseException e) {
             log.error("GitLab createProjectHook Error: status={}, body={}, uri={}",

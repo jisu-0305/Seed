@@ -22,6 +22,6 @@ public interface GitlabApiClient {
 
     GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
 
-    GitlabProjectHook createProjectHook(String privateToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
+    void createProjectHook(String privateToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
 
 }

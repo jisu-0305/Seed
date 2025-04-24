@@ -110,15 +110,21 @@ public class GitlabController {
     /* webhook _ push event */
     @PostMapping("/projects/{projectId}/hooks")
     @Operation(summary = "깃랩 웹훅_push", security = @SecurityRequirement(name = "JWT"))
-    public ResponseEntity<ApiResponse<GitlabProjectHook>> createWebhook(
+    public ResponseEntity<ApiResponse<Void>> createWebhook(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
-            @RequestParam String url,
+            @Parameter(description = "수행할 url", example = "https://httpbin.org/get?foo=bar") @RequestParam String url,
             @RequestParam(required = false, defaultValue = "") String wildcard,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        GitlabProjectHook hook = gitlabService.createPushWebhook(accessToken, projectId, url, wildcard);
+        gitlabService.createPushWebhook(accessToken, projectId, url, wildcard);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(hook));
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @GetMapping("/hook-test")
+    public ResponseEntity<ApiResponse<String>> hookTest() {
+        log.debug(">>> hook-test endpoint called");
+        return ResponseEntity.ok(ApiResponse.success("Hook test successful"));
     }
 
 }
