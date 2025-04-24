@@ -8,11 +8,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -91,6 +93,17 @@ public class GitlabController {
         GitlabCompareResponse diff = gitlabService.getDiff(accessToken, projectId, from, to);
 
         return ResponseEntity.ok(ApiResponse.success(diff));
+    }
+
+    @PostMapping("/{projectId}/branches")
+    public ResponseEntity<ApiResponse<GitlabBranch>> createBranch(
+            @PathVariable Long projectId,
+            @RequestParam("branch") String branch,
+            @RequestParam("ref")    String ref,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        GitlabBranch created = gitlabService.createBranch(accessToken, projectId, branch, ref);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
 }
