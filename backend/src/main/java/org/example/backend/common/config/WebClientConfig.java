@@ -16,6 +16,12 @@ public class WebClientConfig {
     @Value("${docker.hub.api.base-url}")
     private String dockerHubApiBaseUrl;
 
+    @Value("${docker.registry.api.base-url}")
+    private String dockerRegistryApiBaseUrl;
+
+    @Value("${docker.auth.api.base-url}")
+    private String dockerAuthApiBaseUrl;
+
     @Bean("webClient")
     public WebClient webClient() {
         return WebClient.builder().build();
@@ -36,4 +42,21 @@ public class WebClientConfig {
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
+
+    @Bean("dockerRegistryWebClient")
+    public WebClient dockerRegistryWebClient() {
+        return WebClient.builder()
+                .baseUrl(dockerRegistryApiBaseUrl)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean("dockerAuthWebClient")
+    public WebClient dockerAuthWebClient() {
+        return WebClient.builder()
+                .baseUrl(dockerAuthApiBaseUrl)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
 }

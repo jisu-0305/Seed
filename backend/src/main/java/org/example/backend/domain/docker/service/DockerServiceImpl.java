@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
 import org.example.backend.domain.docker.dto.DockerImage;
+import org.example.backend.domain.docker.dto.DockerTagByRegistry;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -54,8 +55,14 @@ public class DockerServiceImpl implements DockerService {
         return tagResponse;
     }
 
-//    @Override
-//    public List<String> getDefaultPorts(String namespace, String repo, String tag, String os, String arch) {
-//        return dockerApiClient.getExposedPorts(namespace, repo, tag, os, arch);
-//    }
+    @Override
+    public DockerTagByRegistry getRegistryTagNames(String namespace, String repo, int page, int pageSize) {
+        log.debug(">>>>> getRegistryTagNames namespace={} repo={} page={} pageSize={}",
+                namespace, repo, page, pageSize);
+
+        List<String> tags = dockerApiClient.getRegistryTagNames( namespace, repo, pageSize, null);
+
+        return new DockerTagByRegistry(tags);
+    }
+
 }

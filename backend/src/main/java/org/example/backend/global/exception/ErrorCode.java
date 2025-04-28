@@ -48,6 +48,7 @@ public enum ErrorCode {
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),
     UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, 4003, "유효하지 않은 사용자입니다."),
     OAUTH_TOKEN_FORBIDDEN(HttpStatus.NOT_FOUND, 4101, "Oauth 토큰 발급에 실패했습니다."),
+    DOCKER_TOKEN_API_FAILED(HttpStatus.NOT_FOUND, 4102, "docker 토큰 발급에 실패했습니다."),
 
     // 6xxx: 내부 서버 오류
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 6001, "내부 서버 오류입니다."),

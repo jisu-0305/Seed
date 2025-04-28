@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
+import org.example.backend.domain.docker.dto.DockerTagByRegistry;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
@@ -45,15 +46,20 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-//    @GetMapping("/repositories/{ns}/{repo}/tags/{tag}/ports")
-//    public ResponseEntity<ApiResponse<List<String>>> getPorts(
-//            @PathVariable String ns,
-//            @PathVariable String repo,
-//            @PathVariable String tag,
-//            @RequestParam(defaultValue = "linux") String os,
-//            @RequestParam(defaultValue = "amd64") String arch
-//    ) {
-//        List<String> ports = dockerService.getDefaultPorts(ns, repo, tag, os, arch);
-//        return ResponseEntity.ok(ApiResponse.success(ports));
-//    }
+    @GetMapping("/registry/images/{namespace}/{image}/tags")
+    @Operation(
+            summary = "Registry API로 조회한 도커 이미지 태그 목록",
+            description = "Registry HTTP API(v2)를 통해 해당 이미지의 태그 이름들을 가져옵니다.",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    public ResponseEntity<ApiResponse<DockerTagByRegistry>> listRegistryTagNames(
+            @PathVariable String namespace,
+            @PathVariable("image") String repo,
+            @RequestParam(defaultValue = "1")  int page,
+            @RequestParam(defaultValue = "10") int pageSize
+    ) {
+        DockerTagByRegistry dto = dockerService.getRegistryTagNames(namespace, repo, page, pageSize);
+        return ResponseEntity.ok(ApiResponse.success(dto));
+    }
+
 }

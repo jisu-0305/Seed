@@ -8,10 +8,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class DockerUriBuilder {
 
     @Value("${docker.hub.api.base-url}")
-    private String baseUrl;
+    private String dockerHubBaseUrl;
+
+    @Value("${docker.registry.api.base-url}")
+    private String registryBaseUrl;
 
     public String searchRepositories(String query, int page, int pageSize) {
-        return UriComponentsBuilder.fromUriString(baseUrl)
+        return UriComponentsBuilder.fromUriString(dockerHubBaseUrl)
                 .path("/search/repositories")
                 .queryParam("query", query)
                 .queryParam("page", page)
@@ -20,12 +23,25 @@ public class DockerUriBuilder {
     }
 
     public String listTags(String namespace, String repo, int page, int pageSize) {
-        return UriComponentsBuilder.fromUriString(baseUrl)
+        return UriComponentsBuilder.fromUriString(dockerHubBaseUrl)
                 .path("/repositories")
                 .pathSegment(namespace, repo, "tags")
                 .queryParam("page", page)
                 .queryParam("page_size", pageSize)
                 .toUriString();
+    }
+
+    public String listRegistryTags(String namespace, String repo, int n, String lastTag) {
+        UriComponentsBuilder b = UriComponentsBuilder
+                .fromUriString(registryBaseUrl)
+                .pathSegment(namespace, repo, "tags", "list")
+                .queryParam("n", n);
+
+        if (lastTag != null && !lastTag.isBlank()) {
+            b.queryParam("last", lastTag);
+        }
+
+        return b.toUriString();
     }
 
 }
