@@ -8,7 +8,8 @@ ai/
 │   ├── agents/          ← 기능별 ai agent
 │   ├── api/             ← 라우터 모음
 │   ├── core/            ← config.py, 환경 관련
-│   ├── db/              ← crud.py, database.py, models.py
+│   ├── db/              ← crud.py, database.py
+│   ├── prompts/              ← 프롬프트
 │   ├── services/        ← openai_service.py
 │   ├── uploads/         ← 업로드용 로컬 폴더
 │   ├── utils/           ← util 함수 모음
