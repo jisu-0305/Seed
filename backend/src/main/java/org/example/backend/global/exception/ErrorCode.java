@@ -52,7 +52,9 @@ public enum ErrorCode {
     // 6xxx: 내부 서버 오류
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 6001, "내부 서버 오류입니다."),
     FCM_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6002, "FCM 메시지 전송에 실패했습니다."),
-    FILE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6003, "파일 저장에 실패했습니다.");
+    FILE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6003, "파일 저장에 실패했습니다."),
+    JENKINS_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6004, "젠킨스 API 요청이 실패했습니다."),
+    JENKINS_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6005, "젠킨스 응답 파싱에 실패했습니다.");
 
     private final HttpStatus status;
     private final int code;
