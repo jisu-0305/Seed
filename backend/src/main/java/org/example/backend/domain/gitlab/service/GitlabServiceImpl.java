@@ -118,6 +118,23 @@ public class GitlabServiceImpl implements GitlabService {
     }
 
     @Override
+    public void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter) {
+
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        gitlabApiClient.createProjectHook(user.getAccessToken(), projectId, hookUrl, branchFilter);
+
+    }
+
+    @Override
     public String deleteBranch(String accessToken, Long projectId, String branch) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();

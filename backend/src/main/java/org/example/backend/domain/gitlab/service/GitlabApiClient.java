@@ -22,6 +22,8 @@ public interface GitlabApiClient {
 
     GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
 
+    void createProjectHook(String privateToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
+
     void deleteBranch(String accessToken, Long projectId, String branch);
 
     MergeRequestCreateResponse createMergeRequest(

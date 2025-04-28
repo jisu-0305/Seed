@@ -8,6 +8,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -116,6 +117,22 @@ public class GitlabUriBuilder {
                 "%s/projects/%d/repository/branches/%s",
                 baseUrl, projectId, encoded
         ));
+    }
+
+    public URI createProjectHook(Long projectId,  String hookUrl, String branchFilter) {
+        UriComponentsBuilder b = UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "hooks")
+                .queryParam("url", hookUrl)
+                .queryParam("push_events", true)
+                .queryParam("enable_ssl_verification", true);
+
+        Optional.ofNullable(branchFilter)
+                .filter(f -> !f.isBlank())
+                .ifPresent(f -> b.queryParam("push_events_branch_filter", f));
+
+        return b.build().encode().toUri();
+
     }
 
 }
