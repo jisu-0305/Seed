@@ -36,7 +36,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         String uri =uriBuilder.projects(1, 100);
         try {
             projects = gitlabWebClient.get().uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .retrieve().bodyToFlux(GitlabProject.class)
                     .collectList()
                     .block();
@@ -60,7 +60,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
         try {
             return gitlabWebClient.get().uri(uri)
-                    .headers(h -> h.setBearerAuth(token))
+                    .headers(header -> header.setBearerAuth(token))
                     .retrieve()
                     .bodyToMono(GitlabProject.class)
                     .block();
@@ -80,7 +80,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
         try {
             tree = gitlabWebClient.get().uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToFlux(GitlabTree.class)
                     .collectList()
@@ -104,7 +104,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
         try {
             content = gitlabWebClient.get().uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
@@ -127,7 +127,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(GitlabCompareResponse.class)
                     .block();
@@ -153,7 +153,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(GitlabBranch.class)
                     .block();
@@ -176,7 +176,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             gitlabWebClient.post()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(privateToken))
+                    .headers(header -> header.setBearerAuth(privateToken))
                     .retrieve()
                     .toBodilessEntity()
                     .block();
@@ -200,7 +200,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             gitlabWebClient.delete()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(Void.class)
                     .block();
@@ -237,7 +237,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(form)
                     .retrieve()
@@ -254,7 +254,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(accessToken))
+                    .headers(header -> header.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(GitlabBranch.class)
                     .block();
