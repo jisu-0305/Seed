@@ -156,51 +156,70 @@ Relying upon circular references is discouraged and they are prohibited by defau
 
 4. 파일 목록
 {
-  "suspectFiles": [
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicServiceImpl.java",
-      "reason": "UnsatisfiedDependencyException: circular reference detected involving SecondaryService"
-    },
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryServiceImpl.java",
-      "reason": "UnsatisfiedDependencyException: circular reference back to BasicService"
-    },
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicService.java",
-      "reason": "modified in git diff + related to service bean"
-    },
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryService.java",
-      "reason": "new file added related to circular reference issue"
-    }
-  ]
-}
+  "response": {
+    "errorSummary": "Application failed to start due to a circular bean dependency between BasicServiceImpl and SecondaryServiceImpl.",
+    "cause": "BasicServiceImpl injects SecondaryService and SecondaryServiceImpl injects BasicService, creating an unresolvable circular reference under Spring Boot's default settings.",
+    "resolutionHint": "Break the mutual injection cycle by refactoring one dependency (e.g., use @Lazy on one bean, introduce a third coordinating component, or merge/refactor service responsibilities) so that BasicService and SecondaryService no longer directly depend on each other.",
+    "files": [
+      {
+        "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicServiceImpl.java",
+        "code": "package org.example.backend.domain.userNumber.service;
 
-{
-  "suspectFiles": [
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicServiceImpl.java",
-      "instruction": "Remove the circular dependency involving SecondaryService; consider using setter injection for one of the services."
-    },
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryServiceImpl.java",
-      "instruction": "Remove the circular dependency with BasicService; consider refactoring to eliminate the direct dependency."
-    }
-  ]
-}
+        import lombok.RequiredArgsConstructor;
+        import org.example.backend.controller.dto.BasicInfoRequest;
+        import org.example.backend.controller.dto.BasicInfoResponse;
+        import org.example.backend.domain.userNumber.entity.Basic;
+        import org.example.backend.domain.userNumber.repository.BasicInfoRepository;
+        import org.springframework.stereotype.Service;
 
-{
-  "suspectFiles": [
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicServiceImpl.java"
-    },
-    {
-      "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryServiceImpl.java"
-    },
-    {
-      "path": "backend/src/main/java/org/example/backend/controller/UserNumberController.java"
-    }
-  ]
+        @Service
+        @RequiredArgsConstructor
+        public class BasicServiceImpl implements BasicService {
+
+            private final BasicInfoRepository repository;
+            private final SecondaryService secondaryService;
+
+            @Override
+            public BasicInfoResponse save(BasicInfoRequest request) {
+
+                Basic saved = repository.save(
+                        Basic.builder()
+                                .user_number(request.getUser_number())
+                                .build()
+                );
+                return BasicInfoResponse.builder()
+                        .id(saved.getId())
+                        .user_number(saved.getUser_number())
+                        .build();
+            }
+
+            @Override
+            public void basicCircular() {
+                secondaryService.circular();
+            }
+        }"
+      },
+      {
+        "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryServiceImpl.java",
+        "code": "package org.example.backend.domain.userNumber.service;
+
+        import lombok.RequiredArgsConstructor;
+        import org.springframework.stereotype.Service;
+
+        @Service
+        @RequiredArgsConstructor
+        public class SecondaryServiceImpl implements SecondaryService {
+
+            private final BasicService basicService;
+
+            @Override
+            public void circular() {
+                basicService.basicCircular();
+            }
+        }"
+      }
+    ]
+  }
 }
 
 5. 코드
@@ -274,4 +293,22 @@ public class SecondaryServiceImpl implements SecondaryService {
     public void circular() {
         basicService.basicCircular();
     }
+}
+
+6. 지시사항
+{
+  "response": {
+    "fileFixes": [
+      {
+        "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryServiceImpl.java",
+        "instruction": "1. Add import for Lazy: `import org.springframework.context.annotation.Lazy;`\n2. Annotate the class with @Lazy right after @Service, i.e. change the class signature to:\n   @Service\n   @Lazy\n   @RequiredArgsConstructor\n   public class SecondaryServiceImpl implements SecondaryService { ... }",
+        "explanation": "By marking SecondaryServiceImpl as lazy, Spring will defer its instantiation until it's actually needed, breaking the mutual eager initialization cycle with BasicServiceImpl."
+      }
+    ],
+    "resolutionReport": {
+      "errorSummary": "Application failed to start due to a circular bean dependency between BasicServiceImpl and SecondaryServiceImpl.",
+      "cause": "BasicServiceImpl injects SecondaryService and SecondaryServiceImpl injects BasicService, creating an unresolvable circular reference under Spring Boot's default settings.",
+      "finalResolution": "Applied @Lazy to SecondaryServiceImpl to defer its creation and resolve the circular bean dependency."
+    }
+  }
 }

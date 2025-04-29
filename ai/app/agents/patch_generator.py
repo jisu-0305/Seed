@@ -2,14 +2,14 @@ from .base import BaseAgent
 from app.services.openai_client import ask_gpt
 
 class PatchGeneratorAgent(BaseAgent):
-    async def run(self, original_code: str, error_reason: str) -> str:
+    async def run(self, original_code: str, instruction: str) -> str:
         prompt = f"""
             You are PatchGeneratorAgent, an AI specialized in minimally patching source files to fix build errors.
 
             Inputs:
             - Original file contents:
                 {original_code}
-            - Error explanation / reason: {error_reason}
+            - Error explanation / reason: {instruction}
 
             Your task:
             - Keep the existing structure, comments and formatting of the file unchanged as much as possible.

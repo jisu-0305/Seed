@@ -16,34 +16,28 @@ class FileLocatorAgent(BaseAgent):
             3. Build or runtime error log:
             {log}
 
-           Task:
+           Tasks:
             - Identify each file that directly contributes to the build failure.
-            - Return only their paths in a JSON array.
+            - Provide a brief summary of the current build error, including its cause.
+            - Offer a high-level explanation of how to resolve the error.
+            - Return only their paths in a JSON array under "suspectFiles".
 
             Output format:
-            Return one JSON array named "suspectFiles". Each element is an object with exactly one key:
-
-            [
             {{
-                "path": "<repo-relative file path>"
-            }},
-            ...
-            ]
+              "errorSummary": "<brief summary of error>",
+              "cause": "<error cause explanation>",
+              "resolutionHint": "<high-level fix suggestion>",
+              "suspectFiles": [
+                {{ "path": "<repo-relative file path>" }},
+                ...
+              ]
+            }}
 
             Requirements:
-            - Output must be **one JSON array**.
+            - Output must be **one JSON object** with exactly four keys: errorSummary, cause, resolutionHint, suspectFiles.
             - Do not include any other fields.
             - Do **not** wrap output in markdown, code fences, or extra commentary.
             - Only include files that actually participate in the failure.
-            
-            Example:
-            [
-            {{
-                "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicServiceImpl.java"
-            }},
-            {{
-                "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryServiceImpl.java"
-            }}
-            ]
+
         """
         return await ask_gpt(prompt)

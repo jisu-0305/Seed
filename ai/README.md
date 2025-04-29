@@ -57,7 +57,7 @@ uvicorn main:app --reload
 💡 결론
 
 - 개발할 땐 → uvicorn main:app --reload
-- 배포할 땐 → uvicorn main:app --host 0.0.0.0 --port 8000 같은 식으로 명시 실행
+- 배포할 땐 → uvicorn main:app --host 0.0.0.0 --port 8001 같은 식으로 명시 실행
 
 ### 4. Swagger 확인
 
