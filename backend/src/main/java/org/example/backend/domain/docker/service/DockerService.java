@@ -1,6 +1,7 @@
 package org.example.backend.domain.docker.service;
 
-import org.example.backend.controller.response.docker.DemonUnHealthyResponse;
+import org.example.backend.controller.response.docker.AppHealthyCheckResponse;
+import org.example.backend.controller.response.docker.DemonHealthyCheckResponse;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
 
@@ -9,5 +10,6 @@ import java.util.List;
 public interface DockerService {
     ImageResponse getImages(String image);
     List<TagResponse> getTag(String image);
-    List<DemonUnHealthyResponse> checkHealth();
+    List<DemonHealthyCheckResponse> checkHealth();
+    List<AppHealthyCheckResponse> getAppStatus(String appName);
 }

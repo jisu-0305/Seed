@@ -26,8 +26,8 @@ public class WebClientConfig {
     @Value("${docker.auth.api.base-url}")
     private String dockerAuthApiBaseUrl;
 
-    @Value("${docker.engine.api.base-url}")
-    private String dockerEngineApiBaseUrl;
+//    @Value("${docker.engine.api.base-url}")
+//    private String dockerEngineApiBaseUrl;
 
     @Value("${docker.engine.socket-url}")
     private String dockerEngineSocketUrl;
@@ -53,7 +53,6 @@ public class WebClientConfig {
 
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .baseUrl(dockerEngineApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }

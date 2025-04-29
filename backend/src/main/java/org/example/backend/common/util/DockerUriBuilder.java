@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,22 +40,49 @@ public class DockerUriBuilder {
     }
 
     public String info() {
-        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
-                .path("/info")
-                .toUriString();
+        return "/info";
     }
 
     public String containersByStatus(List<String> statuses) {
-        String jsonFilter = String.format(
+        String json = String.format(
                 "{\"status\":[%s]}",
-                statuses.stream()
-                        .map(s -> "\"" + s + "\"")
-                        .collect(Collectors.joining(","))
+                statuses.stream().map(s -> "\"" + s + "\"").collect(Collectors.joining(","))
         );
-        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
-                .path("/containers/json")
-                .queryParam("filters", jsonFilter)
-                .toUriString();
+        String encoded = URLEncoder.encode(json, StandardCharsets.UTF_8);
+        return "/containers/json?filters=" + encoded;
     }
+
+    public String containersByName(String nameFilter) {
+        String json = String.format("{\"name\":[\"%s\"]}", nameFilter);
+        String encoded = URLEncoder.encode(json, StandardCharsets.UTF_8);
+        return "/containers/json?filters=" + encoded;
+    }
+
+//    public String info() {
+//        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
+//                .path("/info")
+//                .toUriString();
+//    }
+
+//    public String containersByStatus(List<String> statuses) {
+//        String jsonFilter = String.format(
+//                "{\"status\":[%s]}",
+//                statuses.stream()
+//                        .map(s -> "\"" + s + "\"")
+//                        .collect(Collectors.joining(","))
+//        );
+//        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
+//                .path("/containers/json")
+//                .queryParam("filters", jsonFilter)
+//                .toUriString();
+//    }
+//
+//    public String containersByName(String nameFilter) {
+//        String filter = String.format("{\"name\":[\"%s\"]}", nameFilter);
+//        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
+//                .path("/containers/json")
+//                .queryParam("filters", filter)
+//                .toUriString();
+//    }
 
 }

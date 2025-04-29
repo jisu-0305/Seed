@@ -12,4 +12,5 @@ public interface DockerApiClient {
     DockerTag getTags(String namespace, String repo, int page, int pageSize);
     DemonInfoResponse getInfo();
     List<ContainerDto> getContainersByStatus(List<String> statuses);
+    List<ContainerDto> getContainersByName(String nameFilter);
 }

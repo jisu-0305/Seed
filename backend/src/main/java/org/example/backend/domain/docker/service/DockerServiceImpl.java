@@ -2,10 +2,7 @@ package org.example.backend.domain.docker.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.backend.controller.response.docker.DemonInfoResponse;
-import org.example.backend.controller.response.docker.DemonUnHealthyResponse;
-import org.example.backend.controller.response.docker.ImageResponse;
-import org.example.backend.controller.response.docker.TagResponse;
+import org.example.backend.controller.response.docker.*;
 import org.example.backend.domain.docker.dto.DockerImage;
 import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
@@ -75,7 +72,7 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<DemonUnHealthyResponse> checkHealth() {
+    public List<DemonHealthyCheckResponse> checkHealth() {
         log.debug(">>>>> checkHealth (도커 데몬)");
 
         DemonInfoResponse info = dockerApiClient.getInfo();
@@ -93,7 +90,7 @@ public class DockerServiceImpl implements DockerService {
         try {
             List<String> statuses = Arrays.asList("paused", "exited");
             return dockerApiClient.getContainersByStatus(statuses).stream()
-                    .map(c -> new DemonUnHealthyResponse(
+                    .map(c -> new DemonHealthyCheckResponse(
                             c.getImage(),
                             c.getImageId()
                     ))
@@ -101,6 +98,33 @@ public class DockerServiceImpl implements DockerService {
         } catch (Exception e) {
             log.error("Docker health check failed", e);
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
+        }
+    }
+
+    @Override
+    public List<AppHealthyCheckResponse> getAppStatus(String appName) {
+        log.debug(">>>>> getAppStatus, appName={}", appName);
+
+        try {
+            var containers = dockerApiClient.getContainersByName(appName);
+
+            if (containers.isEmpty()) {
+                throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                        String.format("애플리케이션 이름 '%s' 에 해당하는 컨테이너가 없습니다.", appName));
+            }
+
+            return containers.stream()
+                    .map(c -> new AppHealthyCheckResponse(
+                            c.getImage(),
+                            c.getImageId(),
+                            c.getState(),
+                            c.getStatus()))
+                    .collect(Collectors.toList());
+        } catch (BusinessException be) {
+            throw be;
+        } catch (Exception e) {
+            log.error("Failed to get status for appName={}", appName, e);
+            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
         }
     }
 

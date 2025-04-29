@@ -78,4 +78,18 @@ public class DockerApiClientImpl implements DockerApiClient {
         }
     }
 
+    @Override
+    public List<ContainerDto> getContainersByName(String nameFilter) {
+        try {
+            return dockerWebClient.get()
+                    .uri(uriBuilder.containersByName(nameFilter))
+                    .retrieve()
+                    .bodyToFlux(ContainerDto.class)
+                    .collectList()
+                    .block();
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
+        }
+    }
+
 }

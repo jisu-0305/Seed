@@ -5,7 +5,9 @@ import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class DemonUnHealthyResponse {
+public class AppHealthyCheckResponse {
     private String Image;
     private String ImageId;
+    private String State;
+    private String Status;
 }
