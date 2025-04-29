@@ -13,7 +13,7 @@ export default function SideBar() {
     <SideWrapper>
       <Logo>
         <LogoImage src="/assets/icons/ic_logo.svg" alt="logo" />
-        <LogoText src="/assets/icons/ic_logoText_black.png" alt="logoText" />
+        <LogoText src="/assets/icons/ic_logoText.svg" alt="logoText" />
       </Logo>
 
       <Menu>
