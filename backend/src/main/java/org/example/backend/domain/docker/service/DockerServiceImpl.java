@@ -21,10 +21,12 @@ public class DockerServiceImpl implements DockerService {
     private final DockerApiClient dockerApiClient;
 
     @Override
-    public ImageResponse getImages(String query, int page, int pageSize) {
-        log.debug(">>>>> searchRepositories,{},{},{}", query, page, pageSize);
+    public ImageResponse getImages(String image) {
+        log.debug(">>>>> searchRepositories,{}", image);
+        int page = 1;
+        int pageSize = 100;
 
-        ImageResponse imageResponse = dockerApiClient.getImages(query, page, pageSize);
+        ImageResponse imageResponse = dockerApiClient.getImages(image, page, pageSize);
 
         if (imageResponse == null) {
             throw new BusinessException(ErrorCode.DOCKER_SEARCH_FAILED);

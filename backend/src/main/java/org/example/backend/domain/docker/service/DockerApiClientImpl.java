@@ -2,7 +2,7 @@ package org.example.backend.domain.docker.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.backend.common.cache.DockerTokenCacheManager;
+//import org.example.backend.common.cache.DockerTokenCacheManager;
 import org.example.backend.common.util.DockerUriBuilder;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.domain.docker.dto.DockerTag;
@@ -17,9 +17,9 @@ import org.springframework.web.reactive.function.client.WebClient;
 public class DockerApiClientImpl implements DockerApiClient {
 
     private final WebClient dockerHubWebClient;
-    private final WebClient dockerRegistryWebClient;
+//    private final WebClient dockerRegistryWebClient;
     private final DockerUriBuilder uriBuilder;
-    private final DockerTokenCacheManager tokenCacheManager;
+//    private final DockerTokenCacheManager tokenCacheManager;
 
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {

@@ -24,20 +24,19 @@ public class DockerController {
 
     private final DockerService dockerService;
 
-    @GetMapping("/images")
+    @GetMapping("/images/{image}")
     @Operation(summary = "도커 이미지 조회_공식만", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<ImageResponse>> searchDockerImages(
-            @Parameter(description = "검색어 (예: ubuntu, nginx)", example = "redis") @RequestParam String query,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize
-    ) {
-        ImageResponse response = dockerService.getImages(query, page, pageSize);
+            @Parameter(description = "검색어 (예: ubuntu, nginx)", example = "redis")
+            @PathVariable("image") String image) {
+        ImageResponse response = dockerService.getImages(image);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/images/{image}/tags")
     @Operation(summary = "도커 이미지 태그 조회 (linux/amd64 필터링)", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<List<TagResponse>>> searchDockerImageTags(
+            @Parameter(description = "검색어 (예: ubuntu, nginx)", example = "redis")
             @PathVariable("image") String image) {
         List<TagResponse> responses = dockerService.getTag(image);
         return ResponseEntity.ok(ApiResponse.success(responses));
