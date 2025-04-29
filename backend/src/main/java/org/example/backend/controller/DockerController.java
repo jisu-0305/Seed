@@ -8,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
+import org.example.backend.controller.response.docker.DemonUnHealthyResponse;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
@@ -42,4 +43,16 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
+    // 도커 헬스체크
+    // 1. 데몬 상태 조회해서 이상한 상태의 개수로 파악
+    @GetMapping
+    @Operation(
+            summary = "도커 전체 헬스 체크",
+            description = "ContainersPaused 또는 ContainersStopped 값이 0보다 크면 해당 컨테이너의 Image, ImageID를 리스트로 반환합니다.",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    public ResponseEntity<ApiResponse<List<DemonUnHealthyResponse>>> checkDockerHealth() {
+        List<DemonUnHealthyResponse> unhealthy = dockerService.checkHealth();
+        return ResponseEntity.ok(ApiResponse.success(unhealthy));
+    }
 }

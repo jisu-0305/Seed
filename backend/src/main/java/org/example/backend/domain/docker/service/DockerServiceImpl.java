@@ -2,6 +2,8 @@ package org.example.backend.domain.docker.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.controller.response.docker.DemonInfoResponse;
+import org.example.backend.controller.response.docker.DemonUnHealthyResponse;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
 import org.example.backend.domain.docker.dto.DockerImage;
@@ -10,6 +12,7 @@ import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -69,6 +72,36 @@ public class DockerServiceImpl implements DockerService {
                         item.getDigest()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<DemonUnHealthyResponse> checkHealth() {
+        log.debug(">>>>> checkHealth (도커 데몬)");
+
+        DemonInfoResponse info = dockerApiClient.getInfo();
+        if (info == null) {
+            throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
+        }
+
+        int pausedCount  = info.getContainersPaused();
+        int stoppedCount = info.getContainersStopped();
+
+        if (pausedCount + stoppedCount == 0) {
+            return List.of();
+        }
+
+        try {
+            List<String> statuses = Arrays.asList("paused", "exited");
+            return dockerApiClient.getContainersByStatus(statuses).stream()
+                    .map(c -> new DemonUnHealthyResponse(
+                            c.getImage(),
+                            c.getImageId()
+                    ))
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Docker health check failed", e);
+            throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
+        }
     }
 
 }

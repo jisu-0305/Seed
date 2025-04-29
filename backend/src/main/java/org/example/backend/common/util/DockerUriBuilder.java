@@ -4,14 +4,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Component
 public class DockerUriBuilder {
 
     @Value("${docker.hub.api.base-url}")
     private String dockerHubBaseUrl;
 
-    @Value("${docker.registry.api.base-url}")
-    private String registryBaseUrl;
+    @Value("${docker.engine.api.base-url}")
+    private String dockerEngineApiBaseUrl;
+
+//    @Value("${docker.registry.api.base-url}")
+//    private String registryBaseUrl;
 
     public String searchRepositories(String query, int page, int pageSize) {
         return UriComponentsBuilder.fromUriString(dockerHubBaseUrl)
@@ -28,6 +34,25 @@ public class DockerUriBuilder {
                 .pathSegment(namespace, repo, "tags")
                 .queryParam("page", page)
                 .queryParam("page_size", pageSize)
+                .toUriString();
+    }
+
+    public String info() {
+        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
+                .path("/info")
+                .toUriString();
+    }
+
+    public String containersByStatus(List<String> statuses) {
+        String jsonFilter = String.format(
+                "{\"status\":[%s]}",
+                statuses.stream()
+                        .map(s -> "\"" + s + "\"")
+                        .collect(Collectors.joining(","))
+        );
+        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
+                .path("/containers/json")
+                .queryParam("filters", jsonFilter)
                 .toUriString();
     }
 
