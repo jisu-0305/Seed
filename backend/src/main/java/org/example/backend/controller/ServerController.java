@@ -1,11 +1,11 @@
 package org.example.backend.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
-import org.example.backend.controller.request.server.DeleteServerFolderRequest;
-import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
-import org.example.backend.controller.request.server.InitServerRequest;
-import org.example.backend.controller.request.server.NewServerRequest;
+import org.example.backend.common.util.ConvertHttpsUtil;
+import org.example.backend.controller.request.server.*;
 import org.example.backend.domain.server.service.ServerService;
+import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +20,7 @@ import java.io.IOException;
 public class ServerController {
 
     private final ServerService serverService;
+    private final ConvertHttpsUtil convertHttpsUtil;
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> register(
@@ -58,5 +59,12 @@ public class ServerController {
         serverService.resetServer(request, pemFile);
 
         return ResponseEntity.ok("서버 초기화 완료");
+    }
+
+    @PostMapping("/convert")
+    @Operation(summary = "HTTP를 HTTPS로 변환", description = "도메인과 이메일을 입력받아 HTTPS 인증서를 발급하고 Nginx 설정을 변경합니다.")
+    public ResponseEntity<ApiResponse<String>> convert(@RequestBody HttpsConvertRequest request) {
+        ApiResponse<String> response = convertHttpsUtil.convertHttpToHttps(request.getDomain(), request.getEmail());
+        return ResponseEntity.ok(response);
     }
 }
