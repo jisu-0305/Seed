@@ -142,8 +142,7 @@ const Right = styled.div`
 `;
 
 const Cactus = styled.img`
-  width: 200px;
-  margin-bottom: 1.5rem;
+  width: 20rem;
 `;
 
 const LogoText = styled.img`
