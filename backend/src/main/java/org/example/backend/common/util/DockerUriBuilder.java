@@ -31,18 +31,4 @@ public class DockerUriBuilder {
                 .toUriString();
     }
 
-    public String listRegistryTags(String namespace, String repo, int n, String lastTag) {
-        UriComponentsBuilder b = UriComponentsBuilder
-                .fromUriString(registryBaseUrl)
-                .pathSegment(namespace, repo, "tags", "list")
-                .queryParam("n", n);
-
-        if (lastTag != null && !lastTag.isBlank()) {
-            b.queryParam("last", lastTag);
-        }
-
-        return b.toUriString();
-    }
-
 }
-

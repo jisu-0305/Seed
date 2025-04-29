@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
 import org.example.backend.domain.docker.dto.DockerImage;
-import org.example.backend.domain.docker.dto.DockerTagByRegistry;
+import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -44,25 +44,29 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public TagResponse getTags(String namespace, String image, int page, int pageSize) {
-        log.debug(">>>>> getTags,{},{},{},{}", namespace, image, page, pageSize);
+    public List<TagResponse> getTag(String image) {
+        String namespace = "library";
+        int page = 1;
+        int pageSize = 100;
 
-        TagResponse tagResponse = dockerApiClient.getTags(namespace, image, page, pageSize);
-        if (tagResponse == null) {
+        DockerTag dockerTag = dockerApiClient.getTags(namespace, image, page, pageSize);
+        if (dockerTag == null) {
             throw new BusinessException(ErrorCode.DOCKER_TAGS_FAILED);
         }
 
-        return tagResponse;
-    }
+        return dockerTag.getResults().stream()
+                .filter(item -> item.getImages().stream().anyMatch(img ->
+                        "amd64".equals(img.getArchitecture()) &&
+                                "linux".equals(img.getOs())
+                ))
 
-    @Override
-    public DockerTagByRegistry getRegistryTagNames(String namespace, String repo, int page, int pageSize) {
-        log.debug(">>>>> getRegistryTagNames namespace={} repo={} page={} pageSize={}",
-                namespace, repo, page, pageSize);
-
-        List<String> tags = dockerApiClient.getRegistryTagNames( namespace, repo, pageSize, null);
-
-        return new DockerTagByRegistry(tags);
+                .map(item -> new TagResponse(
+                        item.getName(),
+                        item.getRepository(),
+                        item.isV2(),
+                        item.getDigest()
+                ))
+                .collect(Collectors.toList());
     }
 
 }

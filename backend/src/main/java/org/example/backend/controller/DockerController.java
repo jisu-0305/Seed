@@ -8,11 +8,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.controller.response.docker.TagResponse;
-import org.example.backend.domain.docker.dto.DockerTagByRegistry;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/docker")
@@ -34,32 +35,12 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/images/{namespace}/{image}/tags")
-    @Operation(summary = "도커 이미지의 태그 조회", security = @SecurityRequirement(name = "JWT"))
-    public ResponseEntity<ApiResponse<TagResponse>> searchDockerImageTags(
-            @Parameter(example = "library") @PathVariable String namespace,
-            @Parameter(description = "이미지 이름 (예: redis)", example = "redis") @PathVariable String image,
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int pageSize
-    ) {
-        TagResponse response = dockerService.getTags(namespace, image, page, pageSize);
-        return ResponseEntity.ok(ApiResponse.success(response));
-    }
-
-    @GetMapping("/registry/images/{namespace}/{image}/tags")
-    @Operation(
-            summary = "Registry API로 조회한 도커 이미지 태그 목록",
-            description = "Registry HTTP API(v2)를 통해 해당 이미지의 태그 이름들을 가져옵니다.",
-            security = @SecurityRequirement(name = "JWT")
-    )
-    public ResponseEntity<ApiResponse<DockerTagByRegistry>> listRegistryTagNames(
-            @PathVariable String namespace,
-            @PathVariable("image") String repo,
-            @RequestParam(defaultValue = "1")  int page,
-            @RequestParam(defaultValue = "10") int pageSize
-    ) {
-        DockerTagByRegistry dto = dockerService.getRegistryTagNames(namespace, repo, page, pageSize);
-        return ResponseEntity.ok(ApiResponse.success(dto));
+    @GetMapping("/images/{image}/tags")
+    @Operation(summary = "도커 이미지 태그 조회 (linux/amd64 필터링)", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<List<TagResponse>>> searchDockerImageTags(
+            @PathVariable("image") String image) {
+        List<TagResponse> responses = dockerService.getTag(image);
+        return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
 }
