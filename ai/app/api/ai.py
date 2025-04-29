@@ -11,6 +11,7 @@ from pydantic import BaseModel, ValidationError
 from app.agents.file_locator import FileLocatorAgent
 from app.agents.error_resolver import BuildErrorResolverAgent
 from app.agents.patch_generator import PatchGeneratorAgent
+from app.agents.error_reporter import ErrorReportAgent
 
 router = APIRouter(prefix="/ai", tags=["AI Agents"])
 
@@ -200,3 +201,59 @@ async def generate_patch_file(
     headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
     return PlainTextResponse(content=patched, media_type="text/plain", headers=headers)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 4) Error Reporter
+# ─────────────────────────────────────────────────────────────────────────────
+
+class FileFix(BaseModel):
+    path: str
+    instruction: str
+    explanation: str
+
+class ResolutionReport(BaseModel):
+    errorSummary: str
+    cause: str
+    finalResolution: str
+
+class ErrorReportRequest(BaseModel):
+    fileFixes: List[FileFix]
+    resolutionReport: ResolutionReport
+    
+@router.post("/report", summary="Generate human-readable error resolution report")
+async def generate_error_report(request: ErrorReportRequest):
+    """
+    요청 예시 (JSON body):
+    {
+      "fileFixes": [
+        {
+          "path": "...",
+          "instruction": "...",
+          "explanation": "..."
+        }
+      ],
+      "resolutionReport": {
+        "errorSummary": "...",
+        "cause": "...",
+        "finalResolution": "..."
+      }
+    }
+    
+    ErrorReportAgent를 호출하여, 해결한 빌드 에러에 대한 보고서를 작성합니다.
+    """
+    # 1) Pydantic 검증된 객체를 JSON 문자열로 직렬화
+    try:
+        payload_json = json.dumps(request.dict(), ensure_ascii=False)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Payload JSON serialization failed: {e}")
+
+    # 2) Agent 호출
+    try:
+        agent = ErrorReportAgent()
+        ai_response = await agent.run(payload_json)
+        return json.loads(ai_response)
+    except json.JSONDecodeError as je:
+        raise HTTPException(status_code=500, detail=f"AI response JSON parsing failed: {je}")
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=ve.errors())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

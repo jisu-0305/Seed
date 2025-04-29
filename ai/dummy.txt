@@ -157,6 +157,24 @@ Relying upon circular references is discouraged and they are prohibited by defau
 4. 파일 목록
 {
   "response": {
+    "errorSummary": "Application failed to start due to an unresolvable circular dependency between service beans.",
+    "cause": "BasicServiceImpl depends on SecondaryServiceImpl, and SecondaryServiceImpl depends on BasicServiceImpl, creating a dependency cycle that Spring cannot resolve with default settings. This is explicitly prohibited in recent Spring Boot versions.",
+    "resolutionHint": "Refactor the service bean dependencies to eliminate the circular reference, for example by using setter injection, breaking the cycle with application events, or refactoring logic to avoid direct mutual dependency.",
+    "suspectFiles": [
+      {
+        "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicServiceImpl.java"
+      },
+      {
+        "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/SecondaryServiceImpl.java"
+      }
+    ]
+  }
+}
+
+
+
+{
+  "response": {
     "errorSummary": "Application failed to start due to a circular bean dependency between BasicServiceImpl and SecondaryServiceImpl.",
     "cause": "BasicServiceImpl injects SecondaryService and SecondaryServiceImpl injects BasicService, creating an unresolvable circular reference under Spring Boot's default settings.",
     "resolutionHint": "Break the mutual injection cycle by refactoring one dependency (e.g., use @Lazy on one bean, introduce a third coordinating component, or merge/refactor service responsibilities) so that BasicService and SecondaryService no longer directly depend on each other.",
@@ -309,6 +327,23 @@ public class SecondaryServiceImpl implements SecondaryService {
       "errorSummary": "Application failed to start due to a circular bean dependency between BasicServiceImpl and SecondaryServiceImpl.",
       "cause": "BasicServiceImpl injects SecondaryService and SecondaryServiceImpl injects BasicService, creating an unresolvable circular reference under Spring Boot's default settings.",
       "finalResolution": "Applied @Lazy to SecondaryServiceImpl to defer its creation and resolve the circular bean dependency."
+    }
+  }
+}
+
+{
+  "response": {
+    "fileFixes": [
+      {
+        "path": "backend/src/main/java/org/example/backend/domain/userNumber/service/BasicServiceImpl.java",
+        "instruction": "Change the injection of 'SecondaryService' from constructor injection to setter injection. Remove 'final' from the field 'secondaryService'. Add a '@Autowired' setter for 'secondaryService'.\n\nExample:\n\n@Service\n@RequiredArgsConstructor\npublic class BasicServiceImpl implements BasicService {\n    private final BasicInfoRepository repository;\n    private SecondaryService secondaryService;\n\n    @Autowired\n    public void setSecondaryService(SecondaryService secondaryService) {\n        this.secondaryService = secondaryService;\n    }\n    // ... rest of the class remains unchanged ...\n}",
+        "explanation": "Setter injection breaks the circular dependency at bean instantiation time: Spring can create both beans first and then inject dependencies via setters, thus resolving the cycle."
+      }
+    ],
+    "resolutionReport": {
+      "errorSummary": "Application failed to start due to an unresolvable circular dependency between service beans.",
+      "cause": "BasicServiceImpl depends on SecondaryServiceImpl, and SecondaryServiceImpl depends on BasicServiceImpl, creating a dependency cycle that Spring cannot resolve with default settings. This is explicitly prohibited in recent Spring Boot versions.",
+      "finalResolution": "Refactored BasicServiceImpl to use setter injection for SecondaryService, breaking the circular dependency and allowing successful application startup."
     }
   }
 }
