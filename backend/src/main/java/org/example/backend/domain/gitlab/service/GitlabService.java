@@ -32,4 +32,6 @@ public interface GitlabService {
             String description
     );
 
+    void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter);
+
 }

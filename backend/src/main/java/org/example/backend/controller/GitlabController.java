@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.controller.request.gitlab.ProjectHookRequest;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
@@ -41,7 +42,7 @@ public class GitlabController {
     }
 
     @PostMapping("/projects")
-    @Operation(summary = "레포지토리 url로 레포지토리 단건 조회", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "레포지토리 url 로 레포지토리 단건 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<GitlabProject>> getProjectInfoByUrl(
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken,
             @Parameter(
@@ -133,6 +134,17 @@ public class GitlabController {
                 gitlabService.createMergeRequest(accessToken, projectId, sourceBranch, targetBranch, title, description);
 
         return ResponseEntity.ok(ApiResponse.success(created));
+    }
+
+    @PostMapping("/projects/hooks")
+    @Operation(summary = "깃랩 웹훅_push", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<Void>> createWebhook(
+            @Validated @RequestBody ProjectHookRequest request,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        gitlabService.createPushWebhook(accessToken, request.getProjectId(), request.getUrl(), request.getWildcard());
+
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
 }
