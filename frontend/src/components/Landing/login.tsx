@@ -12,11 +12,11 @@ export default function Login() {
   return (
     <Wrapper>
       <Left>
-        <Back onClick={goBack}>
-          <ArrowLeft src="/assets/icons/ic_back.svg" alt="뒤로가기" />
-          메인으로 돌아가기
-        </Back>
         <Content>
+          <Back onClick={goBack}>
+            <ArrowLeft src="/assets/icons/ic_back.svg" alt="뒤로가기" />
+            메인으로 돌아가기
+          </Back>
           <LogoTextSmall
             src="/assets/icons/ic_logoText.svg"
             alt="SEED text logo"
@@ -58,14 +58,15 @@ const Left = styled.div`
   align-items: center;
   justify-content: center;
   flex: 1;
+  padding: 2rem 4rem;
 
-  padding: 2rem;
+  max-width: 70rem;
 `;
 
 const Back = styled.button`
   position: absolute;
   top: 5rem;
-  left: 5rem;
+  /* left: 5rem; */
 
   display: flex;
   align-items: center;
@@ -129,6 +130,7 @@ const Footer = styled.footer`
 
 // Right pane (비주얼)
 const Right = styled.div`
+  width: 100%;
   flex: 1;
   background-color: ${({ theme }) => theme.colors.Black1};
   color: ${({ theme }) => theme.colors.White};
@@ -139,6 +141,8 @@ const Right = styled.div`
   justify-content: center;
   gap: 4rem;
   border-bottom-left-radius: 20rem;
+
+  padding: 0 2rem;
 `;
 
 const Cactus = styled.img`
@@ -153,4 +157,6 @@ const LogoText = styled.img`
 const Pitch = styled.p`
   color: ${({ theme }) => theme.colors.Main_Carrot};
   ${({ theme }) => theme.fonts.Title2};
+
+  white-space: nowrap;
 `;

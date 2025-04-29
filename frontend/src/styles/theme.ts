@@ -236,8 +236,8 @@ export const fonts = {
 };
 
 export const colors = {
-  Main_Carrot: '#CA9843',
-  Carrot0: '#FFA100',
+  Main_Carrot: '#FFA100',
+  Carrot0: '#CA9843',
   Carrot2: '#FFC766',
   Black: '#000000',
   Black1: '#1C1C1C',
