@@ -154,7 +154,7 @@ export const globalStyles = (theme: Theme): SerializedStyles => css`
 
   hr {
     border: none;
-    border-top: 0.06rem solid ${theme.colors.White};
+    border-top: 0.06rem solid ${theme.colors.Black1};
     width: 100%;
   }
 
