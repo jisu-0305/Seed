@@ -18,7 +18,7 @@ export default function Landing() {
       <SubTitle>배포가 어려운 당신을 위한 솔루션</SubTitle>
       <StartButton onClick={goLogin}>
         시작하기
-        <Arrow src="/assets/icons/ic_arrow_right.svg" alt="→" />
+        <Arrow src="/assets/icons/ic_arrow_start.svg" alt="→" />
       </StartButton>
       <Footer>
         © 2025 SSAFY12. All Rights Reserved. Made with love by SEED!
