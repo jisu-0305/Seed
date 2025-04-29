@@ -43,6 +43,8 @@ public enum ErrorCode {
     GITLAB_MERGE_REQUEST_FAILED(HttpStatus.BAD_REQUEST, 3222, "깃랩 mr 생성을 실패했습니다."),
     GITLAB_BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, 3223, "해당 브랜치를 조회할 수 없습니다."),
 
+    GITLAB_BAD_CREATE_WEBHOOK(HttpStatus.BAD_REQUEST, 3224, "깃랩 웹훅 생성에 실패했습니다."),
+
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),
@@ -52,7 +54,13 @@ public enum ErrorCode {
     // 6xxx: 내부 서버 오류
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 6001, "내부 서버 오류입니다."),
     FCM_SEND_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6002, "FCM 메시지 전송에 실패했습니다."),
-    FILE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6003, "파일 저장에 실패했습니다.");
+    FILE_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6003, "파일 저장에 실패했습니다."),
+    JENKINS_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6004, "젠킨스 API 요청이 실패했습니다."),
+    JENKINS_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6005, "젠킨스 응답 파싱에 실패했습니다."),
+    COMMAND_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6006, "서버 명령어 실행에 실패했습니다."),
+    CERTBOT_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6007, "SSL 인증서 발급에 실패했습니다."),
+    NGINX_RELOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6008, "Nginx reload에 실패했습니다.");
+
 
     private final HttpStatus status;
     private final int code;
