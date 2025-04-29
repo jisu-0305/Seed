@@ -195,21 +195,21 @@ export const fonts = {
     font-family: ${inter.style.fontFamily};
     font-size: 2rem;
     font-style: normal;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle3: css`
     font-family: ${inter.style.fontFamily};
     font-size: 1.4rem;
     font-style: normal;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle4: css`
     font-family: ${inter.style.fontFamily};
     font-size: 1.2rem;
     font-style: normal;
-    font-weight: 600;
+    font-weight: 500;
     line-height: 130%; /* 1.17rem */
   `,
   EnBody1: css`
