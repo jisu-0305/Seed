@@ -277,7 +277,7 @@ public class ServerServiceImpl implements ServerService {
                 setDocker(),
                 setNginx(serverIp),
                 setJenkins(),
-                setJenkinsConfiguration("admin", "admin", gitlabAccessToken),
+                setJenkinsConfiguration(gitlabAccessToken),
                 makeJenkinsJob(),
                 makeDockerComposeYml()
         ).flatMap(Collection::stream).toList();
@@ -438,7 +438,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 8. Jenkins 상세 설정
-    private List<String> setJenkinsConfiguration(String adminId, String adminPassword, String gitlabAccessToken) {
+    private List<String> setJenkinsConfiguration(String gitlabAccessToken) {
         return List.of(
                 // 6-1) Setup Wizard 비활성화
                 "sudo sed -i '/^#JAVA_ARGS=/a JAVA_ARGS=\"$JAVA_ARGS -Djenkins.install.runSetupWizard=false\"' /etc/default/jenkins",
