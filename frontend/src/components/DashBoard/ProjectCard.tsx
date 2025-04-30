@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import { getCardColor } from '@/utils/getCardColor';
+import { getCardColor } from '@/utils/getColor';
 
 interface ProjectCardProps {
   emoji: string;
@@ -65,7 +65,7 @@ const Card = styled.div<{ color: string }>`
   gap: 1rem;
 
   padding: 2rem;
-  width: 20rem;
+  min-width: 20rem;
   height: 10rem;
 
   background: ${({ color }) => color};
