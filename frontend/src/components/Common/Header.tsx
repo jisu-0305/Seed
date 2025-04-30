@@ -1,20 +1,25 @@
 import styled from '@emotion/styled';
 
+import LoginModal from '@/components/Common/LoginModal';
+import { useModal } from '@/hooks/Common';
+
 interface HeaderProps {
   title: string;
 }
 
 export default function Header({ title }: HeaderProps) {
+  const { isShowing, toggle } = useModal();
   return (
     <HeaderWrapper>
       <SubTitle>{title}</SubTitle>
       <MenuWrapper>
         <LightMode src="/assets/icons/ic_light.svg" alt="light mode" />
         <Alarm src="/assets/icons/ic_alarm.svg" alt="alarm" />
-        <Profile>
+        <Profile onClick={toggle}>
           <ProfileImg src="/assets/icons/ic_profile.svg" alt="profile image" />
           SSAFY
         </Profile>
+        {isShowing && <LoginModal onClose={toggle} />}
       </MenuWrapper>
     </HeaderWrapper>
   );

@@ -7,6 +7,7 @@ import org.example.backend.common.jwt.JwtTokenProvider;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.common.util.TrieSearch;
+import org.example.backend.domain.user.dto.AuthResponse;
 import org.example.backend.domain.user.dto.GitlabOauthToken;
 import org.example.backend.domain.user.dto.GitlabUser;
 import org.example.backend.domain.user.dto.UserProfile;
@@ -68,7 +69,7 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
     }
 
     @Override
-    public String getAccessToken(String code) {
+    public AuthResponse processUserAndSave(String code) {
         GitlabOauthToken oauthToken = getGitlabOauthToken(code);
 
         if (oauthToken == null) {
@@ -115,7 +116,7 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
 
         String jwtToken = jwtTokenProvider.generateToken(user, oauthUserId);
         redisSessionManager.saveSession(jwtToken, user, oauthUserId);
-        return jwtToken;
+        return new AuthResponse(jwtToken, oauthToken.getRefreshToken());
     }
 
     @Override

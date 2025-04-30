@@ -18,7 +18,9 @@ export function MenuLayout({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <Global styles={globalStyles(theme)} />
         <LayoutWrapper>
-          {pathName !== '/' && pathName !== '/login' && <SideBar />}
+          {pathName !== '/' &&
+            pathName !== '/login' &&
+            pathName !== '/oauth/callback' && <SideBar />}
           <RightArea>
             <ContentWrapper>{children}</ContentWrapper>
           </RightArea>
