@@ -18,22 +18,23 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
   const handleLogout = async () => {
     try {
-      // API 로그아웃
       await logout();
     } catch (err) {
       console.error('로그아웃 API 실패', err);
     } finally {
-      // 로컬 스토리지 토큰 삭제
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      // Zustand 스토어 초기화
       clearUser();
-      // 세션스토리지에서 persisted 데이터 삭제
       sessionStorage.removeItem('user-storage-session');
 
       onClose();
       router.replace('/');
     }
+  };
+
+  const goGitlab = () => {
+    const url = `https://lab.ssafy.com/${user?.username ?? ''}`;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -51,7 +52,7 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
             </ProfileSection>
 
             <List>
-              <Item>
+              <Item onClick={goGitlab}>
                 <GitlabIcon src="/assets/icons/ic_gitlab.svg" alt="GitLab" />@
                 {user.username}
               </Item>
