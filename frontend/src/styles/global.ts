@@ -85,7 +85,7 @@ export const globalStyles = (theme: Theme): SerializedStyles => css`
     margin: 0;
     padding: 0;
     border: 0;
-    font-size: 70%;
+    font-size: 62.5%;
     vertical-align: baseline;
   }
 

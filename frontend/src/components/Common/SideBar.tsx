@@ -72,7 +72,8 @@ const SideWrapper = styled.div`
   flex-direction: column;
   gap: 2rem;
 
-  width: 18rem;
+  width: 100%;
+  max-width: 18rem;
   padding: 2rem;
 
   border-right: 1px solid ${({ theme }) => theme.colors.LightGray1};
