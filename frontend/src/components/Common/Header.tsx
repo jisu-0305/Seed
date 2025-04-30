@@ -21,7 +21,7 @@ export default function Header({ title }: HeaderProps) {
 }
 
 const HeaderWrapper = styled.div`
-  height: 5rem;
+  height: 7rem;
 
   display: flex;
   flex-direction: row;
