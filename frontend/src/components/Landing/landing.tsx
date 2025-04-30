@@ -5,7 +5,12 @@ export default function Landing() {
   const router = useRouter();
 
   const goLogin = () => {
-    router.push('/login');
+    const token = localStorage.getItem('accessToken');
+    if (token) {
+      router.push('/dashboard');
+    } else {
+      router.push('/login');
+    }
   };
 
   return (
