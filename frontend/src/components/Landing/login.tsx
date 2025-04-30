@@ -5,7 +5,6 @@ export default function Login() {
   const router = useRouter();
   const goBack = () => router.push('/');
   const handleGitlab = () => {
-    // TODO: GitLab OAuth redirect
     window.location.href = 'http://localhost:8080/api/users/oauth/gitlab/login';
   };
 
