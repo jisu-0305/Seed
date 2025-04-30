@@ -36,9 +36,10 @@ public class GitlabDeployServiceImpl implements GitlabDeployService {
             Files.write(readmePath, List.of("# README\n"), StandardOpenOption.CREATE_NEW);
             log.info("✅ README.md가 없어서 새로 생성했습니다.");
         } else {
-            Files.write(readmePath, List.of(""), StandardOpenOption.APPEND);
-            log.info("📄 README.md에 줄바꿈을 추가했습니다.");
+            Files.write(readmePath, List.of("<!-- trigger deployment -->"), StandardOpenOption.APPEND);
+            log.info("📄 README.md에 배포용 트리거 라인을 추가했습니다.");
         }
+
     }
 
     @Override

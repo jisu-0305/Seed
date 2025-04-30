@@ -1,12 +1,15 @@
 package org.example.backend.controller;
 
+import com.jcraft.jsch.Session;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.common.util.ConvertHttpsUtil;
+import org.example.backend.common.util.SshUtil;
 import org.example.backend.controller.request.server.*;
 import org.example.backend.domain.server.service.ServerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,6 +24,7 @@ public class ServerController {
 
     private final ServerService serverService;
     private final ConvertHttpsUtil convertHttpsUtil;
+    private final SshUtil sshUtil;
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> register(
@@ -61,10 +65,25 @@ public class ServerController {
         return ResponseEntity.ok("서버 초기화 완료");
     }
 
-    @PostMapping("/convert")
-    @Operation(summary = "HTTP를 HTTPS로 변환", description = "도메인과 이메일을 입력받아 HTTPS 인증서를 발급하고 Nginx 설정을 변경합니다.")
-    public ResponseEntity<ApiResponse<String>> convert(@RequestBody HttpsConvertRequest request) {
-        ApiResponse<String> response = convertHttpsUtil.convertHttpToHttps(request.getDomain(), request.getEmail());
-        return ResponseEntity.ok(response);
+    @PostMapping(value = "/convert", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "HTTPS 변환", description = "PEM 파일을 업로드하여 HTTPS 설정")
+    public ResponseEntity<ApiResponse<String>> convertHttps(
+            @RequestPart("pem") MultipartFile pem,
+            @RequestPart("host") String host,
+            @RequestPart("domain") String domain,
+            @RequestPart("email") String email
+    ) {
+        try {
+            Session session = sshUtil.createSessionWithPem(pem, host);
+            ApiResponse<String> result = convertHttpsUtil.convertHttpToHttps(session, domain, email);
+            session.disconnect();
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ApiResponse.<String>builder()
+                            .success(false)
+                            .message("변환 실패: " + e.getMessage())
+                            .build());
+        }
     }
 }
