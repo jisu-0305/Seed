@@ -2,6 +2,15 @@
 // useMutation: POST,PUT,DELETE 요청
 // 캐싱, refresh가 필요없다고 판단되는 일회성 요청은 axios로만 작성
 
+import { MeResponse } from '@/types/user';
+
+import { client } from './axios';
+
+export async function fetchMe(): Promise<MeResponse> {
+  const res = await client.get<MeResponse>('/users/me');
+  return res.data;
+}
+
 // import { useQuery, useMutation } from '@tanstack/react-query';
 // import axios from 'axios';
 // import { queryClient } from '@/libs/queryClient';

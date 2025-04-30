@@ -28,7 +28,7 @@ import java.nio.charset.StandardCharsets;
 public class UserController {
 
     @Value("${front.base-url}")
-    private String frontBaseUrl;
+    private String domainName;
     private final GitlabOauthService gitlabOauthService;
 
     @GetMapping("/oauth/gitlab/login")
@@ -52,7 +52,7 @@ public class UserController {
 
         String redirectUrl = String.format(
                 "%s/oauth/callback?token=%s&refresh=%s",
-                frontBaseUrl,
+                domainName,
                 URLEncoder.encode(auth.getJwtToken(), StandardCharsets.UTF_8),
                 URLEncoder.encode(auth.getRefreshToken(), StandardCharsets.UTF_8)
         );
