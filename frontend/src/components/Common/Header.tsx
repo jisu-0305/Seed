@@ -1,14 +1,29 @@
 import styled from '@emotion/styled';
+import React from 'react';
 
 import LoginModal from '@/components/Common/LoginModal';
 import { useModal } from '@/hooks/Common';
+import { useUserStore } from '@/stores/userStore';
 
 interface HeaderProps {
   title: string;
 }
 
 export default function Header({ title }: HeaderProps) {
+  const user = useUserStore((s) => s.user);
+  const loading = useUserStore((s) => s.loading);
+  const hasHydrated = useUserStore((s) => s.hasHydrated);
+
   const { isShowing, toggle } = useModal();
+
+  if (!hasHydrated) {
+    return (
+      <HeaderWrapper>
+        <SubTitle>{title}</SubTitle>
+      </HeaderWrapper>
+    );
+  }
+
   return (
     <HeaderWrapper>
       <SubTitle>{title}</SubTitle>
@@ -16,8 +31,11 @@ export default function Header({ title }: HeaderProps) {
         <LightMode src="/assets/icons/ic_light.svg" alt="light mode" />
         <Alarm src="/assets/icons/ic_alarm.svg" alt="alarm" />
         <Profile onClick={toggle}>
-          <ProfileImg src="/assets/icons/ic_profile.svg" alt="profile image" />
-          SSAFY
+          <ProfileImg
+            src={user?.avatarUrl || '/assets/user.png'}
+            alt="profile"
+          />
+          {loading ? '...' : user?.name || 'SSAFY'}
         </Profile>
         {isShowing && <LoginModal onClose={toggle} />}
       </MenuWrapper>
@@ -68,4 +86,9 @@ const Profile = styled.div`
   cursor: pointer;
 `;
 
-const ProfileImg = styled.img``;
+const ProfileImg = styled.img`
+  width: 2.5rem;
+  height: 2.5rem;
+  object-fit: cover;
+  border-radius: 50%;
+`;
