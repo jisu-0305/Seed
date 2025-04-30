@@ -62,7 +62,6 @@ const StartButton = styled.button`
   background: transparent;
   border: 2px solid ${({ theme }) => theme.colors.Main_Carrot};
   border-radius: 1.6rem;
-  cursor: pointer;
 
   &:hover {
     background: ${({ theme }) => theme.colors.Main_Carrot};
