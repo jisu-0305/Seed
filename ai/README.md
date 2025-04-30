@@ -80,5 +80,5 @@ redis-cli ping
 sudo service redis-server stop
 ```
 
-test#24
+test#25
 
