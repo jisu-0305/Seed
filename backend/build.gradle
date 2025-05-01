@@ -74,6 +74,9 @@ dependencies {
     annotationProcessor "com.querydsl:querydsl-apt:${queryDslVersion}:jakarta"
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+
+    // Unix domain socket 지원 (리눅스 x86_64)
+    implementation "io.netty:netty-transport-native-unix-common:4.1.119.Final:linux-x86_64"
 }
 
 tasks.named('test') {

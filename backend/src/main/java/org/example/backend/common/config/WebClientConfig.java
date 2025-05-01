@@ -4,6 +4,7 @@ import io.netty.channel.unix.DomainSocketAddress;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -26,8 +27,8 @@ public class WebClientConfig {
     @Value("${docker.auth.api.base-url}")
     private String dockerAuthApiBaseUrl;
 
-//    @Value("${docker.engine.api.base-url}")
-//    private String dockerEngineApiBaseUrl;
+    @Value("${docker.engine.api.base-url}")
+    private String dockerEngineApiBaseUrl;
 
     @Value("${docker.engine.socket-url}")
     private String dockerEngineSocketUrl;
@@ -46,13 +47,36 @@ public class WebClientConfig {
                 .build();
     }
 
+//    @Bean("dockerWebClient")
+//    public WebClient dockerWebClient() {
+//        HttpClient httpClient = HttpClient.create()
+//                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
+//
+//        return WebClient.builder()
+//                .clientConnector(new ReactorClientHttpConnector(httpClient))
+//                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+//                .build();
+//    }
+
+    // Unix 계열(기본)에서 도메인 소켓 사용
     @Bean("dockerWebClient")
-    public WebClient dockerWebClient() {
+    @Profile("!windows")
+    public WebClient unixDockerWebClient() {
         HttpClient httpClient = HttpClient.create()
                 .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
 
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    // Windows 프로파일에서 TCP 엔드포인트 사용
+    @Bean("dockerWebClient")
+    @Profile("windows")
+    public WebClient windowsDockerWebClient() {
+        return WebClient.builder()
+                .baseUrl(dockerEngineApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }

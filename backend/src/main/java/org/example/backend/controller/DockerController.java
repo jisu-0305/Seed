@@ -53,6 +53,7 @@ public class DockerController {
             security = @SecurityRequirement(name = "JWT")
     )
     public ResponseEntity<ApiResponse<List<DemonHealthyCheckResponse>>> checkDockerDemonHealth() {
+        log.info(">>>>> info 조회");
         List<DemonHealthyCheckResponse> unhealthy = dockerService.checkHealth();
         return ResponseEntity.ok(ApiResponse.success(unhealthy));
     }
