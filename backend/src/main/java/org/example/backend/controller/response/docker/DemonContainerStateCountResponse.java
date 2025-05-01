@@ -8,10 +8,16 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class DemonInfoResponse {
+public class DemonContainerStateCountResponse {
+
+    // 이건 정상 동작하는 컨테이너 개수 -> 나중에 필요하면 쓰기.
+    @JsonProperty("ContainersRunning")
+    private int containersRunning;
+
     @JsonProperty("ContainersPaused")
     private int containersPaused;
 
     @JsonProperty("ContainersStopped")
     private int containersStopped;
+
 }

@@ -9,7 +9,6 @@ import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -75,28 +74,32 @@ public class DockerServiceImpl implements DockerService {
     public List<DemonHealthyCheckResponse> checkHealth() {
         log.debug(">>>>> checkHealth (도커 데몬)");
 
-        DemonInfoResponse info = dockerApiClient.getInfo();
+        DemonContainerStateCountResponse info = dockerApiClient.getInfo();
         if (info == null) {
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
         }
 
         int pausedCount  = info.getContainersPaused();
         int stoppedCount = info.getContainersStopped();
-
         if (pausedCount + stoppedCount == 0) {
             return List.of();
         }
 
         try {
-            List<String> statuses = Arrays.asList("paused", "exited");
+            List<String> statuses = List.of("paused","exited");
             return dockerApiClient.getContainersByStatus(statuses).stream()
-                    .map(c -> new DemonHealthyCheckResponse(
-                            c.getImage(),
-                            c.getImageId()
-                    ))
+                    .map(c -> {
+                        String name = c.getNames().stream().findFirst().orElse("");
+                        return new DemonHealthyCheckResponse(
+                                name,
+                                c.getState(),
+                                c.getImage(),
+                                c.getImageId()
+                        );
+                    })
                     .collect(Collectors.toList());
         } catch (Exception e) {
-            log.error("Docker health check failed", e);
+            log.error("도커 service_checkHealth 실패", e);
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
         }
     }
@@ -114,16 +117,21 @@ public class DockerServiceImpl implements DockerService {
             }
 
             return containers.stream()
-                    .map(c -> new AppHealthyCheckResponse(
-                            c.getImage(),
-                            c.getImageId(),
-                            c.getState(),
-                            c.getStatus()))
+                    .map(container -> {
+                        String name = container.getNames().stream().findFirst().orElse("");
+                        return new AppHealthyCheckResponse(
+                                name,
+                                container.getImage(),
+                                container.getImageId(),
+                                container.getState(),
+                                container.getStatus()
+                        );
+                    })
                     .collect(Collectors.toList());
         } catch (BusinessException be) {
             throw be;
         } catch (Exception e) {
-            log.error("Failed to get status for appName={}", appName, e);
+            log.error("도커 getAppStatus 실패_ appName={}", appName, e);
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
         }
     }

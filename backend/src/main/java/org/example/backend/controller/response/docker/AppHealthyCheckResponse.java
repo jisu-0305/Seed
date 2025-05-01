@@ -6,6 +6,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class AppHealthyCheckResponse {
+    private String containerName;
     private String Image;
     private String ImageId;
     private String State;

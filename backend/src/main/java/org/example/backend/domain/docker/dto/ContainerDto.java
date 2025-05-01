@@ -3,8 +3,13 @@ package org.example.backend.domain.docker.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 public class ContainerDto {
+
+    @JsonProperty("Names")
+    private List<String> names;
 
     @JsonProperty("Id")
     private String id;

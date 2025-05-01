@@ -53,7 +53,6 @@ public class DockerController {
             security = @SecurityRequirement(name = "JWT")
     )
     public ResponseEntity<ApiResponse<List<DemonHealthyCheckResponse>>> checkDockerDemonHealth() {
-        log.info(">>>>> info 조회");
         List<DemonHealthyCheckResponse> unhealthy = dockerService.checkHealth();
         return ResponseEntity.ok(ApiResponse.success(unhealthy));
     }
@@ -61,7 +60,7 @@ public class DockerController {
     // 2. 특정 어플리케이션의 상태 파악
     @GetMapping("/healthy/{appName}")
     public ResponseEntity<ApiResponse<List<AppHealthyCheckResponse>>> checkDockerHealth(
-            @Parameter(description = "애플리케이션 이름 (컨테이너 이름 필터)", example = "nginx")
+            @Parameter(description = "애플리케이션 이름 (컨테이너 이름 필터)", example = "redis")
             @PathVariable("appName") String appName) {
         List<AppHealthyCheckResponse> statuses = dockerService.getAppStatus(appName);
         return ResponseEntity.ok(ApiResponse.success(statuses));
