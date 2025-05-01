@@ -1,9 +1,5 @@
-// 상수 값을 넣어두는 폴더
-// 사용되는 컴포넌트 또는 페이지별로 파일 만들어서 관리하기
-// 상수명은 모두 대문자로!
-
-// 예시
-// export const MODAL_LEAVE_PAGE = [
-//   '아직 저장하지 않은 내용이 있어요.',
-//   '페이지를 벗어나시겠습니까?',
-// ];
+export const CARD_COLOR = [
+  { setting_id: 0, name: 'default', color: '#E3F5FF' },
+  { setting_id: 1, name: 'success', color: '#F7F9FB' },
+  { setting_id: 2, name: 'fail', color: '#F2F2FF' },
+];

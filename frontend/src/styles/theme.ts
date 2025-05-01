@@ -9,7 +9,7 @@ const notoSansKr = Noto_Sans_KR({
 });
 
 const inter = Inter({
-  weight: ['100', '300', '400', '500', '700', '900'],
+  weight: ['100', '200', '300', '400', '500', '600', '700', '900'],
   subsets: ['latin'],
   display: 'swap',
   fallback: ['sans-serif'],
@@ -195,21 +195,21 @@ export const fonts = {
     font-family: ${inter.style.fontFamily};
     font-size: 2rem;
     font-style: normal;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle3: css`
     font-family: ${inter.style.fontFamily};
     font-size: 1.4rem;
     font-style: normal;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle4: css`
     font-family: ${inter.style.fontFamily};
     font-size: 1.2rem;
     font-style: normal;
-    font-weight: 500;
+    font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnBody1: css`
