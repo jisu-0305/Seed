@@ -1,6 +1,5 @@
 package org.example.backend.domain.docker.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.DockerUriBuilder;
 import org.example.backend.controller.response.docker.DemonContainerStateCountResponse;
@@ -9,6 +8,7 @@ import org.example.backend.domain.docker.dto.ContainerDto;
 import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -17,12 +17,21 @@ import java.util.List;
 
 @Component
 @Slf4j
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class DockerApiClientImpl implements DockerApiClient {
 
     private final WebClient dockerHubWebClient;
     private final WebClient dockerWebClient;
     private final DockerUriBuilder uriBuilder;
+
+    public DockerApiClientImpl(
+            @Qualifier("dockerHubWebClient") WebClient dockerHubWebClient,
+            @Qualifier("dockerWebClient") WebClient dockerWebClient,
+            DockerUriBuilder uriBuilder) {
+        this.dockerHubWebClient = dockerHubWebClient;
+        this.dockerWebClient    = dockerWebClient;
+        this.uriBuilder         = uriBuilder;
+    }
 
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {

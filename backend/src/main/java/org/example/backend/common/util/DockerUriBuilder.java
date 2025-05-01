@@ -19,6 +19,9 @@ public class DockerUriBuilder {
     @Value("${docker.engine.api.base-url}")
     private String dockerEngineApiBaseUrl;
 
+    @Value("${docker.registry.api.base-url}")
+    private String registryApiBaseUrl;
+
     public String searchRepositories(String query, int page, int pageSize) {
         return UriComponentsBuilder.fromUriString(dockerHubBaseUrl)
                 .path("/search/repositories")
@@ -34,6 +37,13 @@ public class DockerUriBuilder {
                 .pathSegment(namespace, repo, "tags")
                 .queryParam("page", page)
                 .queryParam("page_size", pageSize)
+                .toUriString();
+    }
+
+    public String listRegistryTags(String namespace, String repo, int pageSize) {
+        return UriComponentsBuilder
+                .fromUriString(registryApiBaseUrl)
+                .pathSegment("v2", namespace, repo, "tags", "list")
                 .toUriString();
     }
 
