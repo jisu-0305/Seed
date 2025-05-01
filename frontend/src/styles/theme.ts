@@ -235,115 +235,45 @@ export const fonts = {
   `,
 };
 
-// export const colors = {
-//   Main_Carrot: '#FFA100',
-//   Carrot0: '#CA9843',
-//   Carrot2: '#FFC766',
-//   Black: '#000000',
-//   Black1: '#1C1C1C',
-//   Gray0: '#323232',
-//   Gray1: '#484848',
-//   Gray2: '#666666',
-//   Gray3: '#969696',
-//   Gray4: '#F7F9FB',
-//   LightGray1: '#E9E9E9',
-//   LightGray2: '#EDEDED',
-//   LightGray3: '#FCFCFC',
-//   White: '#FFFFFF',
-//   DarkGray0: '#252525',
-//   DarkGray1: '#3D3D3D',
-//   DarkGray2: '#D3D3D3',
-//   Blue0: '#4C6589',
-//   Blue1: '#4B7BBF',
-//   Blue2: '#A6C9FB',
-//   Blue3: '#E3F5FF',
-//   Blue4: '#E5ECF6',
-//   Red0: '#9D3D3D',
-//   Red1: '#A74A4A',
-//   Red2: '#E05B5B',
-//   Red3: '#F2B9B9',
-//   Red4: '#FFE9E9',
-//   Purple1: '#4648B5',
-//   Purple2: '#7577D8',
-//   Purple3: '#95A4FC',
-//   Purple4: '#C6C7F8',
-//   Purple5: '#F2F2FF',
-//   Green0: '#5B7A6F',
-//   Green1: '#4AA785',
-//   Green2: '#98CEBA',
-// };
-
-// export const theme = {
-//   colors,
-//   fonts,
-// };
-
-export const lightColors = {
-  borderDefault: '#E9E9E9', // LightGray1
-  background: '#FFFFFF', // White
-  text: '#000000', // Black
-  navSelected: '#FCFCFC', // LightGray3
-
-  calendarInactive: '#D3D3D3', // DarkGray2
-  calendarCarrot: '#FFA100', // Main-Carrot
-  calendarBlue: '#4B7BBF', // Blue1
-  calendarGreen: '#4AA785', // Green1
-  calendarRed: '#E05B5B', // Red2
-
-  inputBackground: '#FCFCFC', // LightGray3
-
-  btnPrevBg: '#969696', // Gray3
-  btnPrevText: '#FFFFFF',
-  btnNextBg: '#323232', // Gray0
-  btnNextText: '#FFFFFF',
-
-  detailFieldBg: '#FCFCFC', // LightGray3
-  detailBorder1: '#E9E9E9', // LightGray1
-  detailBorder2: '#000000', // Black
-
-  menuBg: '#000000', // Black
-  menuText: '#FFFFFF',
-
-  aiReport: '#F7F9FB', // Gray4
+export const colors = {
+  Main_Carrot: '#FFA100',
+  Carrot0: '#CA9843',
+  Carrot2: '#FFC766',
+  Black: '#000000',
+  Black1: '#1C1C1C',
+  Gray0: '#323232',
+  Gray1: '#484848',
+  Gray2: '#666666',
+  Gray3: '#969696',
+  Gray4: '#F7F9FB',
+  LightGray1: '#E9E9E9',
+  LightGray2: '#EDEDED',
+  LightGray3: '#FCFCFC',
+  White: '#FFFFFF',
+  DarkGray0: '#252525',
+  DarkGray1: '#3D3D3D',
+  DarkGray2: '#D3D3D3',
+  Blue0: '#4C6589',
+  Blue1: '#4B7BBF',
+  Blue2: '#A6C9FB',
+  Blue3: '#E3F5FF',
+  Blue4: '#E5ECF6',
+  Red0: '#9D3D3D',
+  Red1: '#A74A4A',
+  Red2: '#E05B5B',
+  Red3: '#F2B9B9',
+  Red4: '#FFE9E9',
+  Purple1: '#4648B5',
+  Purple2: '#7577D8',
+  Purple3: '#95A4FC',
+  Purple4: '#C6C7F8',
+  Purple5: '#F2F2FF',
+  Green0: '#5B7A6F',
+  Green1: '#4AA785',
+  Green2: '#98CEBA',
 };
 
-export const darkColors = {
-  borderDefault: '#323232', // Gray0
-  background: '#1C1C1C', // Black1
-  text: '#FFFFFF',
-  navSelected: '#252525', // DarkGray0
-
-  calendarInactive: '#3D3D3D', // DarkGray1
-  calendarCarrot: '#CA9843', // Carrot0
-  calendarBlue: '#4C6589', // Blue0
-  calendarGreen: '#5B7A6F', // Green0
-  calendarRed: '#9D3D3D', // Red0
-
-  inputBackground: '#252525', // DarkGray0
-
-  btnPrevBg: '#252525', // DarkGray0
-  btnPrevText: '#969696', // Gray3
-  btnNextBg: '#FFFFFF',
-  btnNextText: '#000000',
-
-  detailFieldBg: '#252525', // DarkGray0
-  detailBorder1: '#3D3D3D', // DarkGray1
-  detailBorder2: '#3D3D3D', // DarkGray1
-
-  menuBg: '#FFFFFF',
-  menuText: '#000000',
-
-  aiReport: '#252525', // DarkGray0
-};
-
-export const lightTheme = {
-  mode: 'light',
-  colors: lightColors,
-  fonts,
-};
-
-export const darkTheme = {
-  mode: 'dark',
-  colors: darkColors,
+export const theme = {
+  colors,
   fonts,
 };
