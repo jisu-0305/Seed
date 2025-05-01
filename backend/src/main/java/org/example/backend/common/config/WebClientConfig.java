@@ -1,16 +1,22 @@
 package org.example.backend.common.config;
 
+import io.netty.channel.Channel;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDomainSocketChannel;
+import io.netty.channel.kqueue.KQueueDomainSocketChannel;
 import io.netty.channel.unix.DomainSocketAddress;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.netty.http.client.HttpClient;
+import reactor.netty.tcp.TcpClient;
 
 @Configuration
 public class WebClientConfig {
@@ -33,7 +39,6 @@ public class WebClientConfig {
     @Value("${docker.engine.socket-url}")
     private String dockerEngineSocketUrl;
 
-
     @Bean("webClient")
     public WebClient webClient() {
         return WebClient.builder().build();
@@ -47,33 +52,12 @@ public class WebClientConfig {
                 .build();
     }
 
-//    @Bean("dockerWebClient")
-//    public WebClient dockerWebClient() {
-//        HttpClient httpClient = HttpClient.create()
-//                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
-//
-//        return WebClient.builder()
-//                .clientConnector(new ReactorClientHttpConnector(httpClient))
-//                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-//                .build();
-//    }
-
-    // Unix 계열(기본)에서 도메인 소켓 사용
+    // 윈도우일 떄 -> tcp 엔드포인트로 도커 엔진에 연결(도커 설정에서 tcp 열어놔야함)
     @Bean("dockerWebClient")
-    @Profile("!windows")
-    public WebClient unixDockerWebClient() {
-        HttpClient httpClient = HttpClient.create()
-                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
-
-        return WebClient.builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .build();
-    }
-
-    // Windows 프로파일에서 TCP 엔드포인트 사용
-    @Bean("dockerWebClient")
-    @Profile("windows")
+    @Primary
+    @ConditionalOnExpression(
+            "T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
+    )
     public WebClient windowsDockerWebClient() {
         return WebClient.builder()
                 .baseUrl(dockerEngineApiBaseUrl)
@@ -81,13 +65,35 @@ public class WebClientConfig {
                 .build();
     }
 
+    // 윈도우 환경 아닐때 -> 도커 소켓으로 연결하기
+    @Bean("dockerWebClient")
+    @Primary
+    @ConditionalOnExpression(
+            "!T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
+    )
+    public WebClient unixDockerWebClient() {
+        Class<? extends Channel> channelType =
+                Epoll.isAvailable()
+                        ? EpollDomainSocketChannel.class
+                        : KQueueDomainSocketChannel.class;
+
+        TcpClient tcpClient = TcpClient.create()
+                .bootstrap(b -> b.channel(channelType))
+                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
+
+        HttpClient httpClient = HttpClient.from(tcpClient);
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .defaultHeader(HttpHeaders.HOST, "localhost")
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
     @Bean("dockerHubWebClient")
     public WebClient dockerHubWebClient() {
-
         ExchangeStrategies strategies = ExchangeStrategies.builder()
-                .codecs(configurer ->
-                        configurer.defaultCodecs().maxInMemorySize(10 * 1024 * 1024)
-                )
+                .codecs(c -> c.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
                 .build();
 
         return WebClient.builder()

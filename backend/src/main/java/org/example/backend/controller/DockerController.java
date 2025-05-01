@@ -44,20 +44,17 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
-    // 도커 헬스체크
-    // 1. 데몬 상태 조회해서 이상한 상태의 개수로 파악
     @GetMapping("/healthy")
     @Operation(
             summary = "도커 전체 헬스 체크",
-            description = "ContainersPaused 또는 ContainersStopped 값이 0보다 크면 해당 컨테이너의 Image, ImageID를 리스트로 반환합니다.",
+            description = "ContainersPaused 또는 ContainersStopped 값이 0보다 크면 해당 컨테이너 정보 반환함",
             security = @SecurityRequirement(name = "JWT")
     )
     public ResponseEntity<ApiResponse<List<DemonHealthyCheckResponse>>> checkDockerDemonHealth() {
         List<DemonHealthyCheckResponse> unhealthy = dockerService.checkHealth();
         return ResponseEntity.ok(ApiResponse.success(unhealthy));
     }
-    
-    // 2. 특정 어플리케이션의 상태 파악
+
     @GetMapping("/healthy/{appName}")
     public ResponseEntity<ApiResponse<List<AppHealthyCheckResponse>>> checkDockerHealth(
             @Parameter(description = "애플리케이션 이름 (컨테이너 이름 필터)", example = "redis")
