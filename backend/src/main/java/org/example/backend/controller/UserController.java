@@ -5,16 +5,21 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.domain.user.dto.AuthResponse;
 import org.example.backend.domain.user.dto.UserProfile;
 import org.example.backend.domain.user.service.GitlabOauthService;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.global.response.ApiResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.view.RedirectView;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @RestController
 @RequiredArgsConstructor
@@ -22,6 +27,8 @@ import java.io.IOException;
 @Slf4j
 public class UserController {
 
+    @Value("${front.base-url}")
+    private String domainName;
     private final GitlabOauthService gitlabOauthService;
 
     @GetMapping("/oauth/gitlab/login")
@@ -40,12 +47,16 @@ public class UserController {
     }
 
     @GetMapping("/oauth/gitlab/callback")
-    public ResponseEntity<ApiResponse<Void>> gitlabCallback(@RequestParam("code") String code) {
-        String accessToken = gitlabOauthService.getAccessToken(code);
+    public RedirectView gitlabCallback(@RequestParam("code") String code) {
+        AuthResponse auth = gitlabOauthService.processUserAndSave(code);
 
-        return ResponseEntity.ok()
-                .header("Authorization", "Bearer " + accessToken)
-                .body(ApiResponse.success());
+        String redirectUrl = String.format(
+                "%s/oauth/callback?token=%s&refresh=%s",
+                domainName,
+                URLEncoder.encode(auth.getJwtToken(), StandardCharsets.UTF_8),
+                URLEncoder.encode(auth.getRefreshToken(), StandardCharsets.UTF_8)
+        );
+        return new RedirectView(redirectUrl);
     }
 
     @PostMapping("/logout")

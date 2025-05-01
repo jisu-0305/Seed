@@ -1,11 +1,12 @@
 package org.example.backend.domain.user.service;
 
+import org.example.backend.domain.user.dto.AuthResponse;
 import org.example.backend.domain.user.dto.UserProfile;
 
 public interface GitlabOauthService {
     String buildGitlabAuthorizationUrl();
 
-    String getAccessToken(String code);
+    AuthResponse processUserAndSave(String code);
 
     void logout(String authorizationHeader);
 

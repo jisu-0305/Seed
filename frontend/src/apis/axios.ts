@@ -8,16 +8,18 @@ const client = axios.create({
   },
 });
 
-// client.interceptors.request.use((config) => {
-//   const accessToken = localStorage.getItem('accessToken');
+client.interceptors.request.use((config) => {
+  const accessToken = localStorage.getItem('accessToken');
 
-//   if (config.url === `/token/refresh`) {
-//     config.headers.Refresh = `${localStorage.getItem('refreshToken')}`;
-//   } else {
-//     config.headers.Authorization = `Bearer ${accessToken}`;
-//   }
-//   return config;
-// });
+  if (config.url === `/token/refresh`) {
+    // eslint-disable-next-line no-param-reassign
+    config.headers.Refresh = `${localStorage.getItem('refreshToken')}`;
+  } else {
+    // eslint-disable-next-line no-param-reassign
+    config.headers.Authorization = `Bearer ${accessToken}`;
+  }
+  return config;
+});
 
 // client.interceptors.response.use(
 //   function (res) {
