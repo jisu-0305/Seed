@@ -7,12 +7,16 @@ import { usePathname } from 'next/navigation';
 import React, { ReactNode } from 'react';
 
 import SideBar from '@/components/Common/SideBar';
+import { useOSMode } from '@/hooks/Common/useOSMode';
 import { queryClient } from '@/libs/queryClient';
 import { globalStyles } from '@/styles/global';
-import { theme } from '@/styles/theme';
+import { darkTheme, lightTheme } from '@/styles/theme';
 
 export function MenuLayout({ children }: { children: ReactNode }) {
   const pathName = usePathname();
+
+  const { mode } = useOSMode();
+  const theme = mode === 'dark' ? darkTheme : lightTheme;
 
   return (
     <ThemeProvider theme={theme}>

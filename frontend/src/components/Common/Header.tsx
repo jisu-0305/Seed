@@ -3,6 +3,7 @@ import React from 'react';
 
 import LoginModal from '@/components/Common/LoginModal';
 import { useModal } from '@/hooks/Common';
+import { useOSMode } from '@/hooks/Common/useOSMode';
 import { useUserStore } from '@/stores/userStore';
 
 interface HeaderProps {
@@ -15,6 +16,7 @@ export default function Header({ title }: HeaderProps) {
   const hasHydrated = useUserStore((s) => s.hasHydrated);
 
   const { isShowing, toggle } = useModal();
+  const { mode, toggleMode } = useOSMode();
 
   if (!hasHydrated) {
     return (
@@ -28,7 +30,11 @@ export default function Header({ title }: HeaderProps) {
     <HeaderWrapper>
       <SubTitle>{title}</SubTitle>
       <MenuWrapper>
-        <LightMode src="/assets/icons/ic_light.svg" alt="light mode" />
+        <LightMode
+          onClick={toggleMode}
+          src="/assets/icons/ic_light.svg"
+          alt={`${mode} mode`}
+        />
         <Alarm src="/assets/icons/ic_alarm.svg" alt="alarm" />
         <Profile onClick={toggle}>
           <ProfileImg
