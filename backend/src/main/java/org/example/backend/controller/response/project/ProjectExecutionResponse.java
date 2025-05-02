@@ -15,10 +15,9 @@ public class ProjectExecutionResponse {
 
     private Long id;
     private String projectName;
-    private ExecutionType type;
-    private String title;
-    private BuildStatus status;
+    private ExecutionType executionType;
+    private String executionTitle;
+    private BuildStatus executionStatus;
     private String buildNumber;
-    private LocalDate executionDate;
-    private LocalTime executionTime;
+    private LocalDate createdAt;
 }

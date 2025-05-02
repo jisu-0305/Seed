@@ -20,9 +20,11 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String name;
-    private String tag;
-    private int port;
-
     private Long projectId;
+
+    private String imageName;
+
+    private String tag;
+
+    private int port;
 }
