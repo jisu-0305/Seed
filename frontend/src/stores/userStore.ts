@@ -45,7 +45,7 @@ export const useUserStore = create<UserState>()(
       clearUser: () => set({ user: null, loading: false, error: null }),
     }),
     {
-      name: 'user-storage-session',
+      name: 'user',
       storage: createJSONStorage(() => sessionStorage),
       onRehydrateStorage: () => (state) => {
         state?.markHydrated();

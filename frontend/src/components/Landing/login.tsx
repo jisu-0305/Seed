@@ -5,7 +5,7 @@ export default function Login() {
   const router = useRouter();
   const goBack = () => router.push('/');
   const handleGitlab = () => {
-    window.location.href = 'http://localhost:8080/api/users/oauth/gitlab/login';
+    window.location.href = `${process.env.NEXT_PUBLIC_APP_IP}/users/oauth/gitlab/login`;
   };
 
   return (
