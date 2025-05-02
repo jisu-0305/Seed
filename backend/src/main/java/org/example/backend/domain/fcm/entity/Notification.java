@@ -23,11 +23,14 @@ public class Notification {
     private Long id;
 
     private Long receiverId;
-    private String title;
-    private String body;
-    private LocalDateTime sentAt;
 
     private boolean isRead;
+
+    private String notificationTile;
+
+    private String notificationContent;
+
+    private LocalDateTime createdAt;
 
     public void setRead(boolean read) {
         this.isRead = read;
