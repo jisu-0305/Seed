@@ -7,3 +7,9 @@ export interface MeResponse {
     avatarUrl: string;
   };
 }
+
+export interface User {
+  id: number;
+  name: string;
+  avatarUrl: string;
+}

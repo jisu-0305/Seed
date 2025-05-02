@@ -1,0 +1,50 @@
+export const projects = [
+  {
+    id: 1,
+    projectName: 'K-ing Service',
+    httpsEnabled: true,
+    autoDeployEnabled: true,
+    lastBuildStatus: 'SUCCESS',
+    lastBuildAt: '2025-05-01T14:32:10Z',
+    users: [
+      { id: 101, name: '김예슬', avatarUrl: '/assets/user.png' },
+      { id: 102, name: '이준호', avatarUrl: '/assets/user.png' },
+      { id: 103, name: '박지민', avatarUrl: '/assets/user.png' },
+    ],
+  },
+  {
+    id: 2,
+    projectName: 'Alpha API',
+    httpsEnabled: false,
+    autoDeployEnabled: true,
+    lastBuildStatus: 'FAILURE',
+    lastBuildAt: '2025-04-30T09:15:47Z',
+    users: [
+      { id: 104, name: '최수빈', avatarUrl: '/assets/user.png' },
+      { id: 105, name: '정우성', avatarUrl: '/assets/user.png' },
+    ],
+  },
+  {
+    id: 3,
+    projectName: 'Gamma Frontend',
+    httpsEnabled: true,
+    autoDeployEnabled: false,
+    lastBuildStatus: null,
+    lastBuildAt: null,
+    users: [],
+  },
+  {
+    id: 4,
+    projectName: 'Delta Worker',
+    httpsEnabled: true,
+    autoDeployEnabled: true,
+    lastBuildStatus: 'SUCCESS',
+    lastBuildAt: '2025-05-02T11:22:33Z',
+    users: [
+      { id: 106, name: '이소정', avatarUrl: '/assets/user.png' },
+      { id: 107, name: '박준영', avatarUrl: '/assets/user.png' },
+      { id: 108, name: '한지원', avatarUrl: '/assets/user.png' },
+      { id: 109, name: '한지민', avatarUrl: '/assets/user.png' },
+    ],
+  },
+];

@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import { User } from '@/types/user';
 import { getCardColor } from '@/utils/getColor';
 
 import { AvatarList } from './AvatarList';
@@ -11,12 +12,6 @@ interface ProjectCardProps {
   https: boolean;
   status: string;
   users: User[];
-}
-
-export interface User {
-  id: number;
-  name: string;
-  avatarUrl: string;
 }
 
 export const ProjectCard = ({
