@@ -1,14 +1,37 @@
 import styled from '@emotion/styled';
+import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
+
+import { clearUserData, fetchUserIfToken } from '@/utils/auth';
+
+type JWTPayload = { exp: number };
+
+const isTokenValid = (token: string) => {
+  try {
+    const { exp } = jwtDecode<JWTPayload>(token);
+    console.log('JWT 토큰 유효기간:', new Date(exp * 1000).toLocaleString());
+
+    return Date.now() < exp * 1000;
+  } catch {
+    return false;
+  }
+};
 
 export default function Landing() {
   const router = useRouter();
 
-  const goLogin = () => {
+  const goLogin = async () => {
     const token = localStorage.getItem('accessToken');
-    if (token) {
-      router.push('/dashboard');
+    if (token && isTokenValid(token)) {
+      const ok = await fetchUserIfToken();
+      if (ok) {
+        router.push('/dashboard');
+      } else {
+        clearUserData();
+        router.push('/login');
+      }
     } else {
+      clearUserData();
       router.push('/login');
     }
   };
