@@ -1,233 +1,218 @@
 import { css } from '@emotion/react';
-import { Inter, Noto_Sans_KR } from 'next/font/google';
-
-const notoSansKr = Noto_Sans_KR({
-  weight: ['100', '300', '400', '500', '700', '900'],
-  subsets: ['latin'],
-  display: 'swap',
-  fallback: ['sans-serif'],
-});
-
-const inter = Inter({
-  weight: ['100', '200', '300', '400', '500', '600', '700', '900'],
-  subsets: ['latin'],
-  display: 'swap',
-  fallback: ['sans-serif'],
-});
 
 export const fonts = {
   Head0: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 3rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 5.2rem */
   `,
   Head1: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 2.4rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 4.16rem */
   `,
   Head2: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 2rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 3.9rem */
   `,
   Head3: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.8rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 3.38rem */
   `,
   Head4: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.6rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 3.12rem */
   `,
   Head5: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.4rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 2.6rem */
   `,
   Head6: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.2rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 2.34rem */
   `,
   Title1: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 4rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title2: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 3rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title3: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 2.4rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title4: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.8rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title5: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.6rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title6: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.4rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title7: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.2rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title8: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.1rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Title9: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 2.08rem */
   `,
   Body1: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.6rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 2.08rem */
   `,
   Body2: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.5rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 1.69rem */
   `,
   Body3: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.4rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 1.82rem */
   `,
   Body4: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.3rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 1.56rem */
   `,
   Body5: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1.2rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 1.56rem */
   `,
   Body6: css`
-    font-family: ${notoSansKr.style.fontFamily};
+    font-family: 'Noto Sans KR', sans-serif;
     font-size: 1rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 1.17rem */
   `,
   EnHead0: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 2rem;
     font-style: normal;
     font-weight: 700;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle0: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 3.6rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle1: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 3rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle2: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 2rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle3: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 1.4rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnTitle4: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 1.2rem;
     font-style: normal;
     font-weight: 600;
     line-height: 130%; /* 1.17rem */
   `,
   EnBody1: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 1.4rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 1.17rem */
   `,
   EnBody2: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 1.2rem;
     font-style: normal;
     font-weight: 400;
     line-height: 130%; /* 1.17rem */
   `,
   EnBody3: css`
-    font-family: ${inter.style.fontFamily};
+    font-family: 'Inter', sans-serif;
     font-size: 1rem;
     font-style: normal;
     font-weight: 400;
@@ -277,3 +262,73 @@ export const theme = {
   colors,
   fonts,
 };
+
+// export const lightColors = {
+//   borderDefault: '#E9E9E9', // LightGray1
+//   background: '#FFFFFF', // White
+//   text: '#000000', // Black
+//   navSelected: '#FCFCFC', // LightGray3
+
+//   calendarInactive: '#D3D3D3', // DarkGray2
+//   calendarCarrot: '#FFA100', // Main-Carrot
+//   calendarBlue: '#4B7BBF', // Blue1
+//   calendarGreen: '#4AA785', // Green1
+//   calendarRed: '#E05B5B', // Red2
+
+//   inputBackground: '#FCFCFC', // LightGray3
+
+//   btnPrevBg: '#969696', // Gray3
+//   btnPrevText: '#FFFFFF',
+//   btnNextBg: '#323232', // Gray0
+//   btnNextText: '#FFFFFF',
+
+//   detailFieldBg: '#FCFCFC', // LightGray3
+//   detailBorder1: '#E9E9E9', // LightGray1
+//   detailBorder2: '#000000', // Black
+
+//   menuBg: '#000000', // Black
+//   menuText: '#FFFFFF',
+
+//   aiReport: '#F7F9FB', // Gray4
+// };
+
+// export const darkColors = {
+//   borderDefault: '#323232', // Gray0
+//   background: '#1C1C1C', // Black1
+//   text: '#FFFFFF',
+//   navSelected: '#252525', // DarkGray0
+
+//   calendarInactive: '#3D3D3D', // DarkGray1
+//   calendarCarrot: '#CA9843', // Carrot0
+//   calendarBlue: '#4C6589', // Blue0
+//   calendarGreen: '#5B7A6F', // Green0
+//   calendarRed: '#9D3D3D', // Red0
+
+//   inputBackground: '#252525', // DarkGray0
+
+//   btnPrevBg: '#252525', // DarkGray0
+//   btnPrevText: '#969696', // Gray3
+//   btnNextBg: '#FFFFFF',
+//   btnNextText: '#000000',
+
+//   detailFieldBg: '#252525', // DarkGray0
+//   detailBorder1: '#3D3D3D', // DarkGray1
+//   detailBorder2: '#3D3D3D', // DarkGray1
+
+//   menuBg: '#FFFFFF',
+//   menuText: '#000000',
+
+//   aiReport: '#252525', // DarkGray0
+// };
+
+// export const lightTheme: Theme = {
+//   mode: 'light',
+//   colors: lightColors,
+//   fonts,
+// };
+
+// export const darkTheme: Theme = {
+//   mode: 'dark',
+//   colors: darkColors,
+//   fonts,
+// };
