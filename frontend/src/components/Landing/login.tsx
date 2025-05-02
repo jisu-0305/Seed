@@ -5,8 +5,7 @@ export default function Login() {
   const router = useRouter();
   const goBack = () => router.push('/');
   const handleGitlab = () => {
-    // TODO: GitLab OAuth redirect
-    window.location.href = '/api/auth/gitlab';
+    window.location.href = 'http://localhost:8080/api/users/oauth/gitlab/login';
   };
 
   return (
@@ -74,7 +73,6 @@ const Back = styled.button`
   border: none;
   background: none;
   ${({ theme }) => theme.fonts.Body3};
-  cursor: pointer;
 `;
 
 const ArrowLeft = styled.img`
@@ -109,7 +107,6 @@ const GitlabButton = styled.button`
   border-radius: 1.5rem;
   padding: 0.75rem 6rem;
   ${({ theme }) => theme.fonts.EnTitle2};
-  cursor: pointer;
 
   &:hover {
     background: ${({ theme }) => theme.colors.Black};

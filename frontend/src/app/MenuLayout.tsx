@@ -4,7 +4,7 @@ import { Global, ThemeProvider } from '@emotion/react';
 import styled from '@emotion/styled';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
-import { ReactNode } from 'react';
+import React, { ReactNode } from 'react';
 
 import SideBar from '@/components/Common/SideBar';
 import { queryClient } from '@/libs/queryClient';
@@ -13,12 +13,15 @@ import { theme } from '@/styles/theme';
 
 export function MenuLayout({ children }: { children: ReactNode }) {
   const pathName = usePathname();
+
   return (
     <ThemeProvider theme={theme}>
       <QueryClientProvider client={queryClient}>
         <Global styles={globalStyles(theme)} />
         <LayoutWrapper>
-          {pathName !== '/' && pathName !== '/login' && <SideBar />}
+          {pathName !== '/' &&
+            pathName !== '/login' &&
+            pathName !== '/oauth/callback' && <SideBar />}
           <RightArea>
             <ContentWrapper>{children}</ContentWrapper>
           </RightArea>
