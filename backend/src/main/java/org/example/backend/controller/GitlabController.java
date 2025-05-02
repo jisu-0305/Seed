@@ -13,7 +13,6 @@ import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
-import org.example.backend.domain.gitlab.service.GitlabDeployService;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +21,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -33,7 +31,6 @@ import java.util.List;
 public class GitlabController {
 
     private final GitlabService gitlabService;
-    private final GitlabDeployService gitlabDeployService;
 
     @GetMapping("/projects")
     @Operation(summary = "전체 레포지토리 목록 조회", security = @SecurityRequirement(name = "JWT"))
@@ -147,14 +144,6 @@ public class GitlabController {
 
         gitlabService.createPushWebhook(accessToken, request.getProjectId(), request.getUrl(), request.getWildcard());
 
-        return ResponseEntity.ok(ApiResponse.success());
-    }
-
-    @PostMapping("/trigger")
-    public ResponseEntity<ApiResponse<Void>> triggerDeployment() throws Exception {
-        gitlabDeployService.appendNewlineToReadme();
-        gitlabDeployService.commitAndPush();
-        gitlabDeployService.createMergeRequest();
         return ResponseEntity.ok(ApiResponse.success());
     }
 

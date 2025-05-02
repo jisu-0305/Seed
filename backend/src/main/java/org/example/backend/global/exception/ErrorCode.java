@@ -16,6 +16,7 @@ public enum ErrorCode {
     // 3xxx: 리소스(자원) 관련 오류
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "요청한 자원을 찾을 수 없습니다."),
     PROJECT_NOT_FOUND(HttpStatus.NOT_FOUND, 3002, "프로젝트를 찾을 수 없습니다."),
+    PROJECT_STATUS_NOT_FOUND(HttpStatus.NOT_FOUND, 3003, "프로젝트 상태 정보를 찾을 수 없습니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
     GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3203, "GitLab API 요청이 실패했습니다."),
@@ -44,12 +45,15 @@ public enum ErrorCode {
     GITLAB_BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, 3223, "해당 브랜치를 조회할 수 없습니다."),
 
     GITLAB_BAD_CREATE_WEBHOOK(HttpStatus.BAD_REQUEST, 3224, "깃랩 웹훅 생성에 실패했습니다."),
+    DOCKER_HEALTH_API_FAILED(HttpStatus.BAD_REQUEST, 3225, "도커 소켓 API 연결에 실패했습니다."),
+    DOCKER_HEALTH_FAILED(HttpStatus.BAD_REQUEST, 3226, "도커 소켓 연결에 실패했습니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),
     UNAUTHORIZED_USER(HttpStatus.UNAUTHORIZED, 4003, "유효하지 않은 사용자입니다."),
     OAUTH_TOKEN_FORBIDDEN(HttpStatus.NOT_FOUND, 4101, "Oauth 토큰 발급에 실패했습니다."),
+    DOCKER_TOKEN_API_FAILED(HttpStatus.NOT_FOUND, 4102, "docker 토큰 발급에 실패했습니다."),
 
     // 6xxx: 내부 서버 오류
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 6001, "내부 서버 오류입니다."),

@@ -2,8 +2,15 @@ package org.example.backend.domain.jenkins.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.controller.response.jenkins.*;
+import org.example.backend.domain.project.entity.ProjectExecution;
+import org.example.backend.domain.project.entity.ProjectStatus;
+import org.example.backend.domain.project.enums.BuildStatus;
+import org.example.backend.domain.project.enums.ExecutionType;
+import org.example.backend.domain.project.repository.ProjectExecutionRepository;
+import org.example.backend.domain.project.repository.ProjectStatusRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,6 +26,8 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     private final JenkinsClient jenkinsClient;
     private final ObjectMapper objectMapper;
+    private ProjectStatusRepository projectStatusRepository;
+    private ProjectExecutionRepository projectExecutionRepository;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault());
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
@@ -137,6 +146,33 @@ public class JenkinsServiceImpl implements JenkinsService {
         return summaries;
     }
 
+    @Override
+    @Transactional
+    public void logLastBuildResultToProject(Long projectId) {
+        JsonNode lastBuild = safelyParseJson(
+                jenkinsClient.fetchBuildInfo(jobName, "lastBuild/api/json")
+        );
+
+        int buildNumber = lastBuild.path("number").asInt();
+        BuildStatus status = BuildStatus.valueOf(lastBuild.path("result").asText());
+
+        ProjectStatus statusEntity = projectStatusRepository.findByProjectId(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
+
+        statusEntity.updateBuildStatus(status);
+
+        projectExecutionRepository.save(ProjectExecution.builder()
+                .projectId(projectId)
+                .type(ExecutionType.BUILD)
+                .title("#" + buildNumber + " MR 빌드")
+                .status(status)
+                .buildNumber(String.valueOf(buildNumber))
+                .executionDate(LocalDate.now())
+                .executionTime(LocalTime.now())
+                .build());
+    }
+
+
 
     private List<JenkinsBuildStepResponse> parseConsoleLog(String consoleLog) {
         List<JenkinsBuildStepResponse> steps = new ArrayList<>();
@@ -246,5 +282,9 @@ public class JenkinsServiceImpl implements JenkinsService {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.JENKINS_RESPONSE_PARSING_FAILED);
         }
+    }
+
+    private BuildStatus convertToBuildStatus(String result) {
+        return BuildStatus.valueOf(result);
     }
 }
