@@ -12,6 +12,7 @@ import org.example.backend.controller.request.server.DeleteServerFolderRequest;
 import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
 import org.example.backend.controller.request.server.InitServerRequest;
 import org.example.backend.controller.request.server.NewServerRequest;
+import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.server.entity.ServerInfo;
 import org.example.backend.domain.server.repository.ServerInfoRepository;
 import org.example.backend.domain.user.entity.User;
@@ -39,6 +40,7 @@ public class ServerServiceImpl implements ServerService {
     private final UserRepository userRepository;
     private final RedisSessionManager redisSessionManager;
     private final ServerInfoRepository repository;
+    private final GitlabService gitlabService;
 
     public void registerServer(NewServerRequest newServerRequest, MultipartFile keyFile) throws IOException {
         // 1. key.pem 저장
@@ -280,7 +282,8 @@ public class ServerServiceImpl implements ServerService {
 //                setJenkins(),
 //                setJenkinsConfigure(),
 //                setJenkinsGitlabConfiguration(gitlabAccessToken),
-                makeJenkinsJob("dummy-job", "https://lab.ssafy.com/example.git", "gitlab-token" ),
+//                makeJenkinsJob("dummy-job", "https://lab.ssafy.com/galilee155/drummer_test.git", "gitlab-token" ),
+                makeGitlabWebhook("Bearer Tokenname", (long)123456, "dummy-job", "1.11.111.1"),
                 makeDockerComposeYml()
         ).flatMap(Collection::stream).toList();
     }
@@ -495,41 +498,11 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 9. Jenkins 상세 설정
-    private List<String> setJenkinsGitlabConfiguration(String gitlabAccessToken) {
+    // 9. Jenkins credentials 생성
+    private List<String> setJenkinsConfiguration(String gitlabAccessToken) {
         return List.of(
-                // gitlab connection 등록
-                "sudo mkdir -p /var/lib/jenkins/init.groovy.d && " +
-                        "sudo tee /var/lib/jenkins/init.groovy.d/gitlab-connection.groovy > /dev/null << 'EOF'\n" +
-                        "import jenkins.model.Jenkins\n" +
-                        "import com.dabsquared.gitlabjenkins.connection.GitLabConnectionConfig\n" +
-                        "import com.dabsquared.gitlabjenkins.connection.GitLabConnection\n\n" +
-                        "def inst = Jenkins.getInstance()\n" +
-                        "def cfg  = inst.getDescriptorByType(GitLabConnectionConfig.class)\n" +
-                        "def conns = cfg.getConnections()\n\n" +
-                        "def newConn = new GitLabConnection(\n" +
-                        "  '" + "hi" + "',\n" +
-                        "  '" + "https://lab.ssafy.com"       + "',\n" +
-                        "  '" + gitlabAccessToken   + "',\n" +
-                        "  false,   // ignoreCertificateErrors\n" +
-                        "  10,      // connectionTimeout (sec)\n" +
-                        "  10       // readTimeout (sec)\n" +
-                        ")\n\n" +
-                        "if (!conns.find { it.name == newConn.name }) {\n" +
-                        "  conns.add(newConn)\n" +
-                        "  cfg.setConnections(conns)\n" +
-                        "  cfg.save()\n" +
-                        "  inst.save()\n" +
-                        "}\n" +
-                        "EOF",
 
 
-                // 8-7. 포트 변경 (9090)
-                "sudo sed -i 's/^#*HTTP_PORT=.*/HTTP_PORT=9090/' /etc/default/jenkins",
-                "sudo sed -i 's/Environment=\"JENKINS_PORT=[0-9]\\+\"/Environment=\"JENKINS_PORT=9090\"/' /usr/lib/systemd/system/jenkins.service",
-
-                "sudo systemctl enable jenkins",
-                "sudo systemctl restart jenkins"
         );
     }
 
@@ -587,6 +560,16 @@ public class ServerServiceImpl implements ServerService {
                 "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
                 "java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-job " + jobName + " < job-config.xml"
         );
+    }
+
+    private List<String> makeGitlabWebhook(String accessToken, Long projectId, String jobName, String jenkinsIp) {
+        String hookUrl = "http://" + jenkinsIp + ":9090/project/" + jobName;
+        String branchFilter = "master";
+
+        gitlabService.createPushWebhook(accessToken, projectId, hookUrl, branchFilter);
+
+        //최초 실행 로직 한번 필요 그래야 아래 777의미가 있음
+        return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
     }
 
     private List<String> makeDockerComposeYml() {
