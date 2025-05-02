@@ -13,6 +13,7 @@ import java.time.LocalTime;
 @AllArgsConstructor
 public class ProjectExecutionResponse {
 
+    private Long id;
     private String projectName;
     private ExecutionType type;
     private String title;

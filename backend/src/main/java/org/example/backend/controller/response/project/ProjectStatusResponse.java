@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class ProjectStatusResponse {
 
+    private Long id;
     private String projectName;
     private boolean httpsEnabled;
     private boolean autoDeployEnabled;

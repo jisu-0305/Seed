@@ -11,6 +11,9 @@ import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.enums.PlatformType;
 import org.example.backend.domain.project.mapper.ProjectMapper;
 import org.example.backend.domain.project.repository.*;
+import org.example.backend.domain.user.entity.User;
+import org.example.backend.domain.user.repository.UserRepository;
+import org.example.backend.domain.userproject.dto.UserInProject;
 import org.example.backend.domain.userproject.entity.UserProject;
 import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -27,10 +30,7 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.List;
-import java.util.Map;
-import java.util.LinkedHashMap;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,6 +45,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final UserProjectRepository userProjectRepository;
     private final ProjectExecutionRepository projectExecutionRepository;
     private final ProjectStatusRepository projectStatusRepository;
+    private final UserRepository userRepository;
 
     @Value("${file.base-path}")
     private String basePath;
@@ -73,21 +74,20 @@ public class ProjectServiceImpl implements ProjectService {
                 .pemFilePath(pemPath)
                 .createdAt(LocalDateTime.now())
                 .build();
-
         Project savedProject = projectRepository.save(project);
+
         userProjectRepository.save(UserProject.create(savedProject.getId(), userId));
 
-        projectStatusRepository.save(ProjectStatus.builder()
+        ProjectStatus status = ProjectStatus.builder()
                 .projectId(savedProject.getId())
                 .autoDeployEnabled(true)
                 .httpsEnabled(false)
-                .build());
+                .build();
+        projectStatusRepository.save(status);
 
         structureDetailsRepository.save(createStructureDetails(request, savedProject.getId()));
-
         saveEnvironmentConfig(savedProject.getId(), PlatformType.CLIENT, request.getClientNodeVersion(), clientEnvPath, null);
         saveEnvironmentConfig(savedProject.getId(), PlatformType.SERVER, request.getServerJdkVersion(), serverEnvPath, request.getServerBuildTool());
-
         request.getApplications().forEach(app ->
                 applicationRepository.save(Application.builder()
                         .name(app.getName())
@@ -97,8 +97,25 @@ public class ProjectServiceImpl implements ProjectService {
                         .build())
         );
 
-        return ProjectMapper.toResponse(savedProject);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        List<UserInProject> members = List.of(UserInProject.builder()
+                .userId(user.getId())
+                .name(user.getName())
+                .username(user.getUsername())
+                .avatarUrl(user.getAvatarUrl())
+                .build());
+
+        return ProjectMapper.toResponse(
+                savedProject,
+                members,
+                status.isAutoDeployEnabled(),
+                status.isHttpsEnabled(),
+                null,
+                null
+        );
     }
+
 
     @Override
     public ProjectDetailResponse getProjectDetail(Long projectId, String accessToken) {
@@ -148,19 +165,59 @@ public class ProjectServiceImpl implements ProjectService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProjectResponse> getAllProjects(String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
-        List<Long> projectIds = userProjectRepository.findByUserId(userId)
-                .stream()
+        List<Long> projectIdList = userProjectRepository.findByUserId(userId).stream()
                 .map(UserProject::getProjectId)
                 .toList();
 
-        return projectRepository.findAllById(projectIds).stream()
-                .map(ProjectMapper::toResponse)
+        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
+                .collect(Collectors.toMap(Project::getId, p -> p));
+
+        Map<Long, ProjectStatus> statusMap = projectStatusRepository.findByProjectIdIn(projectIdList).stream()
+                .collect(Collectors.toMap(ProjectStatus::getProjectId, s -> s));
+
+        List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);
+        List<Long> allUserIdList = allUserProjectList.stream().map(UserProject::getUserId).distinct().toList();
+
+        Map<Long, User> userMap = userRepository.findAllById(allUserIdList).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        Map<Long, List<UserInProject>> projectUsersMap = allUserProjectList.stream()
+                .collect(Collectors.groupingBy(
+                        UserProject::getProjectId,
+                        Collectors.mapping(up -> {
+                            User user = userMap.get(up.getUserId());
+                            return UserInProject.builder()
+                                    .userId(user.getId())
+                                    .name(user.getName())
+                                    .username(user.getUsername())
+                                    .avatarUrl(user.getAvatarUrl())
+                                    .build();
+                        }, Collectors.toList())
+                ));
+
+        return projectIdList.stream()
+                .map(id -> {
+                    Project project = projectMap.get(id);
+                    ProjectStatus status = statusMap.get(id);
+                    List<UserInProject> memberList = projectUsersMap.getOrDefault(id, List.of());
+
+                    return ProjectMapper.toResponse(
+                            project,
+                            memberList,
+                            status.isAutoDeployEnabled(),
+                            status.isHttpsEnabled(),
+                            status.getLastBuildStatus(),
+                            status.getLastBuildAt()
+                    );
+                })
                 .toList();
     }
+
 
     @Override
     @Transactional
@@ -212,21 +269,29 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(UserProject::getProjectId)
                 .toList();
 
-        Map<Long, String> projectNameMap = projectRepository.findAllById(projectIdList).stream()
-                .collect(Collectors.toMap(Project::getId, Project::getProjectName));
+        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
+                .collect(Collectors.toMap(Project::getId, p -> p));
 
         List<ProjectStatus> statuses = projectStatusRepository.findByProjectIdIn(projectIdList);
 
         return statuses.stream()
-                .map(status -> ProjectStatusResponse.builder()
-                        .projectName(projectNameMap.get(status.getProjectId()))
-                        .httpsEnabled(status.isHttpsEnabled())
-                        .autoDeployEnabled(status.isAutoDeployEnabled())
-                        .lastBuildStatus(status.getLastBuildStatus())
-                        .lastBuildAt(status.getLastBuildAt())
-                        .build())
+                .map(status -> {
+                    Project project = projectMap.get(status.getProjectId());
+                    if (project == null) return null;
+
+                    return ProjectStatusResponse.builder()
+                            .id(project.getId())
+                            .projectName(project.getProjectName())
+                            .httpsEnabled(status.isHttpsEnabled())
+                            .autoDeployEnabled(status.isAutoDeployEnabled())
+                            .lastBuildStatus(status.getLastBuildStatus())
+                            .lastBuildAt(status.getLastBuildAt())
+                            .build();
+                })
+                .filter(Objects::nonNull)
                 .toList();
     }
+
 
     @Override
     @Transactional(readOnly = true)
@@ -245,6 +310,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         Map<LocalDate, List<ProjectExecutionResponse>> grouped = allExecutionList.stream()
                 .map(exec -> ProjectExecutionResponse.builder()
+                        .id(exec.getId())
                         .projectName(projectNameMap.get(exec.getProjectId()))
                         .type(exec.getType())
                         .title(exec.getTitle())
@@ -307,8 +373,5 @@ public class ProjectServiceImpl implements ProjectService {
             throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
         }
     }
-
-
-
 
 }
