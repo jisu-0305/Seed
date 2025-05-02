@@ -13,4 +13,5 @@ public class ProjectResponse {
     private String repositoryUrl;
     private String ipAddress;
     private String pemFilePath;
+    private LocalDateTime createdAt;
 }

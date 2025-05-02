@@ -4,6 +4,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.example.backend.domain.project.enums.ProjectStructure;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -14,6 +15,7 @@ public class ProjectDetailResponse {
     private String repositoryUrl;
     private String ipAddress;
     private String pemFilePath;
+    private LocalDateTime createdAt;
     private ProjectStructure structure;
     private String clientDirectoryName;
     private String serverDirectoryName;

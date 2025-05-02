@@ -16,4 +16,5 @@ public interface JenkinsService {
     void triggerBuild();
     List<JenkinsBuildChangeResponse> getBuildChanges(int buildNumber);
     List<JenkinsBuildChangeSummaryResponse> getBuildChangesWithSummary(int buildNumber);
+    public void logLastBuildResultToProject(Long projectId);
 }

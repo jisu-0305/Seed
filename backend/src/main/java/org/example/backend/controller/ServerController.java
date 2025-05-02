@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.common.util.ConvertHttpsUtil;
 import org.example.backend.common.util.SshUtil;
 import org.example.backend.controller.request.server.*;
+import org.example.backend.domain.project.service.ProjectService;
 import org.example.backend.domain.server.service.ServerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
@@ -25,6 +26,7 @@ public class ServerController {
     private final ServerService serverService;
     private final ConvertHttpsUtil convertHttpsUtil;
     private final SshUtil sshUtil;
+    private final ProjectService projectService;
 
     @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> register(
@@ -71,12 +73,16 @@ public class ServerController {
             @RequestPart("pem") MultipartFile pem,
             @RequestPart("host") String host,
             @RequestPart("domain") String domain,
-            @RequestPart("email") String email
+            @RequestPart("email") String email,
+            @RequestPart("projectId") String projectId
     ) {
         try {
             Session session = sshUtil.createSessionWithPem(pem, host);
             ApiResponse<String> result = convertHttpsUtil.convertHttpToHttps(session, domain, email);
             session.disconnect();
+
+            projectService.markHttpsConverted(Long.parseLong(projectId));
+
             return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

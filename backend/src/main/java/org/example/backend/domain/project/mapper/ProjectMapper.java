@@ -11,6 +11,7 @@ public class ProjectMapper {
                 .repositoryUrl(project.getRepositoryUrl())
                 .ipAddress(project.getIpAddress())
                 .pemFilePath(project.getPemFilePath())
+                .createdAt(project.getCreatedAt())
                 .build();
     }
 }
