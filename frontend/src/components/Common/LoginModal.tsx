@@ -8,13 +8,13 @@ import React from 'react';
 
 import { logout } from '@/apis/user';
 import { useUserStore } from '@/stores/userStore';
+import { clearUserData } from '@/utils/auth';
 
 const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
   const loading = useUserStore((s) => s.loading);
   const error = useUserStore((s) => s.error);
-  const clearUser = useUserStore((s) => s.clearUser);
 
   const handleLogout = async () => {
     try {
@@ -22,11 +22,7 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     } catch (err) {
       console.error('로그아웃 API 실패', err);
     } finally {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      clearUser();
-      sessionStorage.removeItem('user-storage-session');
-
+      clearUserData();
       onClose();
       router.replace('/');
     }

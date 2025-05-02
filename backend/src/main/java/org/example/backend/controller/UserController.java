@@ -13,6 +13,7 @@ import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
@@ -59,7 +60,10 @@ public class UserController {
         return new RedirectView(redirectUrl);
     }
 
-    @PostMapping("/logout")
+    @PostMapping(path = "/logout",
+            consumes = MediaType.ALL_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
     public ResponseEntity<ApiResponse<Void>> logout(
             @RequestHeader("Authorization") String authorizationHeader) {
 
