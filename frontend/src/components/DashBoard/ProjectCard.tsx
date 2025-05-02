@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+// eslint-disable-next-line import/extensions
 import { getCardColor } from '@/utils/getColor';
 
 interface ProjectCardProps {
@@ -23,7 +24,7 @@ export const ProjectCard = ({
     <Card color={cardColor}>
       <Title>
         <ProjectImage
-          src={`assets/projectcard/project_${emoji}.png`}
+          src={`/assets/projectcard/project_${emoji}.png`}
           alt={`project_${emoji}`}
         />
         {title}
@@ -65,7 +66,7 @@ const Card = styled.div<{ color: string }>`
   gap: 1rem;
 
   padding: 2rem;
-  min-width: 20rem;
+  /* min-width: 20rem; */
   height: 10rem;
 
   background: ${({ color }) => color};

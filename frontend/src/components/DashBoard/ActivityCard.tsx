@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 
+// eslint-disable-next-line import/extensions
 import { getActivityColor } from '@/utils/getColor';
+// eslint-disable-next-line import/order
 import { getRgbaFromhex } from '@/utils/getRgbaFromHex';
 
 interface ActivityCardProps {
@@ -21,20 +23,20 @@ export const ActivityCard = ({
   return (
     <CardWrapper bg={mainColor}>
       <Title color={mainColor}>
-        <Icon src={`assets/activitycard/ic_${type}.svg`} alt={`ic_${type}`} />
+        <Icon src={`/assets/activitycard/ic_${type}.svg`} alt={`ic_${type}`} />
         {title}
       </Title>
       <Details color={mainColor}>
         <p>{project}</p>
         <p>•</p>
         <Icon
-          src={`assets/activitycard/ic_clock_${type}.svg`}
+          src={`/assets/activitycard/ic_clock_${type}.svg`}
           alt={`ic_clock_${type}`}
         />
         <p>{time}</p>
       </Details>
       <Icon
-        src={`assets/activitycard/ic_check_${type}.svg`}
+        src={`/assets/activitycard/ic_check_${type}.svg`}
         alt={`ic_check_${type}`}
       />
     </CardWrapper>
