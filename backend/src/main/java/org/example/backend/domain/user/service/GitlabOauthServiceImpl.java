@@ -124,7 +124,10 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
         if (authorizationHeader == null || !authorizationHeader.startsWith("Bearer ")) {
             throw new BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER);
         }
-        String jwtToken = authorizationHeader.substring(7);
+        String jwtToken = authorizationHeader.substring(7).trim().replace("\uFEFF", "");
+        if (jwtToken.isEmpty() || jwtToken.equals("null")) {
+            throw new BusinessException(ErrorCode.INVALID_AUTHORIZATION_HEADER);
+        }
         redisSessionManager.deleteSession(jwtToken);
     }
 
