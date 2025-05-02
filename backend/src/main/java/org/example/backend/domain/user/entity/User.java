@@ -17,20 +17,20 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private String oauthClientId;
+
     @Enumerated(EnumType.STRING)
     private ProviderType providerType;
 
-    private String oauthUserId;
+    private String gitlabAccessToken;
 
-    private String accessToken;
+    private String gitlabRefreshToken;
 
-    private String refreshToken;
+    private String userName;
 
-    private String name;
+    private String userIdentifyId;
 
-    private String username;
-
-    private String avatarUrl;
+    private String profileImageUrl;
 
     private LocalDateTime createdAt;
 }

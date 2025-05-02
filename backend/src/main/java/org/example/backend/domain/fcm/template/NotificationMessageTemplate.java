@@ -18,8 +18,8 @@ public enum NotificationMessageTemplate {
 
     public NotificationMessage toMessage(String projectName) {
         return NotificationMessage.builder()
-                .title(this.title)
-                .body(String.format(this.bodyFormat, projectName))
+                .notificationTitle(this.title)
+                .notificationContent(String.format(this.bodyFormat, projectName))
                 .build();
     }
 }

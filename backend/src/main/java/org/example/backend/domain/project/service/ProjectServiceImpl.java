@@ -90,7 +90,7 @@ public class ProjectServiceImpl implements ProjectService {
         saveEnvironmentConfig(savedProject.getId(), PlatformType.SERVER, request.getServerJdkVersion(), serverEnvPath, request.getServerBuildTool());
         request.getApplications().forEach(app ->
                 applicationRepository.save(Application.builder()
-                        .name(app.getName())
+                        .imageName(app.getName())
                         .tag(app.getTag())
                         .port(app.getPort())
                         .projectId(savedProject.getId())
@@ -99,11 +99,12 @@ public class ProjectServiceImpl implements ProjectService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
         List<UserInProject> members = List.of(UserInProject.builder()
                 .userId(user.getId())
-                .name(user.getName())
-                .username(user.getUsername())
-                .avatarUrl(user.getAvatarUrl())
+                .userName(user.getUserName())
+                .userIdentifyId(user.getUserIdentifyId())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build());
 
         return ProjectMapper.toResponse(
@@ -153,7 +154,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .serverBuildTool(serverEnv != null ? serverEnv.getBuildTool() : null)
                 .applications(applications.stream()
                         .map(app -> ApplicationResponse.builder()
-                                .name(app.getName())
+                                .name(app.getImageName())
                                 .tag(app.getTag())
                                 .port(app.getPort())
                                 .build())
@@ -193,9 +194,9 @@ public class ProjectServiceImpl implements ProjectService {
                             User user = userMap.get(up.getUserId());
                             return UserInProject.builder()
                                     .userId(user.getId())
-                                    .name(user.getName())
-                                    .username(user.getUsername())
-                                    .avatarUrl(user.getAvatarUrl())
+                                    .userName(user.getUserName())
+                                    .userIdentifyId(user.getUserIdentifyId())
+                                    .profileImageUrl(user.getProfileImageUrl())
                                     .build();
                         }, Collectors.toList())
                 ));
@@ -250,11 +251,10 @@ public class ProjectServiceImpl implements ProjectService {
 
         projectExecutionRepository.save(ProjectExecution.builder()
                 .projectId(projectId)
-                .type(ExecutionType.HTTPS)
-                .title("HTTPS 설정")
-                .status(BuildStatus.SUCCESS)
-                .executionDate(LocalDate.now())
-                .executionTime(LocalTime.now())
+                .executionType(ExecutionType.HTTPS)
+                .projectExecutionTitle("HTTPS 설정")
+                .executionStatus(BuildStatus.SUCCESS)
+                .createdAt(LocalDate.now())
                 .build());
     }
 
@@ -306,20 +306,19 @@ public class ProjectServiceImpl implements ProjectService {
         Map<Long, String> projectNameMap = projectRepository.findAllById(projectIds).stream()
                 .collect(Collectors.toMap(Project::getId, Project::getProjectName));
 
-        List<ProjectExecution> allExecutionList = projectExecutionRepository.findByProjectIdInOrderByExecutionDateDescExecutionTimeDesc(projectIds);
+        List<ProjectExecution> allExecutionList = projectExecutionRepository.findByProjectIdInOrderByCreatedAtDesc(projectIds);
 
         Map<LocalDate, List<ProjectExecutionResponse>> grouped = allExecutionList.stream()
                 .map(exec -> ProjectExecutionResponse.builder()
                         .id(exec.getId())
                         .projectName(projectNameMap.get(exec.getProjectId()))
-                        .type(exec.getType())
-                        .title(exec.getTitle())
-                        .status(exec.getStatus())
+                        .executionType(exec.getExecutionType())
+                        .executionTitle(exec.getProjectExecutionTitle())
+                        .executionStatus(exec.getExecutionStatus())
                         .buildNumber(exec.getBuildNumber())
-                        .executionDate(exec.getExecutionDate())
-                        .executionTime(exec.getExecutionTime())
+                        .createdAt(exec.getCreatedAt())
                         .build())
-                .collect(Collectors.groupingBy(ProjectExecutionResponse::getExecutionDate, LinkedHashMap::new, Collectors.toList()));
+                .collect(Collectors.groupingBy(ProjectExecutionResponse::getCreatedAt, LinkedHashMap::new, Collectors.toList()));
 
         return grouped.entrySet().stream()
                 .map(e -> new ProjectExecutionGroupResponse(e.getKey(), e.getValue()))

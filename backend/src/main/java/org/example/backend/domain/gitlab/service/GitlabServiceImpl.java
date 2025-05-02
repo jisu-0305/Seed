@@ -35,11 +35,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        return gitlabApiClient.listProjects(user.getAccessToken());
+        return gitlabApiClient.listProjects(user.getGitlabAccessToken());
     }
 
     @Override
@@ -50,11 +50,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        return gitlabApiClient.getProjectInfo(user.getAccessToken(), request.getRepositoryUrl());
+        return gitlabApiClient.getProjectInfo(user.getGitlabAccessToken(), request.getRepositoryUrl());
     }
 
     @Override
@@ -65,11 +65,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        return gitlabApiClient.listTree(user.getAccessToken(), projectId, path, recursive);
+        return gitlabApiClient.listTree(user.getGitlabAccessToken(), projectId, path, recursive);
     }
 
     @Override
@@ -80,11 +80,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        return gitlabApiClient.getRawFile(user.getAccessToken(), projectId, path, ref);
+        return gitlabApiClient.getRawFile(user.getGitlabAccessToken(), projectId, path, ref);
     }
 
     @Override
@@ -95,11 +95,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        return gitlabApiClient.compareCommits(user.getAccessToken(), projectId, from, to);
+        return gitlabApiClient.compareCommits(user.getGitlabAccessToken(), projectId, from, to);
     }
 
     @Override
@@ -110,11 +110,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        return gitlabApiClient.createBranch(user.getAccessToken(), projectId, branch, ref);
+        return gitlabApiClient.createBranch(user.getGitlabAccessToken(), projectId, branch, ref);
     }
 
     @Override
@@ -126,11 +126,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        gitlabApiClient.createProjectHook(user.getAccessToken(), projectId, hookUrl, branchFilter);
+        gitlabApiClient.createProjectHook(user.getGitlabAccessToken(), projectId, hookUrl, branchFilter);
 
     }
 
@@ -142,11 +142,11 @@ public class GitlabServiceImpl implements GitlabService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        gitlabApiClient.deleteBranch(user.getAccessToken(), projectId, branch);
+        gitlabApiClient.deleteBranch(user.getGitlabAccessToken(), projectId, branch);
 
         return branch;
     }
@@ -166,16 +166,16 @@ public class GitlabServiceImpl implements GitlabService {
 
         User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        if (user.getAccessToken().isBlank()) {
+        if (user.getGitlabAccessToken().isBlank()) {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
         // 브랜치 여부 먼저 확인하기
-        gitlabApiClient.getBranch(user.getAccessToken(), projectId, sourceBranch);
-        gitlabApiClient.getBranch(user.getAccessToken(), projectId, targetBranch);
+        gitlabApiClient.getBranch(user.getGitlabAccessToken(), projectId, sourceBranch);
+        gitlabApiClient.getBranch(user.getGitlabAccessToken(), projectId, targetBranch);
 
         return gitlabApiClient.createMergeRequest(
-                user.getAccessToken(),
+                user.getGitlabAccessToken(),
                 projectId,
                 sourceBranch,
                 targetBranch,

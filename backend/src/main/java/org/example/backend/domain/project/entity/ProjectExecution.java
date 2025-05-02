@@ -25,17 +25,16 @@ public class ProjectExecution {
 
     private Long projectId;
 
-    @Enumerated(EnumType.STRING)
-    private ExecutionType type;
-
-    private String title;
-
-    @Enumerated(EnumType.STRING)
-    private BuildStatus status;
-
     private String buildNumber;
 
-    private LocalDate executionDate;
-    private LocalTime executionTime;
+    private String projectExecutionTitle;
+
+    @Enumerated(EnumType.STRING)
+    private ExecutionType executionType;
+
+    @Enumerated(EnumType.STRING)
+    private BuildStatus executionStatus;
+
+    private LocalDate createdAt;
 }
 
