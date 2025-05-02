@@ -272,6 +272,7 @@ public class ServerServiceImpl implements ServerService {
         return Stream.of(
                 //setFirewall(),
                 updatePackageManager(),
+                setSwapMemory(),
                 setJDK(),
                 setNodejs(),
                 setDocker(),
@@ -298,7 +299,18 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 2. 패키지 업데이트 (apt, apt-get)
+    // 2. 스왑 메모리 설정
+    private List<String> setSwapMemory() {
+        return List.of(
+                "sudo fallocate -l 4G /swapfile",
+                "sudo chmod 600 /swapfile",
+                "sudo mkswap /swapfile",
+                "sudo swapon /swapfile",
+                "echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab"
+        );
+    }
+
+    // 3. 패키지 업데이트 (apt, apt-get)
     private List<String> updatePackageManager() {
         return List.of(
                 "sudo apt update",
@@ -307,15 +319,15 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 3. JDK 설치
+    // 4. JDK 설치
     private List<String> setJDK() {
         return List.of(
-                "sudo apt install -y default-jdk",
+                "sudo apt install -y openjdk-17-jdk",
                 "java -version"
         );
     }
 
-    // 4. Node.js, npm 설치
+    // 5. Node.js, npm 설치
     private List<String> setNodejs() {
         return List.of(
                 "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
@@ -325,7 +337,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 5. Docker, Docker-Compose 설치
+    // 6. Docker, Docker-Compose 설치
     private List<String> setDocker() {
         return List.of(
                 // 5-1. 공식 GPG 키 추가
@@ -351,7 +363,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 6. Nginx 설치
+    // 7. Nginx 설치
     private List<String> setNginx(String serverIp) {
         String nginxConf =
                 "server {\n" +
@@ -401,29 +413,29 @@ public class ServerServiceImpl implements ServerService {
                         "}\n";
 
         return List.of(
-                // 6-1. Nginx 설치
+                // 7-1. Nginx 설치
                 "sudo apt install -y nginx",
                 "sudo systemctl enable nginx",
                 "sudo systemctl start nginx",
 
-                // 6-2. app.conf 생성 (with IP)
+                // 7-2. app.conf 생성 (with IP)
                 "sudo tee /etc/nginx/sites-available/app.conf > /dev/null << 'EOF'\n" +
                         nginxConf +
                         "EOF",
 
-                // 6-3. 심볼릭 링크 생성
+                // 7-3. 심볼릭 링크 생성
                 "sudo ln -sf /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/app.conf",
 
-                // 6-4. 기존 default 링크 제거
+                // 7-4. 기존 default 링크 제거
                 "sudo rm -f /etc/nginx/sites-enabled/default",
 
-                // 6-5. 설정 테스트 및 적용
+                // 7-5. 설정 테스트 및 적용
                 "sudo nginx -t",
                 "sudo systemctl reload nginx"
         );
     }
 
-    // 7. Jenkins 설치
+    // 8. Jenkins 설치
     private List<String> setJenkins() {
         return List.of(
                 "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee \\\n" +
@@ -437,16 +449,16 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 8. Jenkins 상세 설정
+    // 9. Jenkins 상세 설정
     private List<String> setJenkinsConfiguration(String gitlabAccessToken) {
         return List.of(
-                // 6-1) Setup Wizard 비활성화
+                // 9-1) Setup Wizard 비활성화
                 "sudo sed -i '/^#JAVA_ARGS=/a JAVA_ARGS=\"$JAVA_ARGS -Djenkins.install.runSetupWizard=false\"' /etc/default/jenkins",
 
-                // 6-2) init.groovy.d 디렉터리 생성
+                // 9-2) init.groovy.d 디렉터리 생성
                 "sudo mkdir -p /var/lib/jenkins/init.groovy.d",
 
-                // 6-3) Groovy init 스크립트로 관리자 계정 자동 생성
+                // 9-3) Groovy init 스크립트로 관리자 계정 자동 생성
                 "sudo tee /var/lib/jenkins/init.groovy.d/basic-security.groovy > /dev/null << 'EOF'\n" +
                         "import jenkins.model.*\n" +
                         "import hudson.security.*\n" +
