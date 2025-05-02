@@ -271,16 +271,16 @@ public class ServerServiceImpl implements ServerService {
     private List<String> serverInitializeCommands(String serverIp, String gitlabAccessToken) {
         return Stream.of(
                 //setFirewall(),
-                updatePackageManager(),
-                setSwapMemory(),
-                setJDK(),
-                setNodejs(),
-                setDocker(),
-                setNginx(serverIp),
-                setJenkins(),
-                setJenkinsConfigure(),
-                setJenkinsGitlabConfiguration(gitlabAccessToken),
-                makeJenkinsJob(),
+//                updatePackageManager(),
+//                setSwapMemory(),
+//                setJDK(),
+//                setNodejs(),
+//                setDocker(),
+//                setNginx(serverIp),
+//                setJenkins(),
+//                setJenkinsConfigure(),
+//                setJenkinsGitlabConfiguration(gitlabAccessToken),
+                makeJenkinsJob("dummy-job", "https://lab.ssafy.com/example.git", "gitlab-token" ),
                 makeDockerComposeYml()
         ).flatMap(Collection::stream).toList();
     }
@@ -533,9 +533,59 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
+    private List<String> makeJenkinsJob(String jobName, String gitRepoUrl, String credentialsId) {
+        String jobConfigXml = String.join("\n",
+                "sudo tee job-config.xml > /dev/null <<EOF",
+                "<?xml version='1.1' encoding='UTF-8'?>",
+                "<flow-definition plugin=\"workflow-job\">",
+                "  <description>GitLab 연동 자동 배포</description>",
+                "  <keepDependencies>false</keepDependencies>",
+                "  <definition class=\"org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition\" plugin=\"workflow-cps\">",
+                "    <scm class=\"hudson.plugins.git.GitSCM\" plugin=\"git\">",
+                "      <configVersion>2</configVersion>",
+                "      <userRemoteConfigs>",
+                "        <hudson.plugins.git.UserRemoteConfig>",
+                "          <url>" + gitRepoUrl + "</url>",
+                "          <credentialsId>" + credentialsId + "</credentialsId>",
+                "        </hudson.plugins.git.UserRemoteConfig>",
+                "      </userRemoteConfigs>",
+                "      <branches>",
+                "        <hudson.plugins.git.BranchSpec>",
+                "          <name>*/master</name>",
+                "        </hudson.plugins.git.BranchSpec>",
+                "      </branches>",
+                "    </scm>",
+                "    <scriptPath>Jenkinsfile</scriptPath>",
+                "    <lightweight>true</lightweight>",
+                "  </definition>",
+                "  <triggers>",
+                "    <com.dabsquared.gitlabjenkins.GitLabPushTrigger plugin=\"gitlab-plugin\">",
+                "      <spec></spec>",
+                "      <triggerOnPush>true</triggerOnPush>",
+                "      <triggerOnMergeRequest>false</triggerOnMergeRequest>",
+                "      <triggerOnNoteRequest>false</triggerOnNoteRequest>",
+                "      <triggerOnPipelineEvent>false</triggerOnPipelineEvent>",
+                "      <triggerOnAcceptedMergeRequest>false</triggerOnAcceptedMergeRequest>",
+                "      <triggerOnClosedMergeRequest>false</triggerOnClosedMergeRequest>",
+                "      <triggerOnApprovedMergeRequest>false</triggerOnApprovedMergeRequest>",
+                "      <triggerOpenMergeRequestOnPush>never</triggerOpenMergeRequestOnPush>",
+                "      <ciSkip>false</ciSkip>",
+                "      <setBuildDescription>true</setBuildDescription>",
+                "      <addNoteOnMergeRequest>false</addNoteOnMergeRequest>",
+                "      <addVoteOnMergeRequest>false</addVoteOnMergeRequest>",
+                "      <useCiFeatures>false</useCiFeatures>",
+                "      <addCiMessage>false</addCiMessage>",
+                "      <branchFilterType>All</branchFilterType>",
+                "    </com.dabsquared.gitlabjenkins.GitLabPushTrigger>",
+                "  </triggers>",
+                "</flow-definition>",
+                "EOF"
+        );
 
-    private List<String> makeJenkinsJob() {
         return List.of(
+                jobConfigXml,
+                "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
+                "java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-job " + jobName + " < job-config.xml"
         );
     }
 
