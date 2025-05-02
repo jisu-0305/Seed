@@ -67,28 +67,28 @@ public class WebClientConfig {
     }
 
     // 윈도우 환경 아닐때 -> 도커 소켓으로 연결하기
-    @Bean("dockerWebClient")
-    @ConditionalOnExpression(
-            "!T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
-    )
-    public WebClient unixDockerWebClient() {
-        Class<? extends Channel> channelType =
-                Epoll.isAvailable()
-                        ? EpollDomainSocketChannel.class
-                        : KQueueDomainSocketChannel.class;
-
-        TcpClient tcpClient = TcpClient.create()
-                .bootstrap(b -> b.channel(channelType))
-                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
-
-        HttpClient httpClient = HttpClient.from(tcpClient);
-
-        return WebClient.builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
-                .defaultHeader(HttpHeaders.HOST, "localhost")
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .build();
-    }
+//    @Bean("dockerWebClient")
+//    @ConditionalOnExpression(
+//            "!T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
+//    )
+//    public WebClient unixDockerWebClient() {
+//        Class<? extends Channel> channelType =
+//                Epoll.isAvailable()
+//                        ? EpollDomainSocketChannel.class
+//                        : KQueueDomainSocketChannel.class;
+//
+//        TcpClient tcpClient = TcpClient.create()
+//                .bootstrap(b -> b.channel(channelType))
+//                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
+//
+//        HttpClient httpClient = HttpClient.from(tcpClient);
+//
+//        return WebClient.builder()
+//                .clientConnector(new ReactorClientHttpConnector(httpClient))
+//                .defaultHeader(HttpHeaders.HOST, "localhost")
+//                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+//                .build();
+//    }
 
     @Bean("dockerHubWebClient")
     public WebClient dockerHubWebClient() {
