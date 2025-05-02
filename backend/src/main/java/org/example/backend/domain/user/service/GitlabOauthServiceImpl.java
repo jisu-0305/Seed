@@ -33,7 +33,7 @@ import java.util.List;
 @Slf4j
 public class GitlabOauthServiceImpl implements GitlabOauthService {
 
-    private final WebClient webClient;
+    private final WebClient gitlabWebClient;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisSessionManager redisSessionManager;
@@ -155,7 +155,7 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
         formData.add("grant_type", "authorization_code");
         formData.add("redirect_uri", redirectUri);
 
-        return webClient.post()
+        return gitlabWebClient.post()
                 .uri("https://lab.ssafy.com/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData(formData))
@@ -165,11 +165,11 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
     }
 
     private GitlabUser getGitlabUser(String accessToken) {
-        return webClient.get()
+        return gitlabWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .scheme("https")
                         .host("lab.ssafy.com")
-                        .path("/api/v4/user")
+                        .path("/user")
                         .queryParam("access_token", accessToken)
                         .build())
                 .retrieve()
