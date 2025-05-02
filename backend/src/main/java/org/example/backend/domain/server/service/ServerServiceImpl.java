@@ -272,12 +272,14 @@ public class ServerServiceImpl implements ServerService {
         return Stream.of(
                 //setFirewall(),
                 updatePackageManager(),
+                setSwapMemory(),
                 setJDK(),
                 setNodejs(),
                 setDocker(),
                 setNginx(serverIp),
                 setJenkins(),
-                setJenkinsConfiguration(gitlabAccessToken),
+                setJenkinsConfigure(),
+                setJenkinsGitlabConfiguration(gitlabAccessToken),
                 makeJenkinsJob(),
                 makeDockerComposeYml()
         ).flatMap(Collection::stream).toList();
@@ -298,7 +300,18 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 2. 패키지 업데이트 (apt, apt-get)
+    // 2. 스왑 메모리 설정
+    private List<String> setSwapMemory() {
+        return List.of(
+                "sudo fallocate -l 4G /swapfile",
+                "sudo chmod 600 /swapfile",
+                "sudo mkswap /swapfile",
+                "sudo swapon /swapfile",
+                "echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab"
+        );
+    }
+
+    // 3. 패키지 업데이트 (apt, apt-get)
     private List<String> updatePackageManager() {
         return List.of(
                 "sudo apt update",
@@ -307,15 +320,15 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 3. JDK 설치
+    // 4. JDK 설치
     private List<String> setJDK() {
         return List.of(
-                "sudo apt install -y default-jdk",
+                "sudo apt install -y openjdk-17-jdk",
                 "java -version"
         );
     }
 
-    // 4. Node.js, npm 설치
+    // 5. Node.js, npm 설치
     private List<String> setNodejs() {
         return List.of(
                 "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
@@ -325,7 +338,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 5. Docker, Docker-Compose 설치
+    // 6. Docker, Docker-Compose 설치
     private List<String> setDocker() {
         return List.of(
                 // 5-1. 공식 GPG 키 추가
@@ -351,7 +364,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 6. Nginx 설치
+    // 7. Nginx 설치
     private List<String> setNginx(String serverIp) {
         String nginxConf =
                 "server {\n" +
@@ -401,85 +414,90 @@ public class ServerServiceImpl implements ServerService {
                         "}\n";
 
         return List.of(
-                // 6-1. Nginx 설치
+                // 7-1. Nginx 설치
                 "sudo apt install -y nginx",
                 "sudo systemctl enable nginx",
                 "sudo systemctl start nginx",
 
-                // 6-2. app.conf 생성 (with IP)
+                // 7-2. app.conf 생성 (with IP)
                 "sudo tee /etc/nginx/sites-available/app.conf > /dev/null << 'EOF'\n" +
                         nginxConf +
                         "EOF",
 
-                // 6-3. 심볼릭 링크 생성
+                // 7-3. 심볼릭 링크 생성
                 "sudo ln -sf /etc/nginx/sites-available/app.conf /etc/nginx/sites-enabled/app.conf",
 
-                // 6-4. 기존 default 링크 제거
+                // 7-4. 기존 default 링크 제거
                 "sudo rm -f /etc/nginx/sites-enabled/default",
 
-                // 6-5. 설정 테스트 및 적용
+                // 7-5. 설정 테스트 및 적용
                 "sudo nginx -t",
                 "sudo systemctl reload nginx"
         );
     }
 
-    // 7. Jenkins 설치
+    // 8. Jenkins 설치
     private List<String> setJenkins() {
         return List.of(
-                "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee \\\n" +
-                        "  /usr/share/keyrings/jenkins-keyring.asc > /dev/null",
-                "echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \\\n" +
-                        "  https://pkg.jenkins.io/debian binary/ | \\\n" +
-                        "  sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
-                "sudo apt-get update",
-                "sudo apt install -y jenkins",
-                "echo \"jenkins version:\" && jenkins --version"
+                "sudo mkdir -p /usr/share/keyrings",
+                "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null",
+                "echo 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/' | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
+                "sudo apt update",
+                "sudo apt install -y jenkins=2.508"
         );
     }
 
-    // 8. Jenkins 상세 설정
-    private List<String> setJenkinsConfiguration(String gitlabAccessToken) {
+    private List<String> setJenkinsConfigure() {
         return List.of(
-                // 6-1) Setup Wizard 비활성화
-                "sudo sed -i '/^#JAVA_ARGS=/a JAVA_ARGS=\"$JAVA_ARGS -Djenkins.install.runSetupWizard=false\"' /etc/default/jenkins",
+                // 기본 폴더 초기화
+                "sudo rm -rf /var/lib/jenkins/*",
 
-                // 6-2) init.groovy.d 디렉터리 생성
-                "sudo mkdir -p /var/lib/jenkins/init.groovy.d",
+                // Setup Wizard 비활성화 및 포트 변경
+                "sudo sed -i '/ExecStart/ c\\ExecStart=/usr/bin/java -Djava.awt.headless=true -Djenkins.install.runSetupWizard=false -jar /usr/share/java/jenkins.war --httpPort=9090 --argumentsRealm.passwd.admin=pwd123 --argumentsRealm.roles.admin=admin' /lib/systemd/system/jenkins.service",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl restart jenkins",
 
-                // 6-3) Groovy init 스크립트로 관리자 계정 자동 생성
-                "sudo tee /var/lib/jenkins/init.groovy.d/basic-security.groovy > /dev/null << 'EOF'\n" +
-                        "import jenkins.model.*\n" +
-                        "import hudson.security.*\n" +
-                        "\n" +
-                        "def instance = Jenkins.getInstance()\n" +
-                        "\n" +
-                        "// 내장 사용자 DB 사용\n" +
-                        "def hudsonRealm = new HudsonPrivateSecurityRealm(false)\n" +
-                        "def adminId  = System.getenv('JENKINS_ADMIN_ID') ?: 'admin'\n" +
-                        "def adminPwd = System.getenv('JENKINS_ADMIN_PASSWORD') ?: 'admin'\n" +
-                        "hudsonRealm.createAccount(adminId, adminPwd)\n" +
-                        "instance.setSecurityRealm(hudsonRealm)\n" +
-                        "\n" +
-                        "// 로그인한 사용자에게 모든 권한 부여\n" +
-                        "def strategy = new FullControlOnceLoggedInAuthorizationStrategy()\n" +
-                        "strategy.setAllowAnonymousRead(false)\n" +
-                        "instance.setAuthorizationStrategy(strategy)\n" +
-                        "\n" +
-                        "instance.save()\n" +
-                        "EOF",
-
-                "sudo chmod 644 /var/lib/jenkins/init.groovy.d/*.groovy",
-
-
-                // plugin 설치
-                "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o jenkins-plugin-cli.jar",
-
+                // admin 사용자 등록
+                "sudo mkdir -p /var/lib/jenkins/users/admin",
+                "sudo tee /var/lib/jenkins/users/admin/config.xml > /dev/null <<EOF\n" +
+                        "<?xml version='1.1' encoding='UTF-8'?>\n" +
+                        "<user>\n" +
+                        "  <fullName>admin</fullName>\n" +
+                        "  <properties>\n" +
+                        "    <hudson.security.HudsonPrivateSecurityRealm_-Details>\n" +
+                        "      <passwordHash>#jbcrypt:$2a$10$Dow1v0zN88bGyfprxqO2ZuhT8Vlfk7q/EGp8Hznh5CZmj1mHndOFK</passwordHash>\n" +
+                        "    </hudson.security.HudsonPrivateSecurityRealm_-Details>\n" +
+                        "  </properties>\n" +
+                        "</user>\n" +
+                        "EOF" ,
+                "sudo chown -R jenkins:jenkins /var/lib/jenkins/users",
+                "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o ~/jenkins-plugin-cli.jar",
                 "sudo systemctl stop jenkins",
 
-                "sudo java -jar jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war \\\n" +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins \\\n" +
-                        "--plugins gitlab-plugin github git workflow-aggregator credentials-binding configuration-as-code",
+                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war \\\n" +
+                        "  --plugin-download-directory=/var/lib/jenkins/plugins \\\n" +
+                        "  --plugins \\\n" +
+                        "  gitlab-plugin \\\n" +
+                        "  gitlab-api \\\n" +
+                        "  git \\\n" +
+                        "  workflow-aggregator \\\n" +
+                        "  docker-plugin \\\n" +
+                        "  docker-workflow \\\n" +
+                        "  pipeline-stage-view \\\n" +
+                        "  credentials \\\n" +
+                        "  credentials-binding\\\n" +
+                        "  configuration-as-code",
 
+                "sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins",
+                "sudo usermod -aG docker jenkins",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl restart jenkins"
+        );
+    }
+
+    // 9. Jenkins 상세 설정
+    private List<String> setJenkinsGitlabConfiguration(String gitlabAccessToken) {
+        return List.of(
                 // gitlab connection 등록
                 "sudo mkdir -p /var/lib/jenkins/init.groovy.d && " +
                         "sudo tee /var/lib/jenkins/init.groovy.d/gitlab-connection.groovy > /dev/null << 'EOF'\n" +

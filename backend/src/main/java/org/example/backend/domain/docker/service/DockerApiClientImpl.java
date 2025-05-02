@@ -26,8 +26,9 @@ public class DockerApiClientImpl implements DockerApiClient {
 
     public DockerApiClientImpl(
             @Qualifier("dockerHubWebClient") WebClient dockerHubWebClient,
-            @Qualifier("dockerWebClient") WebClient dockerWebClient,
-            DockerUriBuilder uriBuilder) {
+            @Qualifier("dockerWebClient")    WebClient dockerWebClient,
+            DockerUriBuilder                 uriBuilder
+    ) {
         this.dockerHubWebClient = dockerHubWebClient;
         this.dockerWebClient    = dockerWebClient;
         this.uriBuilder         = uriBuilder;
@@ -86,7 +87,7 @@ public class DockerApiClientImpl implements DockerApiClient {
                     .collectList()
                     .block();
         } catch (Exception e) {
-            log.error("Docker apiclient에서 getContainersByStatus 실패함", e);
+            log.error("Docker Api client_ getContainersByStatus 실패함", e);
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
         }
     }
@@ -106,7 +107,7 @@ public class DockerApiClientImpl implements DockerApiClient {
                     .collectList()
                     .block();
         } catch (Exception e) {
-            log.error("Docker apiclient에서 getContainersByName 실패함 (by name)", e);
+            log.error("Docker Api client_ getContainersByName 실패함 (by name)", e);
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
         }
     }

@@ -9,7 +9,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -57,7 +56,6 @@ public class WebClientConfig {
 
     // 윈도우일 떄 -> tcp 엔드포인트로 도커 엔진에 연결(도커 설정에서 tcp 열어놔야함)
     @Bean("dockerWebClient")
-    @Primary
     @ConditionalOnExpression(
             "T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
     )
@@ -70,7 +68,6 @@ public class WebClientConfig {
 
     // 윈도우 환경 아닐때 -> 도커 소켓으로 연결하기
     @Bean("dockerWebClient")
-    @Primary
     @ConditionalOnExpression(
             "!T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
     )
