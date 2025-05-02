@@ -76,20 +76,8 @@ public class ServerController {
             @RequestPart("email") String email,
             @RequestPart("projectId") String projectId
     ) {
-        try {
-            Session session = sshUtil.createSessionWithPem(pem, host);
-            ApiResponse<String> result = convertHttpsUtil.convertHttpToHttps(session, domain, email);
-            session.disconnect();
-
-            projectService.markHttpsConverted(Long.parseLong(projectId));
-
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(ApiResponse.<String>builder()
-                            .success(false)
-                            .message("변환 실패: " + e.getMessage())
-                            .build());
-        }
+        ApiResponse<String> result = convertHttpsUtil.convertHttpToHttps(pem, host, domain, email);
+        projectService.markHttpsConverted(Long.parseLong(projectId));
+        return ResponseEntity.ok(result);
     }
 }

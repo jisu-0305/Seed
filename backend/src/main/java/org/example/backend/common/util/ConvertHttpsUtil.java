@@ -2,22 +2,29 @@ package org.example.backend.common.util;
 
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.Session;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 
 @Slf4j
+@RequiredArgsConstructor
 @Component
 public class ConvertHttpsUtil {
 
+    private final SshUtil sshUtil;
+
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app";
 
-    public ApiResponse<String> convertHttpToHttps(Session session, String domain, String email) {
+    public ApiResponse<String> convertHttpToHttps(MultipartFile pem, String host, String domain, String email) {
+        Session session = null;
         try {
+            session = sshUtil.createSessionWithPem(pem, host);
             installCertbot(session);
             issueSslCertificate(session, domain, email);
             overwriteNginxConf(session, domain);
@@ -26,6 +33,10 @@ public class ConvertHttpsUtil {
         } catch (Exception e) {
             log.error("❌ HTTPS 변환 중 에러 발생", e);
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        } finally {
+            if (session != null) {
+                session.disconnect();
+            }
         }
     }
 
