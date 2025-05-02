@@ -31,3 +31,5 @@ export default function OAuthCallbackPage() {
 
   return <div>로그인 중입니다…</div>;
 }
+
+export const dynamic = 'force-dynamic';
