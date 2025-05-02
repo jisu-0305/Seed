@@ -146,7 +146,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getAccessToken())) {
+            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getAccessToken(), "https://lab.ssafy.com/galilee155/drummer_test.git")) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
@@ -270,7 +270,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(String serverIp, String gitlabAccessToken) {
+    private List<String> serverInitializeCommands(String serverIp, String gitlabAccessToken, String GitProjectUrl) {
         return Stream.of(
                 //setFirewall(),
 //                updatePackageManager(),
@@ -282,7 +282,8 @@ public class ServerServiceImpl implements ServerService {
 //                setJenkins(),
 //                setJenkinsConfigure(),
 //                setJenkinsGitlabConfiguration(gitlabAccessToken),
-//                makeJenkinsJob("dummy-job", "https://lab.ssafy.com/galilee155/drummer_test.git", "gitlab-token" ),
+                makeJenkinsJob("dummy-job", GitProjectUrl, "gitlab-token" ),
+//                setJenkinsConfiguration(),
                 makeGitlabWebhook("Bearer Tokenname", (long)123456, "dummy-job", "1.11.111.1"),
                 makeDockerComposeYml()
         ).flatMap(Collection::stream).toList();
@@ -499,10 +500,43 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins credentials 생성
-    private List<String> setJenkinsConfiguration(String gitlabAccessToken) {
+    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, String frontendEnvFileName, String backendEnvFileName) {
         return List.of(
+                // CLI 다운로드
+                "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
 
+                // GitLab Personal Access Token 등록
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>gitlab-token</id>\n" +
+                        "  <description>GitLab token</description>\n" +
+                        "  <username>" + gitlabUsername + "</username>\n" +
+                        "  <password>" + gitlabToken + "</password>\n" +
+                        "</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
+                        "EOF",
 
+                // 백엔드 환경변수 등록 (파일 기반)
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>spring-secrets</id>\n" +
+                        "  <description>Spring .env</description>\n" +
+                        "  <fileName>.env</fileName>\n" +
+                        "  <secretBytes>" + backendEnvFileName + "</secretBytes>\n" +
+                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "EOF",
+
+                // 프론트엔드 환경변수 등록 (파일 기반)
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>env-frontend</id>\n" +
+                        "  <description>Frontend .env.local</description>\n" +
+                        "  <fileName>.env.local</fileName>\n" +
+                        "  <secretBytes>" + frontendEnvFileName + "</secretBytes>\n" +
+                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "EOF"
         );
     }
 
