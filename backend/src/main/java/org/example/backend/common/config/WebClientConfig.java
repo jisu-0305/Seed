@@ -56,9 +56,9 @@ public class WebClientConfig {
 
     // 윈도우일 떄 -> tcp 엔드포인트로 도커 엔진에 연결(도커 설정에서 tcp 열어놔야함)
     @Bean("dockerWebClient")
-    @ConditionalOnExpression(
-            "T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
-    )
+//    @ConditionalOnExpression(
+//            "T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
+//    )
     public WebClient windowsDockerWebClient() {
         return WebClient.builder()
                 .baseUrl(dockerEngineApiBaseUrl)
