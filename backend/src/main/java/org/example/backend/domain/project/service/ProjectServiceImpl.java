@@ -99,11 +99,12 @@ public class ProjectServiceImpl implements ProjectService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
         List<UserInProject> members = List.of(UserInProject.builder()
                 .userId(user.getId())
-                .name(user.getName())
-                .username(user.getUsername())
-                .avatarUrl(user.getAvatarUrl())
+                .userName(user.getUserName())
+                .userIdentifyId(user.getUserIdentifyId())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build());
 
         return ProjectMapper.toResponse(
@@ -193,9 +194,9 @@ public class ProjectServiceImpl implements ProjectService {
                             User user = userMap.get(up.getUserId());
                             return UserInProject.builder()
                                     .userId(user.getId())
-                                    .name(user.getName())
-                                    .username(user.getUsername())
-                                    .avatarUrl(user.getAvatarUrl())
+                                    .userName(user.getUserName())
+                                    .userIdentifyId(user.getUserIdentifyId())
+                                    .profileImageUrl(user.getProfileImageUrl())
                                     .build();
                         }, Collectors.toList())
                 ));

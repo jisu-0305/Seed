@@ -82,40 +82,40 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
             throw new BusinessException(ErrorCode.OAUTH_USER_NOT_FOUND);
         }
 
-        String oauthUserId = gitlabUser.getId();
+        String oauthClientId = gitlabUser.getId();
 
-        User user = userRepository.findByOauthUserId(oauthUserId)
+        User user = userRepository.findByOauthClientId(oauthClientId)
                 .map(existingUser -> {
-                    existingUser.setAccessToken(oauthToken.getAccessToken());
-                    existingUser.setRefreshToken(oauthToken.getRefreshToken());
-                    existingUser.setName(gitlabUser.getName());
-                    existingUser.setUsername(gitlabUser.getUsername());
-                    existingUser.setAvatarUrl(gitlabUser.getAvatarUrl());
+                    existingUser.setGitlabAccessToken(oauthToken.getAccessToken());
+                    existingUser.setGitlabRefreshToken(oauthToken.getRefreshToken());
+                    existingUser.setUserName(gitlabUser.getName());
+                    existingUser.setUserIdentifyId(gitlabUser.getUsername());
+                    existingUser.setProfileImageUrl(gitlabUser.getAvatarUrl());
                     return userRepository.save(existingUser);
                 })
                 .orElseGet(() -> {
                     User newUser = User.builder()
-                            .accessToken(oauthToken.getAccessToken())
-                            .refreshToken(oauthToken.getRefreshToken())
+                            .gitlabAccessToken(oauthToken.getAccessToken())
+                            .gitlabRefreshToken(oauthToken.getRefreshToken())
                             .providerType(ProviderType.GITLAB)
-                            .oauthUserId(oauthUserId)
-                            .name(gitlabUser.getName())
-                            .username(gitlabUser.getUsername())
-                            .avatarUrl(gitlabUser.getAvatarUrl())
+                            .oauthClientId(oauthClientId)
+                            .userName(gitlabUser.getName())
+                            .userIdentifyId(gitlabUser.getUsername())
+                            .profileImageUrl(gitlabUser.getAvatarUrl())
                             .createdAt(LocalDateTime.now())
                             .build();
 
                     User savedUser = userRepository.save(newUser);
 
                     TrieSearch.insert(
-                            savedUser.getName(),
-                            savedUser.getId() + "::" + savedUser.getUsername() + "::" + savedUser.getAvatarUrl() + "::" + savedUser.getName()
+                            savedUser.getUserName(),
+                            savedUser.getId() + "::" + savedUser.getUserIdentifyId() + "::" + savedUser.getProfileImageUrl() + "::" + savedUser.getUserName()
                     );
                     return savedUser;
                 });
 
-        String jwtToken = jwtTokenProvider.generateToken(user, oauthUserId);
-        redisSessionManager.saveSession(jwtToken, user, oauthUserId);
+        String jwtToken = jwtTokenProvider.generateToken(user, oauthClientId);
+        redisSessionManager.saveSession(jwtToken, user, oauthClientId);
         return new AuthResponse(jwtToken, oauthToken.getRefreshToken());
     }
 
@@ -141,9 +141,9 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         return UserProfile.builder()
-                .name(user.getName())
-                .username(user.getUsername())
-                .avatarUrl(user.getAvatarUrl())
+                .userName(user.getUserName())
+                .userIdentifyId(user.getUserIdentifyId())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build();
     }
 
@@ -182,8 +182,8 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
         List<User> users = userRepository.findAll();
         for (User user : users) {
             TrieSearch.insert(
-                    user.getName(),
-                    user.getId() + "::" + user.getUsername() + "::" + user.getAvatarUrl() + "::" + user.getName()
+                    user.getUserName(),
+                    user.getId() + "::" + user.getUserIdentifyId() + "::" + user.getProfileImageUrl() + "::" + user.getUserName()
             );
         }
     }
