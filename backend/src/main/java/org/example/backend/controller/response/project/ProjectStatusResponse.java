@@ -14,7 +14,7 @@ public class ProjectStatusResponse {
     private Long id;
     private String projectName;
     private boolean httpsEnabled;
-    private boolean autoDeployEnabled;
-    private BuildStatus lastBuildStatus;
+    private boolean autoDeploymentEnabled;
+    private BuildStatus buildStatus;
     private LocalDateTime lastBuildAt;
 }

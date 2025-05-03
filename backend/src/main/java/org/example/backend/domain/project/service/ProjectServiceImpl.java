@@ -29,7 +29,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,7 +37,6 @@ import java.util.stream.Collectors;
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final ProjectStructureDetailsRepository structureDetailsRepository;
     private final EnvironmentConfigRepository environmentConfigRepository;
     private final ApplicationRepository applicationRepository;
     private final RedisSessionManager redisSessionManager;
@@ -69,28 +67,33 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = Project.builder()
                 .ownerId(userId)
                 .projectName(projectName)
+                .serverIP(request.getServerIP())
                 .repositoryUrl(request.getRepositoryUrl())
-                .ipAddress(request.getIpAddress())
-                .pemFilePath(pemPath)
                 .createdAt(LocalDateTime.now())
+                .structure(request.getStructure())
+                .frontendBranchName(request.getFrontendBranchName())
+                .frontendDirectoryName(request.getFrontendDirectoryName())
+                .backendBranchName(request.getBackendBranchName())
+                .backendDirectoryName(request.getBackendDirectoryName())
+                .pemFilePath(pemPath)
                 .build();
+
         Project savedProject = projectRepository.save(project);
 
         userProjectRepository.save(UserProject.create(savedProject.getId(), userId));
 
         ProjectStatus status = ProjectStatus.builder()
                 .projectId(savedProject.getId())
-                .autoDeployEnabled(true)
+                .autoDeploymentEnabled(true)
                 .httpsEnabled(false)
                 .build();
         projectStatusRepository.save(status);
 
-        structureDetailsRepository.save(createStructureDetails(request, savedProject.getId()));
         saveEnvironmentConfig(savedProject.getId(), PlatformType.CLIENT, request.getClientNodeVersion(), clientEnvPath, null);
         saveEnvironmentConfig(savedProject.getId(), PlatformType.SERVER, request.getServerJdkVersion(), serverEnvPath, request.getServerBuildTool());
-        request.getApplications().forEach(app ->
+        request.getApplicationList().forEach(app ->
                 applicationRepository.save(Application.builder()
-                        .imageName(app.getName())
+                        .imageName(app.getImageName())
                         .tag(app.getTag())
                         .port(app.getPort())
                         .projectId(savedProject.getId())
@@ -110,7 +113,7 @@ public class ProjectServiceImpl implements ProjectService {
         return ProjectMapper.toResponse(
                 savedProject,
                 members,
-                status.isAutoDeployEnabled(),
+                status.isAutoDeploymentEnabled(),
                 status.isHttpsEnabled(),
                 null,
                 null
@@ -130,7 +133,6 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectStructureDetails structure = structureDetailsRepository.findByProjectId(projectId).orElse(null);
         EnvironmentConfig clientEnv = environmentConfigRepository.findByProjectIdAndPlatformType(projectId, PlatformType.CLIENT).orElse(null);
         EnvironmentConfig serverEnv = environmentConfigRepository.findByProjectIdAndPlatformType(projectId, PlatformType.SERVER).orElse(null);
         List<Application> applications = applicationRepository.findAllByProjectId(projectId);
@@ -138,27 +140,27 @@ public class ProjectServiceImpl implements ProjectService {
         return ProjectDetailResponse.builder()
                 .id(project.getId())
                 .projectName(project.getProjectName())
-                .repositoryUrl(project.getRepositoryUrl())
-                .ipAddress(project.getIpAddress())
-                .pemFilePath(project.getPemFilePath())
+                .serverIP(project.getServerIP())
                 .createdAt(project.getCreatedAt())
-                .structure(structure != null ? structure.getStructure() : null)
-                .clientDirectoryName(structure != null ? structure.getClientDirectoryName() : null)
-                .serverDirectoryName(structure != null ? structure.getServerDirectoryName() : null)
-                .clientBranchName(structure != null ? structure.getClientBranchName() : null)
-                .serverBranchName(structure != null ? structure.getServerBranchName() : null)
+                .repositoryUrl(project.getRepositoryUrl())
+                .structure(project.getStructure())
+                .frontendBranchName(project.getFrontendBranchName())
+                .frontendDirectoryName(project.getFrontendDirectoryName())
+                .backendBranchName(project.getBackendBranchName())
+                .backendDirectoryName(project.getBackendDirectoryName())
                 .clientNodeVersion(clientEnv != null ? clientEnv.getVersion() : null)
                 .clientEnvFilePath(clientEnv != null ? clientEnv.getEnvFileName() : null)
                 .serverJdkVersion(serverEnv != null ? serverEnv.getVersion() : null)
                 .serverEnvFilePath(serverEnv != null ? serverEnv.getEnvFileName() : null)
                 .serverBuildTool(serverEnv != null ? serverEnv.getBuildTool() : null)
-                .applications(applications.stream()
+                .applicationList(applications.stream()
                         .map(app -> ApplicationResponse.builder()
-                                .name(app.getImageName())
+                                .imageName(app.getImageName())
                                 .tag(app.getTag())
                                 .port(app.getPort())
                                 .build())
                         .toList())
+                .pemFilePath(project.getPemFilePath())
                 .build();
     }
 
@@ -210,9 +212,9 @@ public class ProjectServiceImpl implements ProjectService {
                     return ProjectMapper.toResponse(
                             project,
                             memberList,
-                            status.isAutoDeployEnabled(),
+                            status.isAutoDeploymentEnabled(),
                             status.isHttpsEnabled(),
-                            status.getLastBuildStatus(),
+                            status.getBuildStatus(),
                             status.getLastBuildAt()
                     );
                 })
@@ -283,8 +285,8 @@ public class ProjectServiceImpl implements ProjectService {
                             .id(project.getId())
                             .projectName(project.getProjectName())
                             .httpsEnabled(status.isHttpsEnabled())
-                            .autoDeployEnabled(status.isAutoDeployEnabled())
-                            .lastBuildStatus(status.getLastBuildStatus())
+                            .autoDeploymentEnabled(status.isAutoDeploymentEnabled())
+                            .buildStatus(status.getBuildStatus())
                             .lastBuildAt(status.getLastBuildAt())
                             .build();
                 })
@@ -313,7 +315,7 @@ public class ProjectServiceImpl implements ProjectService {
                         .id(exec.getId())
                         .projectName(projectNameMap.get(exec.getProjectId()))
                         .executionType(exec.getExecutionType())
-                        .executionTitle(exec.getProjectExecutionTitle())
+                        .projectExecutionTitle(exec.getProjectExecutionTitle())
                         .executionStatus(exec.getExecutionStatus())
                         .buildNumber(exec.getBuildNumber())
                         .createdAt(exec.getCreatedAt())
@@ -333,16 +335,6 @@ public class ProjectServiceImpl implements ProjectService {
         return parts[parts.length - 1].replace(".git", "");
     }
 
-    private ProjectStructureDetails createStructureDetails(ProjectCreateRequest request, Long projectId) {
-        return ProjectStructureDetails.builder()
-                .structure(request.getStructure())
-                .clientDirectoryName(request.getClientDirectoryName())
-                .serverDirectoryName(request.getServerDirectoryName())
-                .clientBranchName(request.getClientBranchName())
-                .serverBranchName(request.getServerBranchName())
-                .projectId(projectId)
-                .build();
-    }
 
     private void saveEnvironmentConfig(Long projectId, PlatformType type, String version, String envFileName, String buildTool) {
         EnvironmentConfig config = EnvironmentConfig.builder()

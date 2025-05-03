@@ -15,9 +15,9 @@ public class ProjectResponse {
     private String projectName;
     private LocalDateTime createdAt;
 
-    private List<UserInProject> members;
-    private boolean autoDeployEnabled;
+    private List<UserInProject> memberList;
+    private boolean autoDeploymentEnabled;
     private boolean httpsEnabled;
-    private BuildStatus lastBuildStatus;
+    private BuildStatus buildStatus;
     private LocalDateTime lastBuildAt;
 }

@@ -8,15 +8,15 @@ import java.util.List;
 
 @Getter
 public class ProjectCreateRequest {
+    private String serverIP;
     private String repositoryUrl;
-    private String ipAddress;
     private ProjectStructure structure;
-    private String clientDirectoryName;
-    private String serverDirectoryName;
-    private String clientBranchName;
-    private String serverBranchName;
+    private String frontendBranchName;
+    private String frontendDirectoryName;
+    private String backendBranchName;
+    private String backendDirectoryName;
     private String clientNodeVersion;
     private String serverJdkVersion;
     private String serverBuildTool;
-    private List<ApplicationRequest> applications;
+    private List<ApplicationRequest> applicationList;
 }
