@@ -51,6 +51,7 @@ public enum ErrorCode {
     GITLAB_BAD_MERGE_REQUESTS(HttpStatus.BAD_REQUEST, 3227, "깃랩 Merge Requests 조회에 실패했습니다."),
     GITLAB_MR_NOT_FOUND    (HttpStatus.NOT_FOUND, 3228, "해당 Merge Request를 찾을 수 없습니다."),
     GITLAB_NO_MERGE_REQUESTS   (HttpStatus.NOT_FOUND,  3229, "해당 프로젝트에 Merge Request가 없습니다."),
+    GITLAB_BAD_CREATE_COMMIT(HttpStatus.BAD_REQUEST, 3230, "깃랩 커밋 생성에 실패했습니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),

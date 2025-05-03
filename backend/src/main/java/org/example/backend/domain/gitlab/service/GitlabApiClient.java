@@ -1,11 +1,9 @@
 package org.example.backend.domain.gitlab.service;
 
+import com.google.firestore.v1.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
-import org.example.backend.domain.gitlab.dto.GitlabBranch;
-import org.example.backend.domain.gitlab.dto.GitlabMergeRequest;
-import org.example.backend.domain.gitlab.dto.GitlabProject;
-import org.example.backend.domain.gitlab.dto.GitlabTree;
+import org.example.backend.domain.gitlab.dto.*;
 
 import java.util.List;
 
@@ -41,4 +39,12 @@ public interface GitlabApiClient {
     List<GitlabMergeRequest> listMergeRequests(String accessToken, Long projectId, int page, int perPage);
 
     GitlabMergeRequest getMergeRequest(String accessToken, Long projectId, Long mergeRequestIid);
+
+    void createCommit(
+            String gitlabToken,
+            Long projectId,
+            String branch,
+            String commitMessage,
+            List<CommitAction> actions
+    );
 }

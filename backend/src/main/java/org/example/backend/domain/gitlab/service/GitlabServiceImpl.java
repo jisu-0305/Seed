@@ -7,11 +7,7 @@ import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
-import org.example.backend.domain.gitlab.dto.GitlabMergeRequest;
-import org.example.backend.domain.gitlab.dto.GitlabMergeRequestDiffRefs;
-import org.example.backend.domain.gitlab.dto.GitlabBranch;
-import org.example.backend.domain.gitlab.dto.GitlabProject;
-import org.example.backend.domain.gitlab.dto.GitlabTree;
+import org.example.backend.domain.gitlab.dto.*;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -19,6 +15,7 @@ import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
@@ -215,6 +212,39 @@ public class GitlabServiceImpl implements GitlabService {
 
         // 3) 비교
         return gitlabApiClient.compareCommits(user.getGitlabAccessToken(), projectId, base, head);
+    }
+
+    @Override
+    public void triggerPushEvent(String accessToken, Long projectId, String branch) {
+
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getGitlabAccessToken().isBlank()) {
+            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        // 1) 브랜치 존재 확인 (없으면 404)
+        gitlabApiClient.getBranch(user.getGitlabAccessToken(), projectId, branch);
+
+        // 2) 더미 커밋용 action 정의
+        CommitAction action = new CommitAction();
+        action.setAction("create");
+        action.setFile_path(".ci-trigger/trigger.txt");
+        action.setContent("triggered at " + Instant.now());
+        List<CommitAction> actions = List.of(action);
+
+        // 3) 커밋 생성 -> Push 이벤트 발생
+        gitlabApiClient.createCommit(
+                user.getGitlabAccessToken(),
+                projectId,
+                branch,
+                "chore: trigger Jenkins build by SEED",
+                actions
+        );
     }
 
 }

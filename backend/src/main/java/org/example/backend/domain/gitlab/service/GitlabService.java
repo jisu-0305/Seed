@@ -1,5 +1,6 @@
 package org.example.backend.domain.gitlab.service;
 
+import com.google.firestore.v1.CommitResponse;
 import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
@@ -35,5 +36,7 @@ public interface GitlabService {
     void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter);
 
     GitlabCompareResponse getLatestMergeRequestDiff(String accessToken, Long projectId);
+
+    void triggerPushEvent(String authHeader, Long projectId, String branch);
 
 }

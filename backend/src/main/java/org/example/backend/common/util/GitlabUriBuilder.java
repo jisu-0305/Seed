@@ -160,4 +160,13 @@ public class GitlabUriBuilder {
                 .toUri();
     }
 
+    // commit 만들기 (브랜치에 커밋 만들면 push 되는거랑 같음)
+    public URI createCommit(Long projectId) {
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "repository", "commits")
+                .build()
+                .encode()
+                .toUri();
+    }
+
 }
