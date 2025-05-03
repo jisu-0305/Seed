@@ -6,7 +6,7 @@ import lombok.Getter;
 @Getter
 @Builder
 public class ApplicationResponse {
-    private String name;
+    private String imageName;
     private String tag;
     private int port;
 }

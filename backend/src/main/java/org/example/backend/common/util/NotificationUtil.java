@@ -31,8 +31,8 @@ public class NotificationUtil {
             String token = entry.getKey();
 
             Message fcmMessage = Message.builder()
-                    .putData("title", message.getTitle())
-                    .putData("body", message.getBody())
+                    .putData("title", message.getNotificationTitle())
+                    .putData("body", message.getNotificationContent())
                     .setToken(token)
                     .build();
 

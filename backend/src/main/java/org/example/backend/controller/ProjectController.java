@@ -8,8 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.common.util.SwaggerBody;
 import org.example.backend.controller.request.project.ProjectCreateRequest;
-import org.example.backend.controller.response.project.ProjectDetailResponse;
-import org.example.backend.controller.response.project.ProjectResponse;
+import org.example.backend.controller.response.project.*;
 import org.example.backend.domain.project.service.ProjectService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
@@ -71,4 +70,23 @@ public class ProjectController {
         projectService.deleteProject(id, accessToken);
         return ResponseEntity.ok(ApiResponse.success());
     }
+
+    @GetMapping("/executions")
+    @Operation(summary = "내 전체 프로젝트 실행 이력 조회", description = "내가 속한 모든 프로젝트의 실행 이력을 날짜별로 그룹화하여 반환합니다.", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<List<ProjectExecutionGroupResponse>>> getGroupedExecutions(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
+    ) {
+        List<ProjectExecutionGroupResponse> grouped = projectService.getMyProjectExecutionsGroupedByDate(accessToken);
+        return ResponseEntity.ok(ApiResponse.success(grouped));
+    }
+    @GetMapping("/status")
+    @Operation(summary = "내 전체 프로젝트 상태 조회", description = "HTTPS, 자동 배포 여부, 최신 빌드 상태 등을 포함한 내 프로젝트 상태 목록 조회", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<List<ProjectStatusResponse>>> getMyProjectStatuses(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
+    ) {
+        List<ProjectStatusResponse> statusList = projectService.getMyProjectStatuses(accessToken);
+        return ResponseEntity.ok(ApiResponse.success(statusList));
+    }
+
+
 }

@@ -9,8 +9,8 @@ import java.time.LocalDateTime;
 @Builder
 public class NotificationDto {
     private Long id;
-    private String title;
-    private String body;
+    private String notificationTitle;
+    private String notificationContent;
     private boolean isRead;
-    private LocalDateTime sentAt;
+    private LocalDateTime createdAt;
 }

@@ -11,10 +11,10 @@ public class NotificationMapper {
     public static NotificationDto toDto(Notification notification) {
         return NotificationDto.builder()
                 .id(notification.getId())
-                .title(notification.getTitle())
-                .body(notification.getBody())
+                .notificationTitle(notification.getNotificationTile())
+                .notificationContent(notification.getNotificationContent())
                 .isRead(notification.isRead())
-                .sentAt(notification.getSentAt())
+                .createdAt(notification.getCreatedAt())
                 .build();
     }
 

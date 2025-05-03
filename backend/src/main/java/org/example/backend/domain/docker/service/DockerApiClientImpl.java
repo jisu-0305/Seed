@@ -1,24 +1,38 @@
 package org.example.backend.domain.docker.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.DockerUriBuilder;
+import org.example.backend.controller.response.docker.DemonContainerStateCountResponse;
 import org.example.backend.controller.response.docker.ImageResponse;
-import org.example.backend.controller.response.docker.TagResponse;
+import org.example.backend.domain.docker.dto.ContainerDto;
+import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.net.URI;
+import java.util.List;
+
 @Component
 @Slf4j
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 public class DockerApiClientImpl implements DockerApiClient {
 
     private final WebClient dockerHubWebClient;
-//    private final WebClient dockerAuthWebClient;
-//    private final WebClient dockerRegistryWebClient;
+    private final WebClient dockerWebClient;
     private final DockerUriBuilder uriBuilder;
+
+    public DockerApiClientImpl(
+            @Qualifier("dockerHubWebClient") WebClient dockerHubWebClient,
+            @Qualifier("dockerWebClient")    WebClient dockerWebClient,
+            DockerUriBuilder                 uriBuilder
+    ) {
+        this.dockerHubWebClient = dockerHubWebClient;
+        this.dockerWebClient    = dockerWebClient;
+        this.uriBuilder         = uriBuilder;
+    }
 
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {
@@ -34,15 +48,68 @@ public class DockerApiClientImpl implements DockerApiClient {
     }
 
     @Override
-    public TagResponse getTags(String namespace, String repo, int page, int pageSize) {
+    public DockerTag getTags(String namespace, String repo, int page, int pageSize) {
         try {
             return dockerHubWebClient.get()
                     .uri(uriBuilder.listTags(namespace, repo, page, pageSize))
                     .retrieve()
-                    .bodyToMono(TagResponse.class)
+                    .bodyToMono(DockerTag.class)
                     .block();
-        }  catch (Exception e) {
+        } catch (Exception e) {
             throw new BusinessException(ErrorCode.DOCKER_TAGS_API_FAILED);
         }
     }
+
+    @Override
+    public DemonContainerStateCountResponse getInfo() {
+        try {
+            return dockerWebClient.get()
+                    .uri(uriBuilder.info())
+                    .retrieve()
+                    .bodyToMono(DemonContainerStateCountResponse.class)
+                    .block();
+        } catch (Exception e) {
+            log.error("Docker /info API 실패", e);
+            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
+        }
+    }
+
+    @Override
+    public List<ContainerDto> getContainersByStatus(List<String> statuses) {
+        URI uri = uriBuilder.containersByStatus(statuses);
+        log.debug(">>>>>> 도커 uri(전체 상태) -> {}", uri);
+
+        try {
+            return dockerWebClient.get()
+                    .uri(uri)
+                    .retrieve()
+                    .bodyToFlux(ContainerDto.class)
+                    .collectList()
+                    .block();
+        } catch (Exception e) {
+            log.error("Docker Api client_ getContainersByStatus 실패함", e);
+            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
+        }
+    }
+
+
+
+    @Override
+    public List<ContainerDto> getContainersByName(String nameFilter) {
+        URI uri = uriBuilder.containersByName(nameFilter);
+        log.debug(">>>>>> 도커 uri(이름으로 검색) -> {}", uri);
+
+        try {
+            return dockerWebClient.get()
+                    .uri(uri)
+                    .retrieve()
+                    .bodyToFlux(ContainerDto.class)
+                    .collectList()
+                    .block();
+        } catch (Exception e) {
+            log.error("Docker Api client_ getContainersByName 실패함 (by name)", e);
+            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
+        }
+    }
+
 }

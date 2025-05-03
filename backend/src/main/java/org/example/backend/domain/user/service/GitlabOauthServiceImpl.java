@@ -33,7 +33,7 @@ import java.util.List;
 @Slf4j
 public class GitlabOauthServiceImpl implements GitlabOauthService {
 
-    private final WebClient webClient;
+    private final WebClient gitlabWebClient;
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RedisSessionManager redisSessionManager;
@@ -82,40 +82,40 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
             throw new BusinessException(ErrorCode.OAUTH_USER_NOT_FOUND);
         }
 
-        String oauthUserId = gitlabUser.getId();
+        String oauthClientId = gitlabUser.getId();
 
-        User user = userRepository.findByOauthUserId(oauthUserId)
+        User user = userRepository.findByOauthClientId(oauthClientId)
                 .map(existingUser -> {
-                    existingUser.setAccessToken(oauthToken.getAccessToken());
-                    existingUser.setRefreshToken(oauthToken.getRefreshToken());
-                    existingUser.setName(gitlabUser.getName());
-                    existingUser.setUsername(gitlabUser.getUsername());
-                    existingUser.setAvatarUrl(gitlabUser.getAvatarUrl());
+                    existingUser.setGitlabAccessToken(oauthToken.getAccessToken());
+                    existingUser.setGitlabRefreshToken(oauthToken.getRefreshToken());
+                    existingUser.setUserName(gitlabUser.getName());
+                    existingUser.setUserIdentifyId(gitlabUser.getUsername());
+                    existingUser.setProfileImageUrl(gitlabUser.getAvatarUrl());
                     return userRepository.save(existingUser);
                 })
                 .orElseGet(() -> {
                     User newUser = User.builder()
-                            .accessToken(oauthToken.getAccessToken())
-                            .refreshToken(oauthToken.getRefreshToken())
+                            .gitlabAccessToken(oauthToken.getAccessToken())
+                            .gitlabRefreshToken(oauthToken.getRefreshToken())
                             .providerType(ProviderType.GITLAB)
-                            .oauthUserId(oauthUserId)
-                            .name(gitlabUser.getName())
-                            .username(gitlabUser.getUsername())
-                            .avatarUrl(gitlabUser.getAvatarUrl())
+                            .oauthClientId(oauthClientId)
+                            .userName(gitlabUser.getName())
+                            .userIdentifyId(gitlabUser.getUsername())
+                            .profileImageUrl(gitlabUser.getAvatarUrl())
                             .createdAt(LocalDateTime.now())
                             .build();
 
                     User savedUser = userRepository.save(newUser);
 
                     TrieSearch.insert(
-                            savedUser.getName(),
-                            savedUser.getId() + "::" + savedUser.getUsername() + "::" + savedUser.getAvatarUrl() + "::" + savedUser.getName()
+                            savedUser.getUserName(),
+                            savedUser.getId() + "::" + savedUser.getUserIdentifyId() + "::" + savedUser.getProfileImageUrl() + "::" + savedUser.getUserName()
                     );
                     return savedUser;
                 });
 
-        String jwtToken = jwtTokenProvider.generateToken(user, oauthUserId);
-        redisSessionManager.saveSession(jwtToken, user, oauthUserId);
+        String jwtToken = jwtTokenProvider.generateToken(user, oauthClientId);
+        redisSessionManager.saveSession(jwtToken, user, oauthClientId);
         return new AuthResponse(jwtToken, oauthToken.getRefreshToken());
     }
 
@@ -141,9 +141,9 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         return UserProfile.builder()
-                .name(user.getName())
-                .username(user.getUsername())
-                .avatarUrl(user.getAvatarUrl())
+                .userName(user.getUserName())
+                .userIdentifyId(user.getUserIdentifyId())
+                .profileImageUrl(user.getProfileImageUrl())
                 .build();
     }
 
@@ -155,7 +155,7 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
         formData.add("grant_type", "authorization_code");
         formData.add("redirect_uri", redirectUri);
 
-        return webClient.post()
+        return gitlabWebClient.post()
                 .uri("https://lab.ssafy.com/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .body(BodyInserters.fromFormData(formData))
@@ -165,11 +165,11 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
     }
 
     private GitlabUser getGitlabUser(String accessToken) {
-        return webClient.get()
+        return gitlabWebClient.get()
                 .uri(uriBuilder -> uriBuilder
                         .scheme("https")
                         .host("lab.ssafy.com")
-                        .path("/api/v4/user")
+                        .path("/user")
                         .queryParam("access_token", accessToken)
                         .build())
                 .retrieve()
@@ -182,8 +182,8 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
         List<User> users = userRepository.findAll();
         for (User user : users) {
             TrieSearch.insert(
-                    user.getName(),
-                    user.getId() + "::" + user.getUsername() + "::" + user.getAvatarUrl() + "::" + user.getName()
+                    user.getUserName(),
+                    user.getId() + "::" + user.getUserIdentifyId() + "::" + user.getProfileImageUrl() + "::" + user.getUserName()
             );
         }
     }

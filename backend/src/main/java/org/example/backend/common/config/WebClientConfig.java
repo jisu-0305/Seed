@@ -1,11 +1,21 @@
 package org.example.backend.common.config;
 
+import io.netty.channel.Channel;
+import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollDomainSocketChannel;
+import io.netty.channel.kqueue.KQueueDomainSocketChannel;
+import io.netty.channel.unix.DomainSocketAddress;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.netty.http.client.HttpClient;
+import reactor.netty.tcp.TcpClient;
 
 @Configuration
 public class WebClientConfig {
@@ -18,6 +28,18 @@ public class WebClientConfig {
 
     @Value("${jenkins.api.base-url}")
     private String jenkinsApiBaseUrl;
+
+    @Value("${docker.registry.api.base-url}")
+    private String dockerRegistryApiBaseUrl;
+
+    @Value("${docker.auth.api.base-url}")
+    private String dockerAuthApiBaseUrl;
+
+    @Value("${docker.engine.api.base-url}")
+    private String dockerEngineApiBaseUrl;
+
+    @Value("${docker.engine.socket-url}")
+    private String dockerEngineSocketUrl;
 
     @Bean("webClient")
     public WebClient webClient() {
@@ -32,10 +54,66 @@ public class WebClientConfig {
                 .build();
     }
 
+    // 윈도우일 떄 -> tcp 엔드포인트로 도커 엔진에 연결(도커 설정에서 tcp 열어놔야함)
+    @Bean("dockerWebClient")
+//    @ConditionalOnExpression(
+//            "T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
+//    )
+    public WebClient windowsDockerWebClient() {
+        return WebClient.builder()
+                .baseUrl(dockerEngineApiBaseUrl)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    // 윈도우 환경 아닐때 -> 도커 소켓으로 연결하기
+//    @Bean("dockerWebClient")
+//    @ConditionalOnExpression(
+//            "!T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
+//    )
+//    public WebClient unixDockerWebClient() {
+//        Class<? extends Channel> channelType =
+//                Epoll.isAvailable()
+//                        ? EpollDomainSocketChannel.class
+//                        : KQueueDomainSocketChannel.class;
+//
+//        TcpClient tcpClient = TcpClient.create()
+//                .bootstrap(b -> b.channel(channelType))
+//                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
+//
+//        HttpClient httpClient = HttpClient.from(tcpClient);
+//
+//        return WebClient.builder()
+//                .clientConnector(new ReactorClientHttpConnector(httpClient))
+//                .defaultHeader(HttpHeaders.HOST, "localhost")
+//                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+//                .build();
+//    }
+
     @Bean("dockerHubWebClient")
     public WebClient dockerHubWebClient() {
+        ExchangeStrategies strategies = ExchangeStrategies.builder()
+                .codecs(c -> c.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+                .build();
+
         return WebClient.builder()
                 .baseUrl(dockerHubApiBaseUrl)
+                .exchangeStrategies(strategies)
+                .build();
+    }
+
+    @Bean("dockerRegistryWebClient")
+    public WebClient dockerRegistryWebClient() {
+        return WebClient.builder()
+                .baseUrl(dockerRegistryApiBaseUrl)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean("dockerAuthWebClient")
+    public WebClient dockerAuthWebClient() {
+        return WebClient.builder()
+                .baseUrl(dockerAuthApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
@@ -47,4 +125,5 @@ public class WebClientConfig {
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
+
 }

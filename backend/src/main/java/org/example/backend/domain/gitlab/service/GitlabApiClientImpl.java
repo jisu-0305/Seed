@@ -1,13 +1,12 @@
 package org.example.backend.domain.gitlab.service;
 
+import com.google.firestore.v1.CommitResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
-import org.example.backend.domain.gitlab.dto.GitlabBranch;
-import org.example.backend.domain.gitlab.dto.GitlabProject;
-import org.example.backend.domain.gitlab.dto.GitlabTree;
+import org.example.backend.domain.gitlab.dto.*;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.http.HttpStatus;
@@ -21,6 +20,7 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -263,6 +263,69 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                 throw new BusinessException(ErrorCode.GITLAB_BRANCH_NOT_FOUND);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+        }
+    }
+
+
+    // mr 목록 조회하기
+    @Override
+    public List<GitlabMergeRequest> listMergeRequests(String accessToken, Long projectId, int page, int perPage) {
+        URI uri = uriBuilder.listMergeRequests(projectId, page, perPage);
+        try {
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToFlux(GitlabMergeRequest.class)
+                    .collectList()
+                    .block();
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_MERGE_REQUESTS);
+        }
+    }
+
+    @Override
+    public GitlabMergeRequest getMergeRequest(String accessToken, Long projectId, Long mergeRequestIid) {
+        URI uri = uriBuilder.getMergeRequest(projectId, mergeRequestIid);
+        try {
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToMono(GitlabMergeRequest.class)
+                    .block();
+        } catch (WebClientResponseException e) {
+            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+                throw new BusinessException(ErrorCode.GITLAB_MR_NOT_FOUND);
+            }
+            throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+        }
+    }
+
+    @Override
+    public void createCommit(String token, Long projectId, String branch, String message, List<CommitAction> actions) {
+        URI uri = uriBuilder.createCommit(projectId);
+
+        var payload = Map.of(
+                "branch", branch,
+                "commit_message", message,
+                "actions", actions
+        );
+
+        try {
+            gitlabWebClient.post()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(token))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(payload)
+                    .retrieve()
+                    .toBodilessEntity()
+                    .block();
+        } catch (WebClientResponseException e) {
+            throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT);
         }
     }
 

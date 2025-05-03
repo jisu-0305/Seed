@@ -1,5 +1,6 @@
 package org.example.backend.controller;
 
+import com.google.firestore.v1.CommitResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -13,7 +14,6 @@ import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
-import org.example.backend.domain.gitlab.service.GitlabDeployService;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
@@ -22,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.IOException;
 import java.util.List;
 
 @RestController
@@ -33,7 +32,6 @@ import java.util.List;
 public class GitlabController {
 
     private final GitlabService gitlabService;
-    private final GitlabDeployService gitlabDeployService;
 
     @GetMapping("/projects")
     @Operation(summary = "전체 레포지토리 목록 조회", security = @SecurityRequirement(name = "JWT"))
@@ -150,11 +148,32 @@ public class GitlabController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @PostMapping("/trigger")
-    public ResponseEntity<ApiResponse<Void>> triggerDeployment() throws Exception {
-        gitlabDeployService.appendNewlineToReadme();
-        gitlabDeployService.commitAndPush();
-        gitlabDeployService.createMergeRequest();
+    @GetMapping("/{projectId}/merge-requests/latest/diff")
+    @Operation(
+            summary = "최신 mr 기준 diff 조회",
+            description = "프로젝트 id로 해당 프로젝트의 최신 mr diff 가져오기",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    public ResponseEntity<ApiResponse<GitlabCompareResponse>> getLatestMergeRequestDiff(
+            @Parameter(description = "프로젝트 ID", required = true, example = "997245")
+            @PathVariable Long projectId,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
+            String accessToken
+    ) {
+
+        GitlabCompareResponse diff = gitlabService.getLatestMergeRequestDiff(accessToken, projectId);
+        return ResponseEntity.ok(ApiResponse.success(diff));
+    }
+
+    @PostMapping("/projects/{projectId}/trigger-push")
+    public ResponseEntity<ApiResponse<Void>> triggerPush(
+            @Parameter(description = "프로젝트 ID", required = true, example = "998708")
+            @PathVariable Long projectId,
+            @RequestParam String branch,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
+            String accessToken
+    ) {
+        gitlabService.triggerPushEvent(accessToken, projectId, branch);
         return ResponseEntity.ok(ApiResponse.success());
     }
 

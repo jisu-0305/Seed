@@ -4,19 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.project.ProjectCreateRequest;
-import org.example.backend.controller.response.project.ApplicationResponse;
-import org.example.backend.controller.response.project.ProjectDetailResponse;
-import org.example.backend.controller.response.project.ProjectResponse;
-import org.example.backend.domain.project.entity.Application;
-import org.example.backend.domain.project.entity.EnvironmentConfig;
-import org.example.backend.domain.project.entity.Project;
-import org.example.backend.domain.project.entity.ProjectStructureDetails;
-import org.example.backend.domain.project.enums.PlatformType;
+import org.example.backend.controller.response.project.*;
+import org.example.backend.domain.project.entity.*;
+import org.example.backend.domain.project.enums.BuildStatus;
+import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.mapper.ProjectMapper;
-import org.example.backend.domain.project.repository.ApplicationRepository;
-import org.example.backend.domain.project.repository.EnvironmentConfigRepository;
-import org.example.backend.domain.project.repository.ProjectRepository;
-import org.example.backend.domain.project.repository.ProjectStructureDetailsRepository;
+import org.example.backend.domain.project.repository.*;
+import org.example.backend.domain.user.entity.User;
+import org.example.backend.domain.user.repository.UserRepository;
+import org.example.backend.domain.userproject.dto.UserInProject;
 import org.example.backend.domain.userproject.entity.UserProject;
 import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -26,27 +22,27 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
-import static org.example.backend.domain.project.mapper.ProjectMapper.*;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final ProjectStructureDetailsRepository structureDetailsRepository;
-    private final EnvironmentConfigRepository environmentConfigRepository;
+    private final ProjectConfigRepository projectConfigRepository;
     private final ApplicationRepository applicationRepository;
     private final RedisSessionManager redisSessionManager;
     private final UserProjectRepository userProjectRepository;
+    private final ProjectExecutionRepository projectExecutionRepository;
+    private final ProjectStatusRepository projectStatusRepository;
+    private final UserRepository userRepository;
 
     @Value("${file.base-path}")
     private String basePath;
@@ -63,38 +59,73 @@ public class ProjectServiceImpl implements ProjectService {
 
         String projectName = extractProjectNameFromUrl(request.getRepositoryUrl());
 
-        String clientEnvPath = saveFile(clientEnvFile, "env/client");
-        String serverEnvPath = saveFile(serverEnvFile, "env/server");
+        String frontendEnvPath = saveFile(clientEnvFile, "env/client");
+        String backendEnvPath = saveFile(serverEnvFile, "env/server");
         String pemPath = saveFile(pemFile, "pem");
 
         Project project = Project.builder()
                 .ownerId(userId)
                 .projectName(projectName)
+                .serverIP(request.getServerIP())
                 .repositoryUrl(request.getRepositoryUrl())
-                .ipAddress(request.getIpAddress())
-                .pemFilePath(pemPath)
                 .createdAt(LocalDateTime.now())
+                .structure(request.getStructure())
+                .frontendBranchName(request.getFrontendBranchName())
+                .frontendDirectoryName(request.getFrontendDirectoryName())
+                .backendBranchName(request.getBackendBranchName())
+                .backendDirectoryName(request.getBackendDirectoryName())
+                .pemFilePath(pemPath)
                 .build();
 
         Project savedProject = projectRepository.save(project);
+
         userProjectRepository.save(UserProject.create(savedProject.getId(), userId));
 
-        structureDetailsRepository.save(createStructureDetails(request, savedProject.getId()));
+        ProjectStatus status = ProjectStatus.builder()
+                .projectId(savedProject.getId())
+                .autoDeploymentEnabled(true)
+                .httpsEnabled(false)
+                .build();
+        projectStatusRepository.save(status);
 
-        saveEnvironmentConfig(savedProject.getId(), PlatformType.CLIENT, request.getClientNodeVersion(), clientEnvPath, null);
-        saveEnvironmentConfig(savedProject.getId(), PlatformType.SERVER, request.getServerJdkVersion(), serverEnvPath, request.getServerBuildTool());
-
-        request.getApplications().forEach(app ->
+        projectConfigRepository.save(ProjectConfig.builder()
+                .projectId(savedProject.getId())
+                .nodejsVersion(request.getNodejsVersion())
+                .frontendFramework(request.getFrontendFramework())
+                .frontendEnvFile(frontendEnvPath)
+                .jdkVersion(request.getJdkVersion())
+                .jdkBuildTool(request.getJdkBuildTool())
+                .backendEnvFile(backendEnvPath)
+                .build());
+        request.getApplicationList().forEach(app ->
                 applicationRepository.save(Application.builder()
-                        .name(app.getName())
+                        .imageName(app.getImageName())
                         .tag(app.getTag())
                         .port(app.getPort())
                         .projectId(savedProject.getId())
                         .build())
         );
 
-        return ProjectMapper.toResponse(savedProject);
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        List<UserInProject> memberList = List.of(UserInProject.builder()
+                .userId(user.getId())
+                .userName(user.getUserName())
+                .userIdentifyId(user.getUserIdentifyId())
+                .profileImageUrl(user.getProfileImageUrl())
+                .build());
+
+        return ProjectMapper.toResponse(
+                savedProject,
+                memberList,
+                status.isAutoDeploymentEnabled(),
+                status.isHttpsEnabled(),
+                null,
+                null
+        );
     }
+
 
     @Override
     public ProjectDetailResponse getProjectDetail(Long projectId, String accessToken) {
@@ -108,34 +139,35 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectStructureDetails structure = structureDetailsRepository.findByProjectId(projectId).orElse(null);
-        EnvironmentConfig clientEnv = environmentConfigRepository.findByProjectIdAndPlatformType(projectId, PlatformType.CLIENT).orElse(null);
-        EnvironmentConfig serverEnv = environmentConfigRepository.findByProjectIdAndPlatformType(projectId, PlatformType.SERVER).orElse(null);
+        ProjectConfig config = projectConfigRepository.findByProjectId(projectId).orElse(null);
         List<Application> applications = applicationRepository.findAllByProjectId(projectId);
 
         return ProjectDetailResponse.builder()
                 .id(project.getId())
+                .ownerId(project.getOwnerId())
                 .projectName(project.getProjectName())
+                .serverIP(project.getServerIP())
+                .createdAt(project.getCreatedAt())
                 .repositoryUrl(project.getRepositoryUrl())
-                .ipAddress(project.getIpAddress())
-                .pemFilePath(project.getPemFilePath())
-                .structure(structure != null ? structure.getStructure() : null)
-                .clientDirectoryName(structure != null ? structure.getClientDirectoryName() : null)
-                .serverDirectoryName(structure != null ? structure.getServerDirectoryName() : null)
-                .clientBranchName(structure != null ? structure.getClientBranchName() : null)
-                .serverBranchName(structure != null ? structure.getServerBranchName() : null)
-                .clientNodeVersion(clientEnv != null ? clientEnv.getVersion() : null)
-                .clientEnvFilePath(clientEnv != null ? clientEnv.getEnvFileName() : null)
-                .serverJdkVersion(serverEnv != null ? serverEnv.getVersion() : null)
-                .serverEnvFilePath(serverEnv != null ? serverEnv.getEnvFileName() : null)
-                .serverBuildTool(serverEnv != null ? serverEnv.getBuildTool() : null)
-                .applications(applications.stream()
+                .structure(project.getStructure())
+                .frontendBranchName(project.getFrontendBranchName())
+                .frontendDirectoryName(project.getFrontendDirectoryName())
+                .backendBranchName(project.getBackendBranchName())
+                .backendDirectoryName(project.getBackendDirectoryName())
+                .nodejsVersion(config != null ? config.getNodejsVersion() : null)
+                .frontendFramework(config != null ? config.getFrontendFramework() : null)
+                .frontendEnvFilePath(config != null ? config.getFrontendEnvFile() : null)
+                .jdkVersion(config != null ? config.getJdkVersion() : null)
+                .jdkBuildTool(config != null ? config.getJdkBuildTool() : null)
+                .backendEnvFilePath(config != null ? config.getBackendEnvFile() : null)
+                .applicationList(applications.stream()
                         .map(app -> ApplicationResponse.builder()
-                                .name(app.getName())
+                                .imageName(app.getImageName())
                                 .tag(app.getTag())
                                 .port(app.getPort())
                                 .build())
                         .toList())
+                .pemFilePath(project.getPemFilePath())
                 .build();
     }
 
@@ -143,19 +175,59 @@ public class ProjectServiceImpl implements ProjectService {
 
 
     @Override
+    @Transactional(readOnly = true)
     public List<ProjectResponse> getAllProjects(String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
-        List<Long> projectIds = userProjectRepository.findByUserId(userId)
-                .stream()
+        List<Long> projectIdList = userProjectRepository.findByUserId(userId).stream()
                 .map(UserProject::getProjectId)
                 .toList();
 
-        return projectRepository.findAllById(projectIds).stream()
-                .map(ProjectMapper::toResponse)
+        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
+                .collect(Collectors.toMap(Project::getId, p -> p));
+
+        Map<Long, ProjectStatus> statusMap = projectStatusRepository.findByProjectIdIn(projectIdList).stream()
+                .collect(Collectors.toMap(ProjectStatus::getProjectId, s -> s));
+
+        List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);
+        List<Long> allUserIdList = allUserProjectList.stream().map(UserProject::getUserId).distinct().toList();
+
+        Map<Long, User> userMap = userRepository.findAllById(allUserIdList).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        Map<Long, List<UserInProject>> projectUsersMap = allUserProjectList.stream()
+                .collect(Collectors.groupingBy(
+                        UserProject::getProjectId,
+                        Collectors.mapping(up -> {
+                            User user = userMap.get(up.getUserId());
+                            return UserInProject.builder()
+                                    .userId(user.getId())
+                                    .userName(user.getUserName())
+                                    .userIdentifyId(user.getUserIdentifyId())
+                                    .profileImageUrl(user.getProfileImageUrl())
+                                    .build();
+                        }, Collectors.toList())
+                ));
+
+        return projectIdList.stream()
+                .map(id -> {
+                    Project project = projectMap.get(id);
+                    ProjectStatus status = statusMap.get(id);
+                    List<UserInProject> memberList = projectUsersMap.getOrDefault(id, List.of());
+
+                    return ProjectMapper.toResponse(
+                            project,
+                            memberList,
+                            status.isAutoDeploymentEnabled(),
+                            status.isHttpsEnabled(),
+                            status.getBuildStatus(),
+                            status.getLastBuildAt()
+                    );
+                })
                 .toList();
     }
+
 
     @Override
     @Transactional
@@ -178,32 +250,96 @@ public class ProjectServiceImpl implements ProjectService {
         projectRepository.delete(project);
     }
 
+    @Override
+    @Transactional
+    public void markHttpsConverted(Long projectId) {
+        ProjectStatus status = projectStatusRepository.findByProjectId(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
+
+        status.enableHttps();
+
+        projectExecutionRepository.save(ProjectExecution.builder()
+                .projectId(projectId)
+                .executionType(ExecutionType.HTTPS)
+                .projectExecutionTitle("HTTPS 설정")
+                .executionStatus(BuildStatus.SUCCESS)
+                .createdAt(LocalDate.now())
+                .build());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectStatusResponse> getMyProjectStatuses(String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        List<UserProject> userProjectList = userProjectRepository.findByUserId(userId);
+        List<Long> projectIdList = userProjectList.stream()
+                .map(UserProject::getProjectId)
+                .toList();
+
+        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
+                .collect(Collectors.toMap(Project::getId, p -> p));
+
+        List<ProjectStatus> statuses = projectStatusRepository.findByProjectIdIn(projectIdList);
+
+        return statuses.stream()
+                .map(status -> {
+                    Project project = projectMap.get(status.getProjectId());
+                    if (project == null) return null;
+
+                    return ProjectStatusResponse.builder()
+                            .id(project.getId())
+                            .projectName(project.getProjectName())
+                            .httpsEnabled(status.isHttpsEnabled())
+                            .autoDeploymentEnabled(status.isAutoDeploymentEnabled())
+                            .buildStatus(status.getBuildStatus())
+                            .lastBuildAt(status.getLastBuildAt())
+                            .build();
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectExecutionGroupResponse> getMyProjectExecutionsGroupedByDate(String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        List<Long> projectIds = userProjectRepository.findByUserId(userId).stream()
+                .map(UserProject::getProjectId)
+                .toList();
+
+        Map<Long, String> projectNameMap = projectRepository.findAllById(projectIds).stream()
+                .collect(Collectors.toMap(Project::getId, Project::getProjectName));
+
+        List<ProjectExecution> allExecutionList = projectExecutionRepository.findByProjectIdInOrderByCreatedAtDesc(projectIds);
+
+        Map<LocalDate, List<ProjectExecutionResponse>> grouped = allExecutionList.stream()
+                .map(exec -> ProjectExecutionResponse.builder()
+                        .id(exec.getId())
+                        .projectName(projectNameMap.get(exec.getProjectId()))
+                        .executionType(exec.getExecutionType())
+                        .projectExecutionTitle(exec.getProjectExecutionTitle())
+                        .executionStatus(exec.getExecutionStatus())
+                        .buildNumber(exec.getBuildNumber())
+                        .createdAt(exec.getCreatedAt())
+                        .build())
+                .collect(Collectors.groupingBy(ProjectExecutionResponse::getCreatedAt, LinkedHashMap::new, Collectors.toList()));
+
+        return grouped.entrySet().stream()
+                .map(e -> new ProjectExecutionGroupResponse(e.getKey(), e.getValue()))
+                .toList();
+    }
+
+
+
     private String extractProjectNameFromUrl(String url) {
         if (url == null || !url.endsWith(".git")) return "unknown";
         String[] parts = url.split("/");
         return parts[parts.length - 1].replace(".git", "");
-    }
-
-    private ProjectStructureDetails createStructureDetails(ProjectCreateRequest request, Long projectId) {
-        return ProjectStructureDetails.builder()
-                .structure(request.getStructure())
-                .clientDirectoryName(request.getClientDirectoryName())
-                .serverDirectoryName(request.getServerDirectoryName())
-                .clientBranchName(request.getClientBranchName())
-                .serverBranchName(request.getServerBranchName())
-                .projectId(projectId)
-                .build();
-    }
-
-    private void saveEnvironmentConfig(Long projectId, PlatformType type, String version, String envFileName, String buildTool) {
-        EnvironmentConfig config = EnvironmentConfig.builder()
-                .platformType(type)
-                .version(version)
-                .envFileName(envFileName)
-                .buildTool(buildTool)
-                .projectId(projectId)
-                .build();
-        environmentConfigRepository.save(config);
     }
 
     private String saveFile(MultipartFile file, String subPath) {
@@ -223,8 +359,5 @@ public class ProjectServiceImpl implements ProjectService {
             throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
         }
     }
-
-
-
 
 }

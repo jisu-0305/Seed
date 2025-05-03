@@ -146,9 +146,9 @@
                         if (parts.length < 4) return null; // 데이터 불완전 시 제외
                         return UserInProject.builder()
                                 .userId(Long.parseLong(parts[0]))
-                                .username(parts[1])
-                                .avatarUrl(parts[2])
-                                .name(parts[3])
+                                .userIdentifyId(parts[1])
+                                .profileImageUrl(parts[2])
+                                .userName(parts[3])
                                 .build();
                     })
                     .filter(Objects::nonNull)
