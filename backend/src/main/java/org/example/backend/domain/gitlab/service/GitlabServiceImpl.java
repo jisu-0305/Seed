@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -227,17 +228,31 @@ public class GitlabServiceImpl implements GitlabService {
             throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
         }
 
-        // 1) 브랜치 존재 확인 (없으면 404)
+        // 브랜치 존재 확인 (없으면 404)
         gitlabApiClient.getBranch(user.getGitlabAccessToken(), projectId, branch);
 
-        // 2) 더미 커밋용 action 정의
-        CommitAction action = new CommitAction();
-        action.setAction("create");
-        action.setFile_path(".ci-trigger/trigger.txt");
-        action.setContent("triggered at " + Instant.now());
-        List<CommitAction> actions = List.of(action);
+        // 유니크한 파일명 생성 (루트에 바로)
+        String filePath = String.format(
+                "trigger-%d-%s.txt",
+                Instant.now().toEpochMilli(),
+                UUID.randomUUID()
+        );
 
-        // 3) 커밋 생성 -> Push 이벤트 발생
+        // 더미 파일 생성
+        CommitAction create = new CommitAction();
+        create.setAction("create");
+        create.setFile_path(filePath);
+        create.setContent("triggered at " + Instant.now());
+
+        // 바로 삭제
+        CommitAction delete = new CommitAction();
+        delete.setAction("delete");
+        delete.setFile_path(filePath);
+
+        List<CommitAction> actions = List.of(create, delete);
+        log.debug(">>>>>>>>>> 커밋 action : {}", actions);
+
+        // 7) 두 액션을 묶어서 한 번의 커밋으로 푸시 이벤트 트리거
         gitlabApiClient.createCommit(
                 user.getGitlabAccessToken(),
                 projectId,
@@ -245,6 +260,8 @@ public class GitlabServiceImpl implements GitlabService {
                 "chore: trigger Jenkins build by SEED",
                 actions
         );
+        log.debug(">>>>>>>>> 푸시 트리거 동작 완료 for projectId={}, branch={}, filePath={}",
+                projectId, branch, filePath);
     }
 
 }
