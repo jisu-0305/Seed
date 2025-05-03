@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   onClick?: () => void;
-  variant?: 'cancel' | 'next';
+  variant?: 'cancel' | 'next' | 'complete';
   disabled?: boolean;
 }
 
@@ -21,7 +21,7 @@ export default function SmallButton({
   );
 }
 
-const Button = styled.button<{ variant: 'cancel' | 'next' }>`
+const Button = styled.button<{ variant: 'cancel' | 'next' | 'complete' }>`
   display: flex;
   flex-direction: row;
   justify-content: space-around;
@@ -29,13 +29,19 @@ const Button = styled.button<{ variant: 'cancel' | 'next' }>`
 
   padding: 1rem 1.5rem;
   border-radius: 0.8rem;
-  width: 10rem;
+  min-width: 10rem;
+  width: fit-content;
 
   ${({ theme }) => theme.fonts.Title5}
   color: ${({ theme }) => theme.colors.White};
 
   background-color: ${({ variant, theme }) =>
-    variant === 'next' ? theme.colors.Gray0 : theme.colors.Gray3};
+    // eslint-disable-next-line no-nested-ternary
+    variant === 'next'
+      ? theme.colors.Gray0
+      : variant === 'cancel'
+        ? theme.colors.Gray3
+        : theme.colors.Main_Carrot};
 
   &:disabled {
     cursor: not-allowed;
