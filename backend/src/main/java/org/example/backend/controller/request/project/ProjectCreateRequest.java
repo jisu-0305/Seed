@@ -15,8 +15,9 @@ public class ProjectCreateRequest {
     private String frontendDirectoryName;
     private String backendBranchName;
     private String backendDirectoryName;
-    private String clientNodeVersion;
-    private String serverJdkVersion;
-    private String serverBuildTool;
+    private String nodejsVersion;
+    private String frontendFramework;
+    private String jdkVersion;
+    private String jdkBuildTool;
     private List<ApplicationRequest> applicationList;
 }

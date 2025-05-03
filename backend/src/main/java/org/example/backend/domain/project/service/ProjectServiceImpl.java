@@ -8,7 +8,6 @@ import org.example.backend.controller.response.project.*;
 import org.example.backend.domain.project.entity.*;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
-import org.example.backend.domain.project.enums.PlatformType;
 import org.example.backend.domain.project.mapper.ProjectMapper;
 import org.example.backend.domain.project.repository.*;
 import org.example.backend.domain.user.entity.User;
@@ -37,7 +36,7 @@ import java.util.stream.Collectors;
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final EnvironmentConfigRepository environmentConfigRepository;
+    private final ProjectConfigRepository projectConfigRepository;
     private final ApplicationRepository applicationRepository;
     private final RedisSessionManager redisSessionManager;
     private final UserProjectRepository userProjectRepository;
@@ -60,8 +59,8 @@ public class ProjectServiceImpl implements ProjectService {
 
         String projectName = extractProjectNameFromUrl(request.getRepositoryUrl());
 
-        String clientEnvPath = saveFile(clientEnvFile, "env/client");
-        String serverEnvPath = saveFile(serverEnvFile, "env/server");
+        String frontendEnvPath = saveFile(clientEnvFile, "env/client");
+        String backendEnvPath = saveFile(serverEnvFile, "env/server");
         String pemPath = saveFile(pemFile, "pem");
 
         Project project = Project.builder()
@@ -89,8 +88,15 @@ public class ProjectServiceImpl implements ProjectService {
                 .build();
         projectStatusRepository.save(status);
 
-        saveEnvironmentConfig(savedProject.getId(), PlatformType.CLIENT, request.getClientNodeVersion(), clientEnvPath, null);
-        saveEnvironmentConfig(savedProject.getId(), PlatformType.SERVER, request.getServerJdkVersion(), serverEnvPath, request.getServerBuildTool());
+        projectConfigRepository.save(ProjectConfig.builder()
+                .projectId(savedProject.getId())
+                .nodejsVersion(request.getNodejsVersion())
+                .frontendFramework(request.getFrontendFramework())
+                .frontendEnvFile(frontendEnvPath)
+                .jdkVersion(request.getJdkVersion())
+                .jdkBuildTool(request.getJdkBuildTool())
+                .backendEnvFile(backendEnvPath)
+                .build());
         request.getApplicationList().forEach(app ->
                 applicationRepository.save(Application.builder()
                         .imageName(app.getImageName())
@@ -103,7 +109,7 @@ public class ProjectServiceImpl implements ProjectService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        List<UserInProject> members = List.of(UserInProject.builder()
+        List<UserInProject> memberList = List.of(UserInProject.builder()
                 .userId(user.getId())
                 .userName(user.getUserName())
                 .userIdentifyId(user.getUserIdentifyId())
@@ -112,7 +118,7 @@ public class ProjectServiceImpl implements ProjectService {
 
         return ProjectMapper.toResponse(
                 savedProject,
-                members,
+                memberList,
                 status.isAutoDeploymentEnabled(),
                 status.isHttpsEnabled(),
                 null,
@@ -133,12 +139,12 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
-        EnvironmentConfig clientEnv = environmentConfigRepository.findByProjectIdAndPlatformType(projectId, PlatformType.CLIENT).orElse(null);
-        EnvironmentConfig serverEnv = environmentConfigRepository.findByProjectIdAndPlatformType(projectId, PlatformType.SERVER).orElse(null);
+        ProjectConfig config = projectConfigRepository.findByProjectId(projectId).orElse(null);
         List<Application> applications = applicationRepository.findAllByProjectId(projectId);
 
         return ProjectDetailResponse.builder()
                 .id(project.getId())
+                .ownerId(project.getOwnerId())
                 .projectName(project.getProjectName())
                 .serverIP(project.getServerIP())
                 .createdAt(project.getCreatedAt())
@@ -148,11 +154,12 @@ public class ProjectServiceImpl implements ProjectService {
                 .frontendDirectoryName(project.getFrontendDirectoryName())
                 .backendBranchName(project.getBackendBranchName())
                 .backendDirectoryName(project.getBackendDirectoryName())
-                .clientNodeVersion(clientEnv != null ? clientEnv.getVersion() : null)
-                .clientEnvFilePath(clientEnv != null ? clientEnv.getEnvFileName() : null)
-                .serverJdkVersion(serverEnv != null ? serverEnv.getVersion() : null)
-                .serverEnvFilePath(serverEnv != null ? serverEnv.getEnvFileName() : null)
-                .serverBuildTool(serverEnv != null ? serverEnv.getBuildTool() : null)
+                .nodejsVersion(config != null ? config.getNodejsVersion() : null)
+                .frontendFramework(config != null ? config.getFrontendFramework() : null)
+                .frontendEnvFilePath(config != null ? config.getFrontendEnvFile() : null)
+                .jdkVersion(config != null ? config.getJdkVersion() : null)
+                .jdkBuildTool(config != null ? config.getJdkBuildTool() : null)
+                .backendEnvFilePath(config != null ? config.getBackendEnvFile() : null)
                 .applicationList(applications.stream()
                         .map(app -> ApplicationResponse.builder()
                                 .imageName(app.getImageName())
@@ -333,18 +340,6 @@ public class ProjectServiceImpl implements ProjectService {
         if (url == null || !url.endsWith(".git")) return "unknown";
         String[] parts = url.split("/");
         return parts[parts.length - 1].replace(".git", "");
-    }
-
-
-    private void saveEnvironmentConfig(Long projectId, PlatformType type, String version, String envFileName, String buildTool) {
-        EnvironmentConfig config = EnvironmentConfig.builder()
-                .platformType(type)
-                .version(version)
-                .envFileName(envFileName)
-                .buildTool(buildTool)
-                .projectId(projectId)
-                .build();
-        environmentConfigRepository.save(config);
     }
 
     private String saveFile(MultipartFile file, String subPath) {

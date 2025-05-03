@@ -16,7 +16,7 @@ import java.time.LocalTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "project_execution")
+@Table(name = "project_executions")
 public class ProjectExecution {
 
     @Id
