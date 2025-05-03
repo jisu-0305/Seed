@@ -48,6 +48,10 @@ public enum ErrorCode {
     DOCKER_HEALTH_API_FAILED(HttpStatus.BAD_REQUEST, 3225, "도커 소켓 API 연결에 실패했습니다."),
     DOCKER_HEALTH_FAILED(HttpStatus.BAD_REQUEST, 3226, "도커 소켓 연결에 실패했습니다."),
 
+    GITLAB_BAD_MERGE_REQUESTS(HttpStatus.BAD_REQUEST, 3227, "깃랩 Merge Requests 조회에 실패했습니다."),
+    GITLAB_MR_NOT_FOUND    (HttpStatus.NOT_FOUND, 3228, "해당 Merge Request를 찾을 수 없습니다."),
+    GITLAB_NO_MERGE_REQUESTS   (HttpStatus.NOT_FOUND,  3229, "해당 프로젝트에 Merge Request가 없습니다."),
+
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
     FORBIDDEN(HttpStatus.FORBIDDEN, 4002, "권한이 없습니다."),

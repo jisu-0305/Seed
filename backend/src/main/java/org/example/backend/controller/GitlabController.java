@@ -147,4 +147,21 @@ public class GitlabController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    @GetMapping("/{projectId}/merge-requests/latest/diff")
+    @Operation(
+            summary = "최신 mr 기준 diff 조회",
+            description = "프로젝트 id로 해당 프로젝트의 최신 mr diff 가져오기",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    public ResponseEntity<ApiResponse<GitlabCompareResponse>> getLatestMergeRequestDiff(
+            @Parameter(description = "프로젝트 ID", required = true, example = "997245")
+            @PathVariable Long projectId,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
+            String accessToken
+    ) {
+
+        GitlabCompareResponse diff = gitlabService.getLatestMergeRequestDiff(accessToken, projectId);
+        return ResponseEntity.ok(ApiResponse.success(diff));
+    }
+
 }

@@ -135,4 +135,29 @@ public class GitlabUriBuilder {
 
     }
 
+    // 프로젝트의 mr 목록 조회 _ 생성일자 내림차순 기준으로, mreged 상태만 가져오자
+    public URI listMergeRequests(Long projectId,
+                                 int page,
+                                 int perPage) {
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "merge_requests")
+                .queryParam("page", page)
+                .queryParam("per_page", perPage)
+                .queryParam("order_by", "created_at")
+                .queryParam("sort", "desc")
+                .queryParam("state", "merged")
+                .build()
+                .encode()
+                .toUri();
+    }
+
+    // mr 상세조회 _ diff_ref (base sha, head sha ....)
+    public URI getMergeRequest(Long projectId, Long mergeRequestIid) {
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "merge_requests", mergeRequestIid.toString())
+                .build()
+                .encode()
+                .toUri();
+    }
+
 }
