@@ -11,19 +11,19 @@ import java.util.List;
 public class ProjectMapper {
 
     public static ProjectResponse toResponse(Project project,
-                                             List<UserInProject> members,
-                                             boolean autoDeployEnabled,
+                                             List<UserInProject> memberList,
+                                             boolean autoDeploymentEnabled,
                                              boolean httpsEnabled,
-                                             BuildStatus lastBuildStatus,
+                                             BuildStatus buildStatus,
                                              LocalDateTime lastBuildAt) {
         return ProjectResponse.builder()
                 .id(project.getId())
                 .projectName(project.getProjectName())
                 .createdAt(project.getCreatedAt())
-                .members(members)
-                .autoDeployEnabled(autoDeployEnabled)
+                .memberList(memberList)
+                .autoDeploymentEnabled(autoDeploymentEnabled)
                 .httpsEnabled(httpsEnabled)
-                .lastBuildStatus(lastBuildStatus)
+                .buildStatus(buildStatus)
                 .lastBuildAt(lastBuildAt)
                 .build();
     }

@@ -2,6 +2,7 @@ package org.example.backend.domain.project.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.backend.domain.project.enums.ProjectStructure;
 
 import java.time.LocalDateTime;
 
@@ -19,9 +20,18 @@ public class Project {
 
     private Long ownerId;
     private String projectName;
-    private String repositoryUrl;
-    private String ipAddress;
-    private String pemFilePath;
+    private String serverIP;
     private LocalDateTime createdAt;
+    private String repositoryUrl;
+
+    @Enumerated(EnumType.STRING)
+    private ProjectStructure structure;
+
+    private String frontendBranchName;
+    private String frontendDirectoryName;
+    private String backendBranchName;
+    private String backendDirectoryName;
+    private String pemFilePath;
+
 }
 

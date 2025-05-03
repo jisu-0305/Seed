@@ -14,5 +14,5 @@ import java.util.List;
 @AllArgsConstructor
 public class ProjectExecutionGroupResponse {
     private LocalDate date;
-    private List<ProjectExecutionResponse> executions;
+    private List<ProjectExecutionResponse> executionList;
 }
