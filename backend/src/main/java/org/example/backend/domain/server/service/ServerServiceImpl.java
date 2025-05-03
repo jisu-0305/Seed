@@ -146,7 +146,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getGitlabAccessToken())) {
+            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getGitlabAccessToken(), "https://lab.ssafy.com/galilee155/drummer_test.git")) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
