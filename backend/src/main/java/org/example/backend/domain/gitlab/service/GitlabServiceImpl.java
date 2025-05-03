@@ -119,7 +119,7 @@ public class GitlabServiceImpl implements GitlabService {
 
     @Override
     public void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter) {
-
+        System.out.println("accessToken = " + accessToken);
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
@@ -160,7 +160,6 @@ public class GitlabServiceImpl implements GitlabService {
             String title,
             String description
     ) {
-
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
