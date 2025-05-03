@@ -1,13 +1,22 @@
-export interface StepStatus {
+export interface ProjectInfo {
   gitlab: {
     repo: string;
-    structure: string;
+    structure: '모노' | '멀티' | string;
     directory: boolean;
   };
   server: {
     ip: string;
     pem: boolean;
   };
-  app: string[];
-  env: boolean;
+  app: {
+    name: string;
+    version: string;
+    port: number;
+  }[];
+  env: {
+    env: boolean;
+    node: string;
+    jdk: number;
+    buildTool: string;
+  };
 }

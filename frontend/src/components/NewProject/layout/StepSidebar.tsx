@@ -1,19 +1,17 @@
 import styled from '@emotion/styled';
 
-import { StepStatus } from '@/types/project';
+import { useProjectInfoStore } from '@/stores/projectStore';
 
-interface Props {
-  status: StepStatus;
-}
+export default function StepSidebar() {
+  const { stepStatus: status } = useProjectInfoStore();
 
-export default function StepSidebar({ status }: Props) {
   return (
     <SidebarWrapper>
       {/* GitLab 정보 */}
       <Section>
         <Row>
           <Label>GitLab Repo</Label>
-          <Value>{status.gitlab.repo}</Value>
+          <Value>{status.gitlab.repo || '-'}</Value>
         </Row>
         <Row>
           <Label>폴더 구조</Label>
@@ -62,13 +60,13 @@ export default function StepSidebar({ status }: Props) {
         </Row>
         {status.app.length > 0 ? (
           status.app.map((app) => (
-            <Row key={app}>
-              <AppTag className="app">{app}</AppTag>
+            <Row key={app.name}>
+              <AppTag>{app.name}</AppTag>
             </Row>
           ))
         ) : (
           <Row>
-            <Value>-</Value>
+            <AppTag>-</AppTag>
           </Row>
         )}
       </Section>
@@ -125,13 +123,11 @@ const Value = styled.span`
 
 const AppTag = styled.span`
   margin-left: auto;
-
   ${({ theme }) => theme.fonts.Body3};
 `;
 
 const Divider = styled.hr`
   border-top: 1px solid ${({ theme }) => theme.colors.LightGray1};
-
   margin: 0.5rem 0;
 `;
 
