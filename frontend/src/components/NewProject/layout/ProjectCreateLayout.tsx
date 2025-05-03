@@ -1,10 +1,11 @@
 'use client';
 
 import styled from '@emotion/styled';
+import { usePathname, useRouter } from 'next/navigation';
 
-import SmallButton from '@/components/Common/buttons/SmallButton';
+import SmallButton from '@/components/Common/button/SmallButton';
 import Header from '@/components/Common/Header';
-import { StepStatus } from '@/types/project';
+import { getIdFromUrl, getUrlFromId } from '@/utils/getProjectStep';
 
 import StepSidebar from './StepSidebar';
 import TopNavigation from './TopNavigation';
@@ -14,49 +15,56 @@ export default function ProjectCreateLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const stepStatus: StepStatus = {
-    gitlab: {
-      repo: 'S12P31A206',
-      structure: '모노',
-      directory: true,
-    },
-    server: {
-      ip: '255.127.39.0',
-      pem: true,
-    },
-    app: ['React', 'Spring', 'fastapi'],
-    env: true,
-  };
+  const router = useRouter();
+  const pathName = usePathname();
+  const key = pathName.split('/').pop() || '';
+  const currentStep = getIdFromUrl(key);
 
   return (
     <>
       <Header title="새 프로젝트" />
-      <Wrapper>
-        <TopNavigation currentStep={1} />
-        <Content>
-          <Main>{children}</Main>
-          <SideBarWrapper>
-            <StepSidebar status={stepStatus} />
+      {currentStep !== 5 ? (
+        <Wrapper>
+          <TopNavigation currentStep={currentStep} />
 
-            <StButtonWrapper>
-              <SmallButton variant="cancel" disabled>
-                <Icon
-                  src="/assets/icons/ic_button_arrow_left.svg"
-                  alt="arrow left"
-                />
-                이전
-              </SmallButton>
-              <SmallButton variant="next" disabled>
-                다음
-                <Icon
-                  src="/assets/icons/ic_button_arrow_right.svg"
-                  alt="arrow left"
-                />
-              </SmallButton>
-            </StButtonWrapper>
-          </SideBarWrapper>
-        </Content>
-      </Wrapper>
+          <Content>
+            <Main>{children}</Main>
+            <SideBarWrapper>
+              <StepSidebar />
+
+              <StButtonWrapper>
+                <SmallButton
+                  variant="cancel"
+                  disabled={currentStep === 1}
+                  onClick={() => {
+                    router.push(`${getUrlFromId(currentStep - 1)}`);
+                  }}
+                >
+                  <Icon
+                    src="/assets/icons/ic_button_arrow_left.svg"
+                    alt="arrow left"
+                  />
+                  이전
+                </SmallButton>
+                <SmallButton
+                  variant="next"
+                  onClick={() => {
+                    router.push(`${getUrlFromId(currentStep + 1)}`);
+                  }}
+                >
+                  다음
+                  <Icon
+                    src="/assets/icons/ic_button_arrow_right.svg"
+                    alt="arrow left"
+                  />
+                </SmallButton>
+              </StButtonWrapper>
+            </SideBarWrapper>
+          </Content>
+        </Wrapper>
+      ) : (
+        <Wrapper>{children}</Wrapper>
+      )}
     </>
   );
 }
