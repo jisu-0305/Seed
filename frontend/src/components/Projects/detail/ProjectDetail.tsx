@@ -5,7 +5,7 @@ import { project, tasksByTab } from '@/assets/dummy/project_detail';
 
 import { AvatarList } from '../AvatarList';
 import { ActionButtons } from './ActionButtons';
-import { DeployStatus } from './DeployStatus';
+import { DeployStatus } from './deployStatus/DeployStatus';
 import { ProjectHeader } from './ProjectHeader';
 import { ProjectInfo } from './ProjectInfo';
 
@@ -16,57 +16,81 @@ export default function ProjectDetail() {
 
   return (
     <SectionWrapper>
-      <Top>
-        <Icon src="/assets/icons/ic_gitlab.svg" alt="gitlab" />
-        <Title>{project.projectName}</Title>
-        <AvatarList users={project.users} maxVisible={2} />
-      </Top>
       <Section>
-        <ProjectHeader
-          emojiSrc={project.emojiSrc}
-          https={project.httpsEnabled}
-          lastBuildStatus={project.lastBuildStatus}
-          lastBuildTime={project.lastBuildTime}
-        />
+        <SectionTitle>
+          <Icon src="/assets/icons/ic_gitlab.svg" alt="gitlab" />
+          <Title>{project.projectName}</Title>
+          <AvatarList users={project.users} maxVisible={2} />
+        </SectionTitle>
+        <SectionInfo>
+          <ProjectHeader
+            emojiSrc={project.emojiSrc}
+            https={project.httpsEnabled}
+            lastBuildStatus={project.lastBuildStatus}
+            lastBuildTime={project.lastBuildTime}
+          />
 
-        <ProjectInfo
-          clientDir={project.projectInfo.clientDir}
-          serverDir={project.projectInfo.serverDir}
-          nodeVersion={project.projectInfo.nodeVersion}
-          jdkVersion={project.projectInfo.jdkVersion}
-          buildTool={project.projectInfo.buildTool}
-        />
+          <ProjectInfo
+            folder={project.projectInfo.folder}
+            clientDir={project.projectInfo.clientDir}
+            serverDir={project.projectInfo.serverDir}
+            nodeVersion={project.projectInfo.nodeVersion}
+            jdkVersion={project.projectInfo.jdkVersion}
+            buildTool={project.projectInfo.buildTool}
+          />
 
-        <ActionButtons />
+          <ActionButtons />
+        </SectionInfo>
+
+        <SubTitle>Deploy Status</SubTitle>
+        <DeployStatus tasksByTab={tasksByTab} />
       </Section>
-
-      <DeployStatus tasksByTab={tasksByTab} />
     </SectionWrapper>
   );
 }
 
 const SectionWrapper = styled.section`
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  padding-top: 7rem;
   background-color: ${({ theme }) => theme.colors.White};
   border-radius: 1.5rem;
-  margin: 0 auto 4rem;
-  max-width: 80rem;
 `;
 
 const Section = styled.div`
   display: flex;
-  gap: 2rem;
-  margin-top: 2rem;
+  flex-direction: column;
+  min-width: 100rem;
+  max-width: 120rem;
 `;
 
-const Top = styled.div`
+const SectionTitle = styled.div`
   display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
   align-items: center;
-  gap: 1rem;
+  gap: 2rem;
+  margin-bottom: 1rem;
+`;
+
+const SectionInfo = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4rem;
+  margin-top: 2rem;
 `;
 
 const Title = styled.h1`
   margin: 0;
+  ${({ theme }) => theme.fonts.EnTitle0};
+`;
+
+const SubTitle = styled.h1`
+  margin-top: 5rem;
   ${({ theme }) => theme.fonts.EnTitle1};
 `;
 

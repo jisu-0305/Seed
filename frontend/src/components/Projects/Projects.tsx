@@ -51,9 +51,8 @@ const SectionWrapper = styled.section`
   flex-direction: column;
   justify-content: flex-start;
   align-items: center;
-  height: 100%;
   width: 100%;
-  padding-top: 14rem;
+  padding-top: 10rem;
   background-color: ${({ theme }) => theme.colors.White};
   border-radius: 1.5rem;
 `;
@@ -64,7 +63,7 @@ const SectionTitle = styled.h2`
   justify-content: center;
   align-items: flex-start;
   padding-left: 4rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2.5rem;
 `;
 
 const Title = styled.div`
@@ -76,5 +75,5 @@ const CardsList = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 80rem;
-  gap: 1rem;
+  gap: 3rem;
 `;

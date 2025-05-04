@@ -16,6 +16,7 @@ export const project = {
     { id: 103, name: '박지민', avatarUrl: '/assets/user.png' },
   ],
   projectInfo: {
+    folder: 'Mono',
     clientDir: 'frontend',
     serverDir: 'backend',
     nodeVersion: 'v22.14.0',

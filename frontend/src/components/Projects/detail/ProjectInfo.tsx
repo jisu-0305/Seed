@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 
 interface ProjectInfoProps {
+  folder: string;
   clientDir: string;
   serverDir: string;
   nodeVersion: string;
@@ -9,6 +10,7 @@ interface ProjectInfoProps {
 }
 
 export function ProjectInfo({
+  folder,
   clientDir,
   serverDir,
   nodeVersion,
@@ -17,10 +19,11 @@ export function ProjectInfo({
 }: ProjectInfoProps) {
   return (
     <Card>
-      <Row>
-        <Label>Folder 구조</Label>
-        <Value>모노</Value>
-      </Row>
+      <HeaderRow>
+        <Label>폴더 구조</Label>
+        <MonoValue>{folder}</MonoValue>
+      </HeaderRow>
+
       <Row>
         <Label>Client</Label>
         <Value>
@@ -35,6 +38,9 @@ export function ProjectInfo({
           {serverDir}
         </Value>
       </Row>
+
+      <Divider />
+
       <Row>
         <Label>Node</Label>
         <Value>{nodeVersion}</Value>
@@ -52,29 +58,57 @@ export function ProjectInfo({
 }
 
 const Card = styled.div`
-  background: #fff;
-  padding: 2rem;
-  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: ${({ theme }) => theme.colors.LightGray3};
+  width: 22rem;
+  height: 25rem;
+  padding: 1rem 2rem;
+  border: 0.15rem solid ${({ theme }) => theme.colors.LightGray1};
+  border-radius: 1.5rem;
 `;
+
+const HeaderRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+`;
+
 const Row = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+
   &:last-of-type {
     margin-bottom: 0;
   }
 `;
+
 const Label = styled.div`
-  ${({ theme }) => theme.fonts.Body4};
+  ${({ theme }) => theme.fonts.Head5};
   color: ${({ theme }) => theme.colors.Black};
 `;
+
+const MonoValue = styled.div`
+  ${({ theme }) => theme.fonts.Body3};
+`;
+
 const Value = styled.div`
-  ${({ theme }) => theme.fonts.Body4};
+  ${({ theme }) => theme.fonts.Body3};
   display: flex;
   align-items: center;
   gap: 0.5rem;
 `;
+
 const FolderIcon = styled.img`
-  width: 1.5rem;
+  width: 2rem;
+`;
+
+const Divider = styled.hr`
+  border: none;
+  border-top: 0.15rem solid ${({ theme }) => theme.colors.LightGray1};
+  margin: 2rem 0;
 `;

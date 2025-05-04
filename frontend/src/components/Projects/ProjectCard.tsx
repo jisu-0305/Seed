@@ -80,12 +80,13 @@ const Card = styled.div<{ color: string }>`
   padding: 3rem;
   background: ${({ color }) => color};
   border-radius: 1.6rem;
+  cursor: pointer;
 `;
 
 const Left = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 2rem;
 `;
 
 const Right = styled.div`
@@ -99,14 +100,14 @@ const Title = styled.h3`
 `;
 
 const ProjectImage = styled.img`
-  width: 3rem;
-  height: 3rem;
+  width: 4rem;
+  height: 4rem;
   object-fit: contain;
 `;
 
 const Icon = styled.img`
-  width: 1.2rem;
-  height: 1.2rem;
+  width: 2rem;
+  height: 2rem;
 `;
 
 const Item = styled.div`

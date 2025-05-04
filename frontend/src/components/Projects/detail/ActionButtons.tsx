@@ -20,13 +20,14 @@ export function ActionButtons() {
       </MainActions>
       <SubActions>
         <SmallButton>
-          <Icon src="/assets/icons/ic_gitlab_white.svg" alt="gitlab" /> GitLab
+          <SmallIcon src="/assets/icons/ic_gitlab_white.svg" alt="gitlab" />{' '}
+          GitLab
         </SmallButton>
         <SmallButton>
-          <Icon src="/assets/icons/ic_edit.svg" alt="edit" /> 정보수정
+          <SmallIcon src="/assets/icons/ic_edit.svg" alt="edit" /> 정보수정
         </SmallButton>
         <SmallButton>
-          <Icon src="/assets/icons/ic_team.svg" alt="team" /> 팀원 관리
+          <SmallIcon src="/assets/icons/ic_team.svg" alt="team" /> 팀원 관리
         </SmallButton>
       </SubActions>
     </Wrapper>
@@ -47,15 +48,22 @@ const MainActions = styled.div`
 
 const SubActions = styled.div`
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
 `;
 
 type Variant = 'ai' | 'build' | 'https';
 
 const Button = styled.button<{ variant: Variant }>`
-  padding: 1rem 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-width: 13rem;
+  height: auto;
+  gap: 0.5rem;
+  padding: 3rem 2rem;
   border: none;
-  border-radius: 0.8rem;
+  border-radius: 1.5rem;
   background: ${({ variant, theme }) =>
     variant === 'ai'
       ? theme.colors.Carrot2
@@ -63,25 +71,29 @@ const Button = styled.button<{ variant: Variant }>`
         ? theme.colors.Blue3
         : theme.colors.Blue4};
   color: ${({ theme }) => theme.colors.Black};
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  ${({ theme }) => theme.fonts.Body4};
-`;
-
-const SmallButton = styled.button`
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.8rem;
-  background: #000;
-  color: #fff;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  ${({ theme }) => theme.fonts.Body4};
+  ${({ theme }) => theme.fonts.Title4};
 `;
 
 const Icon = styled.img`
-  width: 1.5rem;
+  width: 3rem;
+`;
+
+const SmallButton = styled.button`
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  min-width: 13rem;
+  height: auto;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border: none;
+  border-radius: 1.5rem;
+  background: ${({ theme }) => theme.colors.Black};
+  color: ${({ theme }) => theme.colors.White};
+  ${({ theme }) => theme.fonts.Body2};
+`;
+
+const SmallIcon = styled.img`
+  width: 2rem;
 `;

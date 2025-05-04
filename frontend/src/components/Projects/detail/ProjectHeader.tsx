@@ -15,67 +15,87 @@ export function ProjectHeader({
 }: ProjectHeaderProps) {
   return (
     <Wrapper>
-      <Right>
-        <Emoji src={emojiSrc} alt="project" />
-        <StatusItem>
-          자동배포{' '}
-          <Icon src="/assets/icons/ic_autoDeploy.svg" alt="autoDeploy" />
-        </StatusItem>
-        <StatusItem>
-          HTTPS{' '}
-          <Icon
-            src={`/assets/icons/ic_https_${https}.svg`}
-            alt={`https_${https}`}
-          />
-        </StatusItem>
-        <StatusItem>
-          최근 빌드{' '}
-          <Icon
-            src={`/assets/icons/ic_${
-              lastBuildStatus === 'SUCCESS' ? 'build_success' : 'build_fail'
-            }.svg`}
-            alt={lastBuildStatus === 'SUCCESS' ? 'build_success' : 'build_fail'}
-          />
-        </StatusItem>
-        <Time>{lastBuildTime}</Time>
-      </Right>
+      <Emoji src={emojiSrc} alt="project" />
+      <StatusRow>
+        <StatusGroup>
+          <StatusItem>
+            <Label>최근 빌드</Label>
+            <Icon
+              src={`/assets/icons/ic_${
+                lastBuildStatus === 'SUCCESS' ? 'build_success' : 'build_fail'
+              }.svg`}
+              alt="build_status"
+            />
+          </StatusItem>
+          <Time>{lastBuildTime}</Time>
+        </StatusGroup>
+
+        <StatusGroup>
+          <StatusItem>
+            <Label>HTTPS</Label>
+            <Icon
+              src={`/assets/icons/ic_https_${https}.svg`}
+              alt={`https_${https}`}
+            />
+          </StatusItem>
+          <StatusItem>
+            <Label>자동배포</Label>
+            <Icon src="/assets/icons/ic_autoDeploy.svg" alt="auto-deploy" />
+          </StatusItem>
+        </StatusGroup>
+      </StatusRow>
     </Wrapper>
   );
 }
 
 const Wrapper = styled.div`
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
   align-items: center;
-  background: ${({ theme }) => theme.colors.Blue4};
-  padding: 2rem 3rem;
-  border-radius: 1.6rem;
-`;
-
-const Right = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 2rem;
+  width: 25rem;
+  height: 25rem;
+  padding: 1rem 2rem;
+  border: 0.15rem solid ${({ theme }) => theme.colors.Black};
+  border-radius: 1.5rem;
 `;
 
 const Emoji = styled.img`
-  width: 3rem;
-  height: 3rem;
+  width: 17rem;
+  height: 17rem;
+  margin-bottom: 1.5rem;
+`;
+
+const StatusRow = styled.div`
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  gap: 3rem;
+`;
+
+const StatusGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 `;
 
 const StatusItem = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
   ${({ theme }) => theme.fonts.Body4};
 `;
 
+const Label = styled.div`
+  min-width: 5rem;
+  ${({ theme }) => theme.fonts.EnBody1};
+`;
+
 const Time = styled.div`
-  ${({ theme }) => theme.fonts.Body5};
+  ${({ theme }) => theme.fonts.EnBody2};
+  color: ${({ theme }) => theme.colors.Gray1};
 `;
 
 const Icon = styled.img`
-  width: 1.5rem;
-  height: 1.5rem;
-  object-fit: contain;
+  width: 2rem;
+  height: 2rem;
 `;
