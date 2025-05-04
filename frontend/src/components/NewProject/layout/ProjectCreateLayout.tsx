@@ -76,7 +76,8 @@ const Wrapper = styled.div`
   flex-direction: column;
 
   margin: 0 auto;
-  padding: 10rem 5rem;
+  padding: 5rem;
+  padding-top: 10rem;
 `;
 
 const Content = styled.div`
@@ -86,8 +87,6 @@ const Content = styled.div`
 `;
 
 const Main = styled.main`
-  min-height: 50rem;
-
   flex: 6;
   padding: 2rem 3rem;
 

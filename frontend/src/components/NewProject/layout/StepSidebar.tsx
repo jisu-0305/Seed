@@ -92,7 +92,7 @@ export default function StepSidebar() {
 }
 
 const SidebarWrapper = styled.aside`
-  min-width: 25rem;
+  min-width: 20rem;
   padding: 1.5rem;
   padding-bottom: 0;
 
