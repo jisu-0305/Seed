@@ -102,8 +102,9 @@ const SideBarWrapper = styled.aside`
 const StButtonWrapper = styled.aside`
   display: flex;
   flex-direction: row;
-  justify-content: space-evenly;
+  justify-content: center;
   align-items: center;
+  gap: 2rem;
 
   padding-top: 3rem;
 `;

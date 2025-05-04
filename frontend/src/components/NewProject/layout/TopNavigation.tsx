@@ -1,21 +1,19 @@
 import styled from '@emotion/styled';
 
+import { getLabelfromId } from '@/utils/getProjectStep';
+
 interface Props {
   currentStep: number; // 1 ~ 4
-  stepLabels?: string[];
 }
 
-const ProjectCreateHeader = ({
-  currentStep,
-  stepLabels = ['기본 정보', '서버 접속정보', '어플리케이션 정보', '환경설정'],
-}: Props) => {
-  const progressPercent = (currentStep / stepLabels.length) * 100;
+const ProjectCreateHeader = ({ currentStep }: Props) => {
+  const progressPercent = (currentStep / 4) * 100;
 
   return (
     <Wrapper>
       <Title>프로젝트 정보 입력</Title>
       <ProgressWrapper>
-        <StepLabel>{`${currentStep}. ${stepLabels[currentStep - 1]}`}</StepLabel>
+        <StepLabel>{`${currentStep}. ${getLabelfromId(currentStep)}`}</StepLabel>
         <ProgressBar>
           <Progress style={{ width: `${progressPercent}%` }} />
         </ProgressBar>
