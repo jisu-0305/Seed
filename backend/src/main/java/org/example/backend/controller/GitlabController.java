@@ -1,5 +1,6 @@
 package org.example.backend.controller;
 
+import com.google.firestore.v1.CommitResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -144,6 +145,35 @@ public class GitlabController {
 
         gitlabService.createPushWebhook(accessToken, request.getProjectId(), request.getUrl(), request.getWildcard());
 
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @GetMapping("/{projectId}/merge-requests/latest/diff")
+    @Operation(
+            summary = "최신 mr 기준 diff 조회",
+            description = "프로젝트 id로 해당 프로젝트의 최신 mr diff 가져오기",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    public ResponseEntity<ApiResponse<GitlabCompareResponse>> getLatestMergeRequestDiff(
+            @Parameter(description = "프로젝트 ID", required = true, example = "997245")
+            @PathVariable Long projectId,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
+            String accessToken
+    ) {
+
+        GitlabCompareResponse diff = gitlabService.getLatestMergeRequestDiff(accessToken, projectId);
+        return ResponseEntity.ok(ApiResponse.success(diff));
+    }
+
+    @PostMapping("/projects/{projectId}/trigger-push")
+    public ResponseEntity<ApiResponse<Void>> triggerPush(
+            @Parameter(description = "프로젝트 ID", required = true, example = "998708")
+            @PathVariable Long projectId,
+            @RequestParam String branch,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false)
+            String accessToken
+    ) {
+        gitlabService.triggerPushEvent(accessToken, projectId, branch);
         return ResponseEntity.ok(ApiResponse.success());
     }
 

@@ -12,6 +12,7 @@ import org.example.backend.controller.request.server.DeleteServerFolderRequest;
 import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
 import org.example.backend.controller.request.server.InitServerRequest;
 import org.example.backend.controller.request.server.NewServerRequest;
+import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.server.entity.ServerInfo;
 import org.example.backend.domain.server.repository.ServerInfoRepository;
 import org.example.backend.domain.user.entity.User;
@@ -39,6 +40,7 @@ public class ServerServiceImpl implements ServerService {
     private final UserRepository userRepository;
     private final RedisSessionManager redisSessionManager;
     private final ServerInfoRepository repository;
+    private final GitlabService gitlabService;
 
     public void registerServer(NewServerRequest newServerRequest, MultipartFile keyFile) throws IOException {
         // 1. key.pem 저장
@@ -144,7 +146,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getAccessToken())) {
+            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getGitlabAccessToken(), "https://lab.ssafy.com/galilee155/drummer_test.git")) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
@@ -268,19 +270,21 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(String serverIp, String gitlabAccessToken) {
+    private List<String> serverInitializeCommands(String serverIp, String gitlabAccessToken, String GitProjectUrl) {
         return Stream.of(
                 //setFirewall(),
-                updatePackageManager(),
-                setSwapMemory(),
-                setJDK(),
-                setNodejs(),
-                setDocker(),
-                setNginx(serverIp),
-                setJenkins(),
-                setJenkinsConfigure(),
-                setJenkinsGitlabConfiguration(gitlabAccessToken),
-                makeJenkinsJob(),
+//                updatePackageManager(),
+//                setSwapMemory(),
+//                setJDK(),
+//                setNodejs(),
+//                setDocker(),
+//                setNginx(serverIp),
+//                setJenkins(),
+//                setJenkinsConfigure(),
+//                setJenkinsGitlabConfiguration(gitlabAccessToken),
+                makeJenkinsJob("dummy-job", GitProjectUrl, "gitlab-token" ),
+//                setJenkinsConfiguration(),
+                makeGitlabWebhook("Bearer Tokenname", (long)123456, "dummy-job", "1.11.111.1"),
                 makeDockerComposeYml()
         ).flatMap(Collection::stream).toList();
     }
@@ -495,48 +499,111 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 9. Jenkins 상세 설정
-    private List<String> setJenkinsGitlabConfiguration(String gitlabAccessToken) {
+    // 9. Jenkins credentials 생성
+    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, String frontendEnvFileName, String backendEnvFileName) {
         return List.of(
-                // gitlab connection 등록
-                "sudo mkdir -p /var/lib/jenkins/init.groovy.d && " +
-                        "sudo tee /var/lib/jenkins/init.groovy.d/gitlab-connection.groovy > /dev/null << 'EOF'\n" +
-                        "import jenkins.model.Jenkins\n" +
-                        "import com.dabsquared.gitlabjenkins.connection.GitLabConnectionConfig\n" +
-                        "import com.dabsquared.gitlabjenkins.connection.GitLabConnection\n\n" +
-                        "def inst = Jenkins.getInstance()\n" +
-                        "def cfg  = inst.getDescriptorByType(GitLabConnectionConfig.class)\n" +
-                        "def conns = cfg.getConnections()\n\n" +
-                        "def newConn = new GitLabConnection(\n" +
-                        "  '" + "hi" + "',\n" +
-                        "  '" + "https://lab.ssafy.com"       + "',\n" +
-                        "  '" + gitlabAccessToken   + "',\n" +
-                        "  false,   // ignoreCertificateErrors\n" +
-                        "  10,      // connectionTimeout (sec)\n" +
-                        "  10       // readTimeout (sec)\n" +
-                        ")\n\n" +
-                        "if (!conns.find { it.name == newConn.name }) {\n" +
-                        "  conns.add(newConn)\n" +
-                        "  cfg.setConnections(conns)\n" +
-                        "  cfg.save()\n" +
-                        "  inst.save()\n" +
-                        "}\n" +
+                // CLI 다운로드
+                "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
+
+                // GitLab Personal Access Token 등록
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>gitlab-token</id>\n" +
+                        "  <description>GitLab token</description>\n" +
+                        "  <username>" + gitlabUsername + "</username>\n" +
+                        "  <password>" + gitlabToken + "</password>\n" +
+                        "</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
                         "EOF",
 
+                // 백엔드 환경변수 등록 (파일 기반)
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>spring-secrets</id>\n" +
+                        "  <description>Spring .env</description>\n" +
+                        "  <fileName>.env</fileName>\n" +
+                        "  <secretBytes>" + backendEnvFileName + "</secretBytes>\n" +
+                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "EOF",
 
-                // 8-7. 포트 변경 (9090)
-                "sudo sed -i 's/^#*HTTP_PORT=.*/HTTP_PORT=9090/' /etc/default/jenkins",
-                "sudo sed -i 's/Environment=\"JENKINS_PORT=[0-9]\\+\"/Environment=\"JENKINS_PORT=9090\"/' /usr/lib/systemd/system/jenkins.service",
-
-                "sudo systemctl enable jenkins",
-                "sudo systemctl restart jenkins"
+                // 프론트엔드 환경변수 등록 (파일 기반)
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>env-frontend</id>\n" +
+                        "  <description>Frontend .env.local</description>\n" +
+                        "  <fileName>.env.local</fileName>\n" +
+                        "  <secretBytes>" + frontendEnvFileName + "</secretBytes>\n" +
+                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "EOF"
         );
     }
 
-
-    private List<String> makeJenkinsJob() {
-        return List.of(
+    private List<String> makeJenkinsJob(String jobName, String gitRepoUrl, String credentialsId) {
+        String jobConfigXml = String.join("\n",
+                "sudo tee job-config.xml > /dev/null <<EOF",
+                "<?xml version='1.1' encoding='UTF-8'?>",
+                "<flow-definition plugin=\"workflow-job\">",
+                "  <description>GitLab 연동 자동 배포</description>",
+                "  <keepDependencies>false</keepDependencies>",
+                "  <definition class=\"org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition\" plugin=\"workflow-cps\">",
+                "    <scm class=\"hudson.plugins.git.GitSCM\" plugin=\"git\">",
+                "      <configVersion>2</configVersion>",
+                "      <userRemoteConfigs>",
+                "        <hudson.plugins.git.UserRemoteConfig>",
+                "          <url>" + gitRepoUrl + "</url>",
+                "          <credentialsId>" + credentialsId + "</credentialsId>",
+                "        </hudson.plugins.git.UserRemoteConfig>",
+                "      </userRemoteConfigs>",
+                "      <branches>",
+                "        <hudson.plugins.git.BranchSpec>",
+                "          <name>*/master</name>",
+                "        </hudson.plugins.git.BranchSpec>",
+                "      </branches>",
+                "    </scm>",
+                "    <scriptPath>Jenkinsfile</scriptPath>",
+                "    <lightweight>true</lightweight>",
+                "  </definition>",
+                "  <triggers>",
+                "    <com.dabsquared.gitlabjenkins.GitLabPushTrigger plugin=\"gitlab-plugin\">",
+                "      <spec></spec>",
+                "      <triggerOnPush>true</triggerOnPush>",
+                "      <triggerOnMergeRequest>false</triggerOnMergeRequest>",
+                "      <triggerOnNoteRequest>false</triggerOnNoteRequest>",
+                "      <triggerOnPipelineEvent>false</triggerOnPipelineEvent>",
+                "      <triggerOnAcceptedMergeRequest>false</triggerOnAcceptedMergeRequest>",
+                "      <triggerOnClosedMergeRequest>false</triggerOnClosedMergeRequest>",
+                "      <triggerOnApprovedMergeRequest>false</triggerOnApprovedMergeRequest>",
+                "      <triggerOpenMergeRequestOnPush>never</triggerOpenMergeRequestOnPush>",
+                "      <ciSkip>false</ciSkip>",
+                "      <setBuildDescription>true</setBuildDescription>",
+                "      <addNoteOnMergeRequest>false</addNoteOnMergeRequest>",
+                "      <addVoteOnMergeRequest>false</addVoteOnMergeRequest>",
+                "      <useCiFeatures>false</useCiFeatures>",
+                "      <addCiMessage>false</addCiMessage>",
+                "      <branchFilterType>All</branchFilterType>",
+                "    </com.dabsquared.gitlabjenkins.GitLabPushTrigger>",
+                "  </triggers>",
+                "</flow-definition>",
+                "EOF"
         );
+
+        return List.of(
+                jobConfigXml,
+                "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
+                "java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-job " + jobName + " < job-config.xml"
+        );
+    }
+
+    private List<String> makeGitlabWebhook(String accessToken, Long projectId, String jobName, String jenkinsIp) {
+        String hookUrl = "http://" + jenkinsIp + ":9090/project/" + jobName;
+        String branchFilter = "master";
+
+        gitlabService.createPushWebhook(accessToken, projectId, hookUrl, branchFilter);
+
+        //최초 실행 로직 한번 필요 그래야 아래 777의미가 있음
+        return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
     }
 
     private List<String> makeDockerComposeYml() {
