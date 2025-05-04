@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import { useParams } from 'next/navigation';
 
 import { project, tasksByTab } from '@/assets/dummy/project_detail';
 
@@ -9,6 +10,10 @@ import { ProjectHeader } from './ProjectHeader';
 import { ProjectInfo } from './ProjectInfo';
 
 export default function ProjectDetail() {
+  const params = useParams();
+  const id = params?.id;
+  console.log('프로젝트 상세: ', id);
+
   return (
     <SectionWrapper>
       <Top>

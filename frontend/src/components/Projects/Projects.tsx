@@ -10,7 +10,9 @@ import { ProjectCard } from './ProjectCard';
 export default function Projects() {
   return (
     <SectionWrapper>
-      <SectionTitle>Projects</SectionTitle>
+      <SectionTitle>
+        <Title>Projects</Title>
+      </SectionTitle>
       <CardsList>
         {projects.map((p, idx) => {
           const time = p.lastBuildAt
@@ -29,6 +31,7 @@ export default function Projects() {
           return (
             <ProjectCard
               key={p.id}
+              id={p.id}
               emoji={emoji}
               title={p.projectName}
               time={time}
@@ -44,20 +47,34 @@ export default function Projects() {
 }
 
 const SectionWrapper = styled.section`
-  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  padding-top: 14rem;
   background-color: ${({ theme }) => theme.colors.White};
   border-radius: 1.5rem;
-  margin: 0 auto 4rem;
-  max-width: 80rem;
 `;
 
 const SectionTitle = styled.h2`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding-left: 4rem;
   margin-bottom: 1.5rem;
+`;
+
+const Title = styled.div`
+  min-width: 80rem;
   ${({ theme }) => theme.fonts.EnTitle1};
 `;
 
 const CardsList = styled.div`
   display: flex;
   flex-direction: column;
+  min-width: 80rem;
   gap: 1rem;
 `;

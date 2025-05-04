@@ -3,6 +3,7 @@ import type { DeployTabName } from '@/types/deploy';
 import type { Task } from '@/types/task';
 
 export const project = {
+  id: 1,
   emojiSrc: '/assets/projectcard/project_default.png',
   projectName: 'K‑ing Service',
   httpsEnabled: true,

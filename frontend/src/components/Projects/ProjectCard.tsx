@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import { useRouter } from 'next/navigation';
 
 import { User } from '@/types/user';
 import { getCardColor } from '@/utils/getColor';
@@ -6,6 +7,7 @@ import { getCardColor } from '@/utils/getColor';
 import { AvatarList } from './AvatarList';
 
 interface ProjectCardProps {
+  id: number;
   emoji: 'default' | 'success' | 'fail';
   title: string;
   time: string;
@@ -15,6 +17,7 @@ interface ProjectCardProps {
 }
 
 export const ProjectCard = ({
+  id,
   emoji,
   title,
   time,
@@ -22,6 +25,7 @@ export const ProjectCard = ({
   status,
   users,
 }: ProjectCardProps) => {
+  const router = useRouter();
   const cardColor = getCardColor(emoji);
 
   let buildIconSrc = '';
@@ -31,8 +35,12 @@ export const ProjectCard = ({
     buildIconSrc = '/assets/icons/ic_build_fail.svg';
   }
 
+  const handleClick = () => {
+    router.push(`/projects/${id}`);
+  };
+
   return (
-    <Card color={cardColor}>
+    <Card color={cardColor} onClick={handleClick}>
       <Left>
         <ProjectImage
           src={`/assets/projectcard/project_${emoji}.png`}
