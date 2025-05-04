@@ -1,7 +1,6 @@
 import 'react-day-picker/dist/style.css';
 
 import styled from '@emotion/styled';
-// eslint-disable-next-line import/no-extraneous-dependencies
 import { DayPicker } from 'react-day-picker';
 
 interface CalenderProps {
