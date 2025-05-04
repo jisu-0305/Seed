@@ -16,7 +16,10 @@ const initialStatus: ProjectInfo = {
   gitlab: {
     repo: '',
     structure: '모노',
-    directory: false,
+    directory: {
+      client: '',
+      server: '',
+    },
   },
   server: {
     ip: '',
