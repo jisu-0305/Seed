@@ -76,8 +76,8 @@ const Wrapper = styled.div`
   flex-direction: column;
 
   margin: 0 auto;
-  padding: 5rem;
-  padding-top: 10rem;
+  padding: 2rem;
+  padding-top: 8rem;
 `;
 
 const Content = styled.div`
@@ -88,7 +88,10 @@ const Content = styled.div`
 
 const Main = styled.main`
   flex: 6;
-  padding: 2rem 3rem;
+  display: flex;
+  align-items: center;
+
+  /* padding: 0 3rem 2rem; */
 
   border: 1px solid ${({ theme }) => theme.colors.LightGray1};
   border-radius: 1.5rem;
