@@ -10,14 +10,17 @@ const client = axios.create({
 
 client.interceptors.request.use((config) => {
   const accessToken = localStorage.getItem('accessToken');
+  if (!accessToken) return config;
 
-  if (config.url === `/token/refresh`) {
+  if (config.url?.endsWith('/token/refresh')) {
     // eslint-disable-next-line no-param-reassign
     config.headers.Refresh = `${localStorage.getItem('refreshToken')}`;
   } else {
     // eslint-disable-next-line no-param-reassign
     config.headers.Authorization = `Bearer ${accessToken}`;
   }
+
+  // console.log('Axios 요청 헤더:', config.headers);
   return config;
 });
 

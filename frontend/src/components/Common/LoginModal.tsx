@@ -29,7 +29,7 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   };
 
   const goGitlab = () => {
-    const url = `https://lab.ssafy.com/${user?.username ?? ''}`;
+    const url = `https://lab.ssafy.com/${user?.userIdentifyId ?? ''}`;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
 
@@ -44,13 +44,13 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
           <>
             <ProfileSection>
               <Avatar src={user.avatarUrl || '/assets/user.png'} alt="avatar" />
-              <UserName>{user.name}</UserName>
+              <UserName>{user.userName}</UserName>
             </ProfileSection>
 
             <List>
               <Item onClick={goGitlab}>
                 <GitlabIcon src="/assets/icons/ic_gitlab.svg" alt="GitLab" />@
-                {user.username}
+                {user.userIdentifyId}
               </Item>
               <Item onClick={handleLogout}>
                 <Icon src="/assets/icons/ic_logout.svg" />

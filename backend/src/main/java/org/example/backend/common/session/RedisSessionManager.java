@@ -64,8 +64,7 @@ public class RedisSessionManager {
     }
 
     public void deleteSession(String jwtToken) {
-        String token = jwtToken.substring(7).trim();
-        String userId = jwtTokenProvider.getSubjectFromToken(token);
+        String userId = jwtTokenProvider.getSubjectFromToken(jwtToken);
         String sessionKey = SESSION_PREFIX + userId;
         redisTemplate.delete(sessionKey);
         log.debug("Session deleted for userId: {}", userId);
