@@ -21,7 +21,7 @@ export default function StepSidebar() {
           <Label>디렉토리</Label>
           <Icon
             src={
-              status.gitlab.directory
+              status.gitlab.directory.client && status.gitlab.directory.server
                 ? '/assets/icons/ic_checked_true.svg'
                 : '/assets/icons/ic_checked_false.svg'
             }
@@ -92,7 +92,7 @@ export default function StepSidebar() {
 }
 
 const SidebarWrapper = styled.aside`
-  min-width: 20rem;
+  min-width: 18rem;
   padding: 1.5rem;
   padding-bottom: 0;
 
