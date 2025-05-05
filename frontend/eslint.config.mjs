@@ -55,6 +55,7 @@ const eslintConfig = [
       'simple-import-sort': simpleImportSort,
     },
     rules: {
+      'import/no-extraneous-dependencies': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       'import/prefer-default-export': 'off',
       'jsx-a11y/label-has-associated-control': [

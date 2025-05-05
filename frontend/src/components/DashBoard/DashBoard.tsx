@@ -1,4 +1,3 @@
-/* eslint-disable import/no-extraneous-dependencies */
 import 'swiper/css';
 
 import styled from '@emotion/styled';

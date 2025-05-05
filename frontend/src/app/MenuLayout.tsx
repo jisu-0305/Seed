@@ -46,5 +46,4 @@ const RightArea = styled.div`
 
 const ContentWrapper = styled.main`
   flex-grow: 1;
-  overflow-y: auto;
 `;

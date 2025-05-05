@@ -34,7 +34,7 @@ export default function SideBar() {
 
         <MenuItem
           active={pathname.startsWith('/create')}
-          onClick={() => handleMovePage('/create')}
+          onClick={() => handleMovePage('/create/step1')}
         >
           <IcCreate
             src={

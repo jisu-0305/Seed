@@ -35,7 +35,7 @@ export default function Header({ title }: HeaderProps) {
             src={user?.avatarUrl || '/assets/user.png'}
             alt="profile"
           />
-          {loading ? '...' : user?.name || 'SSAFY'}
+          {loading ? '...' : user?.userName || 'SSAFY'}
         </Profile>
         {isShowing && <LoginModal onClose={toggle} />}
       </MenuWrapper>
