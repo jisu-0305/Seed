@@ -9,7 +9,8 @@ public record CreateMrRequest(
         @Schema(description = "소스 브랜치 이름", example = "feature/new-ui")
         String sourceBranch,
 
-        @Schema(description = "타겟(베이스) 브랜치 이름", example = "master", defaultValue = "dev")
+        @NotBlank
+        @Schema(description = "타겟(베이스) 브랜치 이름", example = "dev", defaultValue = "dev")
         String targetBranch,
 
         @Schema(description = "MR 제목", example = "feat: add new UI", defaultValue = "MR By SEED")
@@ -19,12 +20,8 @@ public record CreateMrRequest(
         String description
 ) {
     public CreateMrRequest {
-        if (targetBranch == null || targetBranch.isBlank()) {
-            targetBranch = "master";
-        }
-
         if (title == null || title.isBlank()) {
-            title = "MR By SEED";
+            title = "MR Created By SEED";
         }
     }
 }
