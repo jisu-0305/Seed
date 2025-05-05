@@ -81,7 +81,7 @@ public class GitlabController {
     @GetMapping("/projects/{projectId}/diff")
     @Operation(summary = "커밋 간 변경사항 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<GitlabCompareResponse>> getDiff(
-            @PathVariable Long projectId,
+            @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
             @ParameterObject @Valid @ModelAttribute DiffCommitRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
@@ -94,7 +94,7 @@ public class GitlabController {
     @Operation(summary = "새 브랜치 생성", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<GitlabBranch>> createBranch(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
-            @ParameterObject @Valid @RequestBody CreateBranchRequest request,
+            @Valid @RequestBody CreateBranchRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         GitlabBranch created = gitlabService.createBranch(accessToken, projectId, request.branch(), request.baseBranch());
@@ -118,7 +118,7 @@ public class GitlabController {
     @Operation(summary = "MR 생성", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<MergeRequestCreateResponse>> createMergeRequest(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
-            @ParameterObject @Valid @RequestBody CreateMrRequest request,
+            @Valid @RequestBody CreateMrRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         MergeRequestCreateResponse created =
@@ -140,10 +140,10 @@ public class GitlabController {
     @Operation(summary = "깃랩 웹훅_push", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<Void>> createWebhook(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
-            @ParameterObject @Validated @RequestBody ProjectHookRequest request,
+            @Validated @RequestBody ProjectHookRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        gitlabService.createPushWebhook(accessToken, projectId, request.getUrl(), request.getWildcard());
+        gitlabService.createPushWebhook(accessToken, projectId, request.url(), request.wildcard());
         return ResponseEntity.ok(ApiResponse.success());
 
     }
