@@ -1,6 +1,5 @@
 package org.example.backend.domain.gitlab.service;
 
-import com.google.firestore.v1.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -34,7 +33,7 @@ public interface GitlabApiClient {
             String description
     );
 
-    GitlabBranch getBranch(String accessToken, Long projectId, String branchName);
+    void getBranch(String accessToken, Long projectId, String branchName);
 
     List<GitlabMergeRequest> listMergeRequests(String accessToken, Long projectId, int page, int perPage);
 

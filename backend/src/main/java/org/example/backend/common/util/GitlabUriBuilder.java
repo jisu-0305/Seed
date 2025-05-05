@@ -6,8 +6,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.Optional;
 
 @Slf4j
@@ -17,52 +15,44 @@ public class GitlabUriBuilder {
     @Value("${gitlab.api.base-url}")
     private String baseUrl;
 
-    public String projects(int page, int perPage) {
-
+    public URI projects(int page, int perPage) {
         return UriComponentsBuilder.fromUriString(baseUrl)
-                .path("/projects")
+                .pathSegment("projects")
                 .queryParam("membership", true)
                 .queryParam("page", page)
                 .queryParam("per_page", perPage)
-                .toUriString();
+                .encode()
+                .build()
+                .toUri();
     }
 
     public URI projectUri(String namespaceAndName) {
-
-        return URI.create(UriComponentsBuilder.fromUriString(baseUrl)
-                .path("/projects/")
-                .build(false)
-                .toUriString() + namespaceAndName);
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", namespaceAndName)
+                .encode()
+                .build()
+                .toUri();
     }
 
-    public String repositoryTree(Long projectId,
-                                 String path,
-                                 boolean recursive,
-                                 int page,
-                                 int perPage) {
-
+    public URI repositoryTree(Long projectId,
+                              String path,
+                              boolean recursive,
+                              int page,
+                              int perPage) {
         return UriComponentsBuilder.fromUriString(baseUrl)
-                .path("/projects/{id}/repository/tree")
+                .pathSegment("projects", projectId.toString(), "repository", "tree")
                 .queryParam("path", path)
                 .queryParam("recursive", recursive)
                 .queryParam("page", page)
                 .queryParam("per_page", perPage)
-                .build(projectId)
-                .toString();
+                .encode()
+                .build()
+                .toUri();
     }
 
     public URI rawFileUri(Long projectId, String filePath, String ref) {
-
-        return UriComponentsBuilder
-                .fromUriString(baseUrl)
-                .pathSegment(
-                        "projects",
-                        projectId.toString(),
-                        "repository",
-                        "files",
-                        filePath,
-                        "raw"
-                )
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "repository", "files", filePath, "raw")
                 .queryParam("ref", ref)
                 .encode()
                 .build()
@@ -70,58 +60,51 @@ public class GitlabUriBuilder {
     }
 
     public URI compare(Long projectId, String from, String to) {
-        return URI.create(String.format(
-                "%s/projects/%d/repository/compare?from=%s&to=%s",
-                baseUrl, projectId, from, to
-        ));
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "repository", "compare")
+                .queryParam("from", from)
+                .queryParam("to", to)
+                .encode()
+                .build()
+                .toUri();
     }
 
     public URI createBranch(Long projectId, String branchName, String ref) {
-
-        String b = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-        String r = URLEncoder.encode(ref, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-
-        String url = String.format(
-                "%s/projects/%d/repository/branches?branch=%s&ref=%s",
-                baseUrl, projectId, b, r
-        );
-
-        return URI.create(url);
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "repository", "branches")
+                .queryParam("branch", branchName)
+                .queryParam("ref", ref)
+                .encode()
+                .build()
+                .toUri();
     }
 
     public URI deleteBranch(Long projectId, String branchName) {
-        String encodedBranch = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-
-        String url = String.format(
-                "%s/projects/%d/repository/branches/%s",
-                baseUrl, projectId, encodedBranch
-        );
-
-        return URI.create(url);
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "repository", "branches", branchName)
+                .encode()
+                .build()
+                .toUri();
     }
 
     public URI createMergeRequest(Long projectId) {
         return UriComponentsBuilder.fromUriString(baseUrl)
                 .pathSegment("projects", projectId.toString(), "merge_requests")
+                .encode()
                 .build()
                 .toUri();
     }
 
     public URI getBranchUri(Long projectId, String branchName) {
-        String encoded = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-        return URI.create(String.format(
-                "%s/projects/%d/repository/branches/%s",
-                baseUrl, projectId, encoded
-        ));
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .pathSegment("projects", projectId.toString(), "repository", "branches", branchName)
+                .encode()
+                .build()
+                .toUri();
     }
 
-    public URI createProjectHook(Long projectId,  String hookUrl, String branchFilter) {
-        UriComponentsBuilder b = UriComponentsBuilder
-                .fromUriString(baseUrl)
+    public URI createProjectHook(Long projectId, String hookUrl, String branchFilter) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(baseUrl)
                 .pathSegment("projects", projectId.toString(), "hooks")
                 .queryParam("url", hookUrl)
                 .queryParam("push_events", true)
@@ -129,13 +112,11 @@ public class GitlabUriBuilder {
 
         Optional.ofNullable(branchFilter)
                 .filter(f -> !f.isBlank())
-                .ifPresent(f -> b.queryParam("push_events_branch_filter", f));
+                .ifPresent(f -> builder.queryParam("push_events_branch_filter", f));
 
-        return b.build().encode().toUri();
-
+        return builder.encode().build().toUri();
     }
 
-    // 프로젝트의 mr 목록 조회 _ 생성일자 내림차순 기준으로, mreged 상태만 가져오자
     public URI listMergeRequests(Long projectId,
                                  int page,
                                  int perPage) {
@@ -146,26 +127,24 @@ public class GitlabUriBuilder {
                 .queryParam("order_by", "created_at")
                 .queryParam("sort", "desc")
                 .queryParam("state", "merged")
-                .build()
                 .encode()
+                .build()
                 .toUri();
     }
 
-    // mr 상세조회 _ diff_ref (base sha, head sha ....)
     public URI getMergeRequest(Long projectId, Long mergeRequestIid) {
         return UriComponentsBuilder.fromUriString(baseUrl)
                 .pathSegment("projects", projectId.toString(), "merge_requests", mergeRequestIid.toString())
-                .build()
                 .encode()
+                .build()
                 .toUri();
     }
 
-    // commit 만들기 (브랜치에 커밋 만들면 push 되는거랑 같음)
     public URI createCommit(Long projectId) {
         return UriComponentsBuilder.fromUriString(baseUrl)
                 .pathSegment("projects", projectId.toString(), "repository", "commits")
-                .build()
                 .encode()
+                .build()
                 .toUri();
     }
 

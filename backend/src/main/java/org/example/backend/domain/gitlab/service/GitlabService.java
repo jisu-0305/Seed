@@ -1,7 +1,5 @@
 package org.example.backend.domain.gitlab.service;
 
-import com.google.firestore.v1.CommitResponse;
-import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -16,13 +14,13 @@ public interface GitlabService {
 
     String getFile(String accessToken, Long projectId, String path, String ref);
 
-    GitlabProject getProjectInfo(String accessToken, ProjectUrlRequest request);
+    GitlabProject getProjectInfo(String accessToken, String request);
 
     GitlabCompareResponse getDiff(String accessToken, Long projectId, String from, String to);
 
     GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
 
-    String deleteBranch(String accessToken, Long projectId, String branch);
+    void deleteBranch(String accessToken, Long projectId, String branch);
 
     MergeRequestCreateResponse createMergeRequest(
             String accessToken,

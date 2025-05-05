@@ -1,6 +1,5 @@
 package org.example.backend.domain.gitlab.service;
 
-import com.google.firestore.v1.CommitResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
@@ -17,8 +16,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -32,35 +29,32 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     @Override
     public List<GitlabProject> listProjects(String accessToken) {
-        List<GitlabProject> projects;
-        String uri =uriBuilder.projects(1, 100);
+        URI uri = uriBuilder.projects(1, 100);
         try {
-            projects = gitlabWebClient.get().uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
-                    .retrieve().bodyToFlux(GitlabProject.class)
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
+                    .retrieve()
+                    .bodyToFlux(GitlabProject.class)
                     .collectList()
                     .block();
-        } catch (Exception e) {
-            if (e instanceof WebClientResponseException &&
-                    ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
-            log.error("listProjects 메서드에서 예외 발생", e);
+            log.error("listProjects error", ex);
             throw new BusinessException(ErrorCode.GITLAB_BAD_PROJECTS);
         }
-        return projects;
     }
 
     @Override
-    public GitlabProject getProjectInfo(String token, String projectUrlOrPath) {
-        String path = toProjectPath(projectUrlOrPath);
-        URI uri = uriBuilder.projectUri(path);
-
-        log.debug(">>>>> final URI = {}", uri);
-
+    public GitlabProject getProjectInfo(String token, String projectPath) {
+        URI uri = uriBuilder.projectUri(projectPath);
+        log.debug("getProjectInfo URI = {}", uri);
         try {
-            return gitlabWebClient.get().uri(uri)
-                    .headers(header -> header.setBearerAuth(token))
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(token))
                     .retrieve()
                     .bodyToMono(GitlabProject.class)
                     .block();
@@ -68,98 +62,82 @@ public class GitlabApiClientImpl implements GitlabApiClient {
             if (ex.getStatusCode().is4xxClientError()) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
-            log.error("getProjectInfo 예외", ex);
+            log.error("getProjectInfo error", ex);
             throw new BusinessException(ErrorCode.GITLAB_BAD_PROJECTS);
         }
     }
 
     @Override
     public List<GitlabTree> listTree(String accessToken, Long projectId, String path, boolean recursive) {
-        List<GitlabTree> tree;
-        String uri = uriBuilder.repositoryTree(projectId, path, recursive, 1, 100);
-
+        URI uri = uriBuilder.repositoryTree(projectId, path, recursive, 1, 100);
         try {
-            tree = gitlabWebClient.get().uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToFlux(GitlabTree.class)
                     .collectList()
                     .block();
-        } catch (Exception e) {
-            if (e instanceof WebClientResponseException &&
-                    ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
-            log.error("listTree 메서드에서 예외 발생", e);
+            log.error("listTree error", ex);
             throw new BusinessException(ErrorCode.GITLAB_BAD_TREE);
         }
-        return tree;
     }
 
     @Override
     public String getRawFile(String accessToken, Long projectId, String path, String ref) {
-        String content;
         URI uri = uriBuilder.rawFileUri(projectId, path, ref);
-        log.debug(">>>>>>>>> getRawFile URI = {}", uri);
-
+        log.debug("getRawFile URI = {}", uri);
         try {
-            content = gitlabWebClient.get().uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
-        } catch (Exception e) {
-            if (e instanceof WebClientResponseException &&
-                    ((WebClientResponseException) e).getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
-            log.error("getRawFile 메서드에서 예외 발생", e);
+            log.error("getRawFile error", ex);
             throw new BusinessException(ErrorCode.GITLAB_BAD_FILE);
         }
-        return content;
     }
 
     @Override
     public GitlabCompareResponse compareCommits(String accessToken, Long projectId, String from, String to) {
-
         URI uri = uriBuilder.compare(projectId, from, to);
-
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(GitlabCompareResponse.class)
                     .block();
-        } catch (WebClientResponseException e) {
-
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
-            throw new BusinessException(ErrorCode.GITLAB_BAD_COMPARE);
-        } catch (Exception e) {
             throw new BusinessException(ErrorCode.GITLAB_BAD_COMPARE);
         }
     }
 
     @Override
-    public GitlabBranch createBranch(String accessToken,
-                                     Long projectId,
-                                     String branch,
-                                     String ref) {
+    public GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref) {
         URI uri = uriBuilder.createBranch(projectId, branch, ref);
-        log.debug(">>>>>>>> createBranch URI = {}", uri);
-
+        log.debug("createBranch URI = {}", uri);
         try {
             return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(GitlabBranch.class)
                     .block();
-
-        } catch (WebClientResponseException e) {
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_BRANCH);
@@ -167,23 +145,18 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public void createProjectHook(String privateToken, Long projectId,
-                                               String hookUrl, String pushEventsBranchFilter ) {
-
-        URI uri = uriBuilder.createProjectHook(projectId, hookUrl, pushEventsBranchFilter);
-        log.debug(">>>> createProjectHook URI = {}", uri);
-
+    public void createProjectHook(String accessToken, Long projectId, String hookUrl, String branchFilter) {
+        URI uri = uriBuilder.createProjectHook(projectId, hookUrl, branchFilter);
         try {
             gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(privateToken))
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .toBodilessEntity()
                     .block();
-        } catch (WebClientResponseException e) {
-            log.error("GitLab createProjectHook Error: status={}, body={}, uri={}",
-                    e.getStatusCode(), e.getResponseBodyAsString(), uri);
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            log.error("createProjectHook error status={}, body={}", ex.getStatusCode(), ex.getResponseBodyAsString());
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_WEBHOOK);
@@ -191,22 +164,18 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public void deleteBranch(String accessToken,
-                             Long projectId,
-                             String branch) {
+    public void deleteBranch(String accessToken, Long projectId, String branch) {
         URI uri = uriBuilder.deleteBranch(projectId, branch);
-        log.debug(">>>>>>>> deleteBranch URI = {}", uri);
-
+        log.debug("deleteBranch URI = {}", uri);
         try {
             gitlabWebClient.delete()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(Void.class)
                     .block();
-
-        } catch (WebClientResponseException e) {
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_DELETE_BRANCH);
@@ -223,51 +192,45 @@ public class GitlabApiClientImpl implements GitlabApiClient {
             String description
     ) {
         URI uri = uriBuilder.createMergeRequest(projectId);
-        log.debug(">>>>>>> createMergeRequest URI = {}", uri);
-
-        BodyInserters.FormInserter<String> form = BodyInserters
-                .fromFormData("source_branch", sourceBranch)
+        log.debug("createMergeRequest URI = {}", uri);
+        var form = BodyInserters.fromFormData("source_branch", sourceBranch)
                 .with("target_branch", targetBranch)
                 .with("title", title);
-
         if (description != null && !description.isBlank()) {
             form = form.with("description", description);
         }
-
         try {
             return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(form)
                     .retrieve()
                     .bodyToMono(MergeRequestCreateResponse.class)
                     .block();
-        } catch (WebClientResponseException e) {
+        } catch (WebClientResponseException ex) {
             throw new BusinessException(ErrorCode.GITLAB_MERGE_REQUEST_FAILED);
         }
     }
 
     @Override
-    public GitlabBranch getBranch(String accessToken, Long projectId, String branchName) {
+    public void getBranch(String accessToken, Long projectId, String branchName) {
         URI uri = uriBuilder.getBranchUri(projectId, branchName);
         try {
-            return gitlabWebClient.get()
+            gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(accessToken))
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .retrieve()
                     .bodyToMono(GitlabBranch.class)
                     .block();
-        } catch (WebClientResponseException e) {
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new BusinessException(ErrorCode.GITLAB_BRANCH_NOT_FOUND);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
         }
     }
 
-
-    // mr 목록 조회하기
     @Override
     public List<GitlabMergeRequest> listMergeRequests(String accessToken, Long projectId, int page, int perPage) {
         URI uri = uriBuilder.listMergeRequests(projectId, page, perPage);
@@ -279,8 +242,8 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                     .bodyToFlux(GitlabMergeRequest.class)
                     .collectList()
                     .block();
-        } catch (WebClientResponseException e) {
-            if (e.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_MERGE_REQUESTS);
@@ -297,8 +260,8 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                     .retrieve()
                     .bodyToMono(GitlabMergeRequest.class)
                     .block();
-        } catch (WebClientResponseException e) {
-            if (e.getStatusCode() == HttpStatus.NOT_FOUND) {
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new BusinessException(ErrorCode.GITLAB_MR_NOT_FOUND);
             }
             throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
@@ -306,36 +269,25 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public void createCommit(String token, Long projectId, String branch, String message, List<CommitAction> actions) {
+    public void createCommit(String accessToken, Long projectId, String branch, String message, List<CommitAction> actions) {
         URI uri = uriBuilder.createCommit(projectId);
-
         var payload = Map.of(
                 "branch", branch,
                 "commit_message", message,
                 "actions", actions
         );
-
         try {
             gitlabWebClient.post()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(token))
+                    .headers(h -> h.setBearerAuth(accessToken))
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(payload)
                     .retrieve()
                     .toBodilessEntity()
                     .block();
-        } catch (WebClientResponseException e) {
+        } catch (WebClientResponseException ex) {
             throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT);
         }
-    }
-
-    private static String toProjectPath(String raw) {
-        String path = raw.startsWith("http") ? URI.create(raw).getPath() : raw;
-
-        if (path.startsWith("/")) path = path.substring(1);
-
-        return URLEncoder.encode(path, StandardCharsets.UTF_8)
-                .replace("+", "%20");
     }
 
 }
