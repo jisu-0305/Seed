@@ -9,7 +9,7 @@ export interface ProjectInfo {
   };
   server: {
     ip: string;
-    pem: boolean;
+    pem: File | null;
   };
   app: {
     name: string;

@@ -23,7 +23,7 @@ const initialStatus: ProjectInfo = {
   },
   server: {
     ip: '',
-    pem: false,
+    pem: null,
   },
   app: [],
   env: {
