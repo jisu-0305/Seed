@@ -91,6 +91,8 @@ const Main = styled.main`
   display: flex;
   align-items: center;
 
+  min-height: 50rem;
+
   /* padding: 0 3rem 2rem; */
 
   border: 1px solid ${({ theme }) => theme.colors.LightGray1};
