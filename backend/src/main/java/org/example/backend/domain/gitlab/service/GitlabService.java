@@ -37,6 +37,6 @@ public interface GitlabService {
 
     GitlabCompareResponse getLatestMergeRequestDiff(String accessToken, Long projectId);
 
-    void triggerPushEvent(String authHeader, Long projectId, String branch);
+    void triggerPushEvent(String accessToken, Long projectId, String branch);
 
 }
