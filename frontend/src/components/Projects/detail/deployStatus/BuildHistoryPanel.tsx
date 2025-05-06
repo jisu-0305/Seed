@@ -19,7 +19,7 @@ export function BuildHistoryPanel() {
             onClick={() => setSelectedId(b.id)}
           >
             <Icon status={b.status}>
-              <img src="/assets/icons/ic_build_white.svg" alt="build" />
+              <IcIcon src="/assets/icons/ic_build_white.svg" alt="build" />
             </Icon>
             <Info>
               <Title>
@@ -51,8 +51,7 @@ const Wrapper = styled.div`
 
 const LeftPanel = styled.div`
   width: 220px;
-  background: ${({ theme }) => theme.colors.White};
-  border-right: 1px solid ${({ theme }) => theme.colors.Gray1};
+  border-right: 1px solid ${({ theme }) => theme.colors.DetailBorder2};
 
   overflow-y: auto;
 
@@ -91,7 +90,7 @@ const RightPanel = styled.div`
   flex-direction: column;
 
   overflow-y: auto;
-  border-right: 1px solid ${({ theme }) => theme.colors.Gray1};
+  border-right: 1px solid ${({ theme }) => theme.colors.DetailBorder2};
 `;
 
 const BuildItem = styled.div<{ active: boolean }>`
@@ -99,13 +98,13 @@ const BuildItem = styled.div<{ active: boolean }>`
   align-items: center;
   gap: 2rem;
   padding: 1rem 2rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.InputStroke};
   background: ${({ active, theme }) =>
-    active ? theme.colors.LightGray2 : 'transparent'};
+    active ? theme.colors.InputStroke : 'transparent'};
   cursor: pointer;
 
   :hover {
-    background: ${({ theme }) => theme.colors.LightGray1};
+    background: ${({ theme }) => theme.colors.DetailBorder1};
   }
 `;
 
@@ -117,13 +116,15 @@ const Icon = styled.div<{ status: string }>`
   height: 3rem;
   border-radius: 50%;
   background: ${({ status, theme }) =>
-    status === 'SUCCESS' ? theme.colors.Black1 : theme.colors.Red2};
+    status === 'SUCCESS' ? theme.colors.Text : theme.colors.Red2};
 
   img {
     width: 2rem;
     height: 2rem;
   }
 `;
+
+const IcIcon = styled.img``;
 
 const Info = styled.div`
   display: flex;
@@ -147,11 +148,11 @@ const LinkButton = styled.a`
   border-radius: 9999px;
   border: 1px solid ${({ theme }) => theme.colors.Gray3};
   text-decoration: none;
-  color: ${({ theme }) => theme.colors.Black};
+  color: ${({ theme }) => theme.colors.Text};
   ${({ theme }) => theme.fonts.Body4};
 
   &:hover {
-    background: ${({ theme }) => theme.colors.Black};
-    color: ${({ theme }) => theme.colors.White};
+    background: ${({ theme }) => theme.colors.Text};
+    color: ${({ theme }) => theme.colors.Background};
   }
 `;
