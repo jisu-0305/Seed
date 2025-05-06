@@ -1,9 +1,18 @@
 import styled from '@emotion/styled';
+import { useState } from 'react';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
 
 export default function StepSidebar() {
   const { stepStatus: status } = useProjectInfoStore();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const appCnt = status.app.length;
+  const mainAppName = status.app[0]?.name || '-';
+
+  const toggleExpand = () => {
+    setIsExpanded((prev) => !prev);
+  };
 
   return (
     <SidebarWrapper>
@@ -21,7 +30,7 @@ export default function StepSidebar() {
           <Label>디렉토리</Label>
           <Icon
             src={
-              status.gitlab.directory
+              status.gitlab.directory.client && status.gitlab.directory.server
                 ? '/assets/icons/ic_checked_true.svg'
                 : '/assets/icons/ic_checked_false.svg'
             }
@@ -56,19 +65,33 @@ export default function StepSidebar() {
       {/* 어플리케이션 */}
       <Section>
         <Row>
-          <Label>어플리케이션</Label>
+          <Label>
+            어플리케이션
+            {appCnt > 1 && (
+              <ArrowIcon
+                src="/assets/icons/ic_arrow_down.svg"
+                alt="arrow"
+                isExpanded={isExpanded}
+                onClick={toggleExpand}
+                role="button"
+              />
+            )}
+          </Label>
+
+          {!isExpanded && (
+            <AppTag>
+              {mainAppName}
+              {appCnt > 1 && ' 외'}
+            </AppTag>
+          )}
         </Row>
-        {status.app.length > 0 ? (
+
+        {isExpanded &&
           status.app.map((app) => (
             <Row key={app.name}>
               <AppTag>{app.name}</AppTag>
             </Row>
-          ))
-        ) : (
-          <Row>
-            <AppTag>-</AppTag>
-          </Row>
-        )}
+          ))}
       </Section>
 
       <Divider />
@@ -92,7 +115,7 @@ export default function StepSidebar() {
 }
 
 const SidebarWrapper = styled.aside`
-  min-width: 25rem;
+  min-width: 18rem;
   padding: 1.5rem;
   padding-bottom: 0;
 
@@ -109,7 +132,7 @@ const Row = styled.div`
   justify-content: space-between;
   align-items: center;
 
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 `;
 
 const Label = styled.span`
@@ -119,6 +142,16 @@ const Label = styled.span`
 
 const Value = styled.span`
   ${({ theme }) => theme.fonts.Body3};
+`;
+
+const ArrowIcon = styled.img<{ isExpanded?: boolean }>`
+  position: relative;
+  top: 0.5rem;
+
+  transform: rotate(${({ isExpanded }) => (isExpanded ? '0deg' : '-90deg')});
+  transition: transform 0.2s ease;
+
+  cursor: pointer;
 `;
 
 const AppTag = styled.span`

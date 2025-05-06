@@ -60,19 +60,23 @@ export default function InfoCheck() {
         <Row>
           <Label>어플리케이션</Label>
         </Row>
-        {status.app.length > 0 ? (
-          status.app.map((app) => (
-            <Row key={app.name}>
-              <Value>
-                {app.name} : {app.version} :{app.port}
-              </Value>
+        <AppList>
+          {status.app.length > 0 ? (
+            status.app.map((app) => (
+              <Row key={app.name}>
+                <AppInfo>
+                  <strong>{app.name}</strong> :{' '}
+                  {app.tag === 'latest' ? 'LTS' : app.tag}
+                </AppInfo>
+                <PortInfo>: {app.port}</PortInfo>
+              </Row>
+            ))
+          ) : (
+            <Row>
+              <Value>-</Value>
             </Row>
-          ))
-        ) : (
-          <Row>
-            <Value>-</Value>
-          </Row>
-        )}
+          )}
+        </AppList>
       </Section>
 
       <Divider />
@@ -80,28 +84,33 @@ export default function InfoCheck() {
       {/* 환경 설정 */}
       <Section>
         <Row>
-          <Label>.env</Label>
-          <Icon
-            src={
-              status.env.env
-                ? '/assets/icons/ic_checked_true.svg'
-                : '/assets/icons/ic_checked_false.svg'
-            }
-            alt="checked"
-          />
+          <Label>환경설정</Label>
         </Row>
-        <Row>
-          <Label>Node</Label>
-          <Value>{status.env.node || '-'}</Value>
-        </Row>
-        <Row>
-          <Label>JDK</Label>
-          <Value>{status.env.jdk || '-'}</Value>
-        </Row>
-        <Row>
-          <Label>빌드</Label>
-          <Value>{status.env.buildTool || '-'}</Value>
-        </Row>
+        <AppList>
+          <Row>
+            <AppInfo>.env</AppInfo>
+            <Icon
+              src={
+                status.env.env
+                  ? '/assets/icons/ic_checked_true.svg'
+                  : '/assets/icons/ic_checked_false.svg'
+              }
+              alt="checked"
+            />
+          </Row>
+          <Row>
+            <AppInfo>Node</AppInfo>
+            <Value>{status.env.node || '-'}</Value>
+          </Row>
+          <Row>
+            <AppInfo>JDK</AppInfo>
+            <Value>{status.env.jdk || '-'}</Value>
+          </Row>
+          <Row>
+            <AppInfo>빌드</AppInfo>
+            <Value>{status.env.buildTool || '-'}</Value>
+          </Row>
+        </AppList>
       </Section>
     </StWrapper>
   );
@@ -135,7 +144,7 @@ const Row = styled.div`
   align-items: center;
 
   width: 100%;
-  max-width: 40rem;
+  max-width: 35rem;
   margin-bottom: 1rem;
 `;
 
@@ -158,4 +167,24 @@ const Divider = styled.hr`
 const Icon = styled.img`
   width: 1.5rem;
   height: 1.5rem;
+`;
+
+const AppList = styled.div`
+  display: flex;
+  flex-direction: column;
+
+  width: 20rem;
+  padding-left: 15rem;
+`;
+
+const AppInfo = styled.div`
+  ${({ theme }) => theme.fonts.Body3};
+
+  strong {
+    ${({ theme }) => theme.fonts.Title6};
+  }
+`;
+
+const PortInfo = styled.div`
+  ${({ theme }) => theme.fonts.Body3};
 `;

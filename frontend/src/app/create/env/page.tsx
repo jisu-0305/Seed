@@ -1,5 +1,7 @@
 'use client';
 
+import EnvInput from '@/components/NewProject/EnvInput';
+
 export default function EnvInputPage() {
-  return <div>Step 4: 환경설정</div>;
+  return <EnvInput />;
 }
