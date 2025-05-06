@@ -128,7 +128,7 @@ const Title = styled.h2`
     margin-top: 0;
   }
 
-  ${({ theme }) => theme.fonts.Title5};
+  ${({ theme }) => theme.fonts.Head4};
 `;
 
 const Input = styled.input`
