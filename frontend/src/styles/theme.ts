@@ -264,69 +264,113 @@ export const palette = {
 // };
 
 export const lightColors = {
-  BorderDefault: palette.LightGray1, // LightGray1
-  Background: palette.White, // White
-  Text: palette.Black, // Black
-  NavSelected: palette.LightGray3, // LightGray3
+  BorderDefault: palette.LightGray1,
+  Background: palette.White,
+  Text: palette.Black,
+  NavSelected: palette.LightGray3,
 
-  CalendarInactive: palette.DarkGray2, // DarkGray2
-  CalendarCarrot: palette.Main_Carrot, // Main-Carrot
-  CalendarBlue: palette.Blue1, // Blue1
-  CalendarGreen: palette.Green1, // Green1
-  CalendarRed: palette.Red2, // Red2
+  CalendarInactive: palette.DarkGray2,
+  CalenderDefault: palette.DarkGray0,
+  CalendarCarrot: palette.Main_Carrot,
+  CalendarBlue: palette.Blue1,
+  CalendarGreen: palette.Green1,
+  CalendarRed: palette.Red2,
 
-  InputBackground: palette.LightGray3, // LightGray3
+  InputBackground: palette.LightGray3,
+  InputStroke: palette.LightGray2,
+  RadioSelected: palette.DarkGray0,
 
-  BtnPrevBg: palette.Gray3, // Gray3
+  BtnPrevBg: palette.Gray3,
   BtnPrevText: palette.White,
-  BtnNextBg: palette.Gray0, // Gray0
+  BtnNextBg: palette.Gray0,
   BtnNextText: palette.White,
 
-  DetailFieldBg: palette.LightGray3, // LightGray3
-  DetailBorder1: palette.LightGray1, // LightGray1
-  DetailBorder2: palette.Black, // Black
+  DetailFieldBg: palette.LightGray3,
+  DetailBorder1: palette.LightGray1,
+  DetailBorder2: palette.Black,
+  DetailText: palette.Gray1,
 
-  MenuBg: palette.Black, // Black
+  BuildStroke: palette.LightGray1,
+  BuildHover: palette.Gray4,
+
+  MenuBg: palette.Black,
   MenuText: palette.White,
 
-  AiReport: palette.Gray4, // Gray4
+  AiReport: palette.Gray4,
 
   // 공통 색상
   Main_Carrot: palette.Main_Carrot,
+  Carrot2: palette.Carrot2,
   White: palette.White,
+  Black: palette.Black,
+  Black1: palette.Black1,
+  Gray0: palette.Gray0,
+  Gray3: palette.Gray3,
+  LightGray2: palette.LightGray2,
+  Red1: palette.Red1,
+  Red2: palette.Red2,
+  Red3: palette.Red3,
+  Blue1: palette.Blue1,
+  Blue2: palette.Blue2,
+  Blue4: palette.Blue4,
+  Blue3: palette.Blue3,
+  Purple1: palette.Purple1,
+  Purple3: palette.Purple3,
 };
 
 export const darkColors = {
-  BorderDefault: '#323232', // Gray0
-  Background: '#1C1C1C', // Black1
-  Text: '#FFFFFF',
-  NavSelected: '#252525', // DarkGray0
+  BorderDefault: palette.Gray0,
+  Background: palette.Black1,
+  Text: palette.White,
+  NavSelected: palette.DarkGray0,
 
-  CalendarInactive: '#3D3D3D', // DarkGray1
-  CalendarCarrot: '#CA9843', // Carrot0
-  CalendarBlue: '#4C6589', // Blue0
-  CalendarGreen: '#5B7A6F', // Green0
-  CalendarRed: '#9D3D3D', // Red0
+  CalendarInactive: palette.DarkGray1,
+  CalenderDefault: palette.White,
+  CalendarCarrot: palette.Carrot0,
+  CalendarBlue: palette.Blue0,
+  CalendarGreen: palette.Green0,
+  CalendarRed: palette.Red0,
 
-  InputBackground: '#252525', // DarkGray0
+  InputBackground: palette.DarkGray0,
+  InputStroke: palette.Gray0,
+  RadioSelected: palette.White,
 
-  BtnPrevBg: '#252525', // DarkGray0
-  BtnPrevText: '#969696', // Gray3
-  BtnNextBg: '#FFFFFF',
-  BtnNextText: '#000000',
+  BtnPrevBg: palette.DarkGray0,
+  BtnPrevText: palette.Gray3,
+  BtnNextBg: palette.White,
+  BtnNextText: palette.Black,
 
-  DetailFieldBg: '#252525', // DarkGray0
-  DetailBorder1: '#3D3D3D', // DarkGray1
-  DetailBorder2: '#3D3D3D', // DarkGray1
+  DetailFieldBg: palette.DarkGray0,
+  DetailBorder1: palette.DarkGray1,
+  DetailBorder2: palette.DarkGray1,
+  DetailText: palette.Gray3,
 
-  MenuBg: '#FFFFFF',
-  MenuText: '#000000',
+  BuildSelected: palette.DarkGray0,
+  BuildHover: palette.DarkGray0,
 
-  AiReport: '#252525', // DarkGray0
+  MenuBg: palette.White,
+  MenuText: palette.Black,
+
+  AiReport: palette.DarkGray0,
 
   // 공통 색상
   Main_Carrot: palette.Main_Carrot,
+  Carrot2: palette.Carrot2,
   White: palette.White,
+  Black: palette.Black,
+  Black1: palette.Black1,
+  Gray0: palette.Gray0,
+  Gray3: palette.Gray3,
+  LightGray2: palette.LightGray2,
+  Red1: palette.Red1,
+  Red2: palette.Red2,
+  Red3: palette.Red3,
+  Blue1: palette.Blue1,
+  Blue2: palette.Blue2,
+  Blue4: palette.Blue4,
+  Blue3: palette.Blue3,
+  Purple1: palette.Purple1,
+  Purple3: palette.Purple3,
 };
 
 export const lightTheme = {
