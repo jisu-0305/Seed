@@ -78,7 +78,7 @@ const Modal = styled.div`
   top: 5.1rem;
   right: 1rem;
   width: 17rem;
-  background: ${({ theme }) => theme.colors.White};
+  background: ${({ theme }) => theme.colors.Background};
   border-radius: 1rem;
   padding: 1.5rem 3rem;
   box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);

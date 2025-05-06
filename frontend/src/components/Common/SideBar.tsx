@@ -75,7 +75,7 @@ const SideWrapper = styled.div`
   min-width: 18rem;
   padding: 2rem;
 
-  border-right: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-right: 1px solid ${({ theme }) => theme.colors.BorderDefault};
 `;
 
 const Logo = styled.div`
@@ -119,11 +119,10 @@ const MenuItem = styled.li<{ active?: boolean }>`
     active ? 'theme.colors.LightGray3' : 'transparent'};
   border-radius: 0.8rem;
 
-  color: ${({ theme }) => theme.colors.Black1};
   ${({ active, theme }) => (active ? theme.fonts.Title6 : theme.fonts.Body3)}
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.LightGray3};
+    background-color: ${({ theme }) => theme.colors.NavSelected};
 
     ${({ theme }) => theme.fonts.Title6};
   }
