@@ -77,6 +77,7 @@ dependencies {
 
     // linux/maxos docker socket
     implementation  "io.netty:netty-transport-native-kqueue:4.1.119.Final:osx-x86_64"
+    implementation 'io.netty:netty-transport-native-epoll:4.1.109.Final:linux-x86_64'
 
 }
 
