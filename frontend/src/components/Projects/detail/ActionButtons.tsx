@@ -89,8 +89,8 @@ const SmallButton = styled.button`
   padding: 0.7rem 1rem;
   border: none;
   border-radius: 1.5rem;
-  background: ${({ theme }) => theme.colors.Black};
-  color: ${({ theme }) => theme.colors.White};
+  background: ${({ theme }) => theme.colors.Text};
+  color: ${({ theme }) => theme.colors.Background};
   ${({ theme }) => theme.fonts.Body2};
 `;
 

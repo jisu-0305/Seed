@@ -2,6 +2,7 @@
 import styled from '@emotion/styled';
 import { useState } from 'react';
 
+import { useThemeStore } from '@/stores/themeStore';
 import type { DeployStatusProps, DeployTabName } from '@/types/deploy';
 
 import { BuildHistoryPanel } from './BuildHistoryPanel';
@@ -10,12 +11,18 @@ import { DeployTable } from './DeployTable';
 export function DeployStatus({ tasksByTab }: DeployStatusProps) {
   const tabs = Object.keys(tasksByTab) as DeployTabName[];
   const [active, setActive] = useState<DeployTabName>(tabs[0]);
+  const { mode } = useThemeStore();
 
   return (
     <Container>
       <TabList>
         {tabs.map((t) => (
-          <Tab key={t} active={t === active} onClick={() => setActive(t)}>
+          <Tab
+            key={t}
+            active={t === active}
+            mode={mode}
+            onClick={() => setActive(t)}
+          >
             {t}
           </Tab>
         ))}
@@ -34,7 +41,6 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
 
 const Container = styled.div`
   margin-top: 3rem;
-  background: ${({ theme }) => theme.colors.White};
   border-radius: 1rem;
 `;
 
@@ -45,7 +51,7 @@ const TabList = styled.div`
   background: transparent;
 `;
 
-const Tab = styled.div<{ active: boolean }>`
+const Tab = styled.div<{ active: boolean; mode: string }>`
   position: relative;
   padding: 0.6rem 2rem;
   border: 1px solid ${({ theme }) => theme.colors.Gray0};
@@ -53,9 +59,13 @@ const Tab = styled.div<{ active: boolean }>`
   border-radius: 1rem 1rem 0 0;
 
   background: ${({ active, theme }) =>
-    active ? theme.colors.Gray0 : theme.colors.White};
-  color: ${({ active, theme }) =>
-    active ? theme.colors.White : theme.colors.Black};
+    active ? theme.colors.DetailBorder2 : theme.colors.Background};
+  color: ${({ active, mode, theme }) =>
+    active
+      ? theme.colors.White
+      : mode === 'light'
+        ? theme.colors.Black
+        : theme.colors.White};
   ${({ theme }) => theme.fonts.Body1};
 
   z-index: ${({ active }) => (active ? 2 : 1)};

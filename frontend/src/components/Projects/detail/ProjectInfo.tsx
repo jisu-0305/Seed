@@ -61,11 +61,11 @@ const Card = styled.div`
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: ${({ theme }) => theme.colors.LightGray3};
+  background: ${({ theme }) => theme.colors.DetailFieldBg};
   width: 22rem;
   height: 25rem;
   padding: 1rem 2rem;
-  border: 0.15rem solid ${({ theme }) => theme.colors.LightGray1};
+  border: 0.15rem solid ${({ theme }) => theme.colors.DetailBorder1};
   border-radius: 1.5rem;
 `;
 
@@ -89,7 +89,7 @@ const Row = styled.div`
 
 const Label = styled.div`
   ${({ theme }) => theme.fonts.Head5};
-  color: ${({ theme }) => theme.colors.Black};
+  color: ${({ theme }) => theme.colors.Text};
 `;
 
 const MonoValue = styled.div`
@@ -109,6 +109,6 @@ const FolderIcon = styled.img`
 
 const Divider = styled.hr`
   border: none;
-  border-top: 0.15rem solid ${({ theme }) => theme.colors.LightGray1};
+  border-top: 0.15rem solid ${({ theme }) => theme.colors.DetailBorder1};
   margin: 2rem 0;
 `;

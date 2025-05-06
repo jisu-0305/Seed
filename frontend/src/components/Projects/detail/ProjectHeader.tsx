@@ -55,7 +55,7 @@ const Wrapper = styled.div`
   width: 25rem;
   height: 25rem;
   padding: 1rem 2rem;
-  border: 0.15rem solid ${({ theme }) => theme.colors.Black};
+  border: 0.15rem solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
 `;
 
@@ -92,7 +92,7 @@ const Label = styled.div`
 
 const Time = styled.div`
   ${({ theme }) => theme.fonts.EnBody2};
-  color: ${({ theme }) => theme.colors.Gray1};
+  color: ${({ theme }) => theme.colors.DetailText};
 `;
 
 const Icon = styled.img`
