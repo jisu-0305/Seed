@@ -22,59 +22,57 @@ public class DockerUriBuilder {
     @Value("${docker.registry.api.base-url}")
     private String registryApiBaseUrl;
 
-    public String searchRepositories(String query, int page, int pageSize) {
+    public URI buildSearchRepositoriesUri(String query, int page, int pageSize) {
         return UriComponentsBuilder.fromUriString(dockerHubBaseUrl)
                 .path("/search/repositories")
                 .queryParam("query", query)
                 .queryParam("page", page)
                 .queryParam("page_size", pageSize)
-                .toUriString();
+                .build()
+                .toUri();
     }
 
-    public String listTags(String namespace, String repo, int page, int pageSize) {
+    public URI buildHubTagsUri(String namespace, String repo, int page, int pageSize) {
         return UriComponentsBuilder.fromUriString(dockerHubBaseUrl)
-                .path("/repositories")
-                .pathSegment(namespace, repo, "tags")
+                .pathSegment("repositories", namespace, repo, "tags")
                 .queryParam("page", page)
                 .queryParam("page_size", pageSize)
-                .toUriString();
+                .build()
+                .toUri();
     }
 
-    public String listRegistryTags(String namespace, String repo, int pageSize) {
-        return UriComponentsBuilder
-                .fromUriString(registryApiBaseUrl)
+    public URI buildRegistryTagsUri(String namespace, String repo) {
+        return UriComponentsBuilder.fromUriString(registryApiBaseUrl)
                 .pathSegment("v2", namespace, repo, "tags", "list")
-                .toUriString();
+                .build()
+                .toUri();
     }
 
-    public String info() {
-        return "/info";
+    public URI buildInfoUri() {
+        return UriComponentsBuilder.fromUriString(dockerEngineApiBaseUrl)
+                .path("/info")
+                .build()
+                .toUri();
     }
 
-    public URI containersByStatus(List<String> statuses) {
+    public URI buildContainersByStatusUri(List<String> statuses) {
+        return buildFilteredContainersUri("status", statuses);
+    }
+
+    public URI buildContainersByNameUri(String name) {
+        return buildFilteredContainersUri("name", List.of(name));
+    }
+
+    public URI buildFilteredContainersUri(String key, List<String> values) {
         String json = String.format(
-                "{\"status\":[%s]}",
-                statuses.stream().map(s -> "\"" + s + "\"")
-                        .collect(Collectors.joining(","))
+                "{\"%s\":[%s]}",
+                key,
+                values.stream().map(v -> "\"" + v + "\"").collect(Collectors.joining(","))
         );
         String encoded = URLEncoder.encode(json, StandardCharsets.UTF_8);
 
-        return URI.create(
-                dockerEngineApiBaseUrl
-                        + "/containers/json?all=true&filters="
-                        + encoded
-        );
-    }
-
-    public URI containersByName(String nameFilter) {
-        String json = String.format("{\"name\":[\"%s\"]}", nameFilter);
-        String encoded = URLEncoder.encode(json, StandardCharsets.UTF_8);
-
-        return URI.create(
-                dockerEngineApiBaseUrl
-                        + "/containers/json?all=true&filters="
-                        + encoded
-        );
+        String uriString = dockerEngineApiBaseUrl + "/containers/json?all=true&filters=" + encoded;
+        return URI.create(uriString);
     }
 
 }

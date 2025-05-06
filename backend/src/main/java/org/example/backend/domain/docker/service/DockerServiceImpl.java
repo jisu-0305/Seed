@@ -21,7 +21,6 @@ public class DockerServiceImpl implements DockerService {
 
     @Override
     public ImageResponse getImages(String image) {
-        log.debug(">>>>> searchRepositories,{}", image);
         int page = 1;
         int pageSize = 100;
 
@@ -41,7 +40,6 @@ public class DockerServiceImpl implements DockerService {
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.DOCKER_SEARCH_FAILED);
         }
-
     }
 
     @Override
@@ -72,9 +70,9 @@ public class DockerServiceImpl implements DockerService {
 
     @Override
     public List<DemonHealthyCheckResponse> checkHealth() {
-        log.debug(">>>>> checkHealth (도커 데몬)");
 
         DemonContainerStateCountResponse info = dockerApiClient.getInfo();
+
         if (info == null) {
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
         }
@@ -106,7 +104,6 @@ public class DockerServiceImpl implements DockerService {
 
     @Override
     public List<AppHealthyCheckResponse> getAppStatus(String appName) {
-        log.debug(">>>>> getAppStatus, appName={}", appName);
 
         try {
             var containers = dockerApiClient.getContainersByName(appName);
