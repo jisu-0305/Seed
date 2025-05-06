@@ -6,7 +6,7 @@ import io.netty.channel.epoll.EpollDomainSocketChannel;
 import io.netty.channel.kqueue.KQueueDomainSocketChannel;
 import io.netty.channel.unix.DomainSocketAddress;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -55,40 +55,31 @@ public class WebClientConfig {
     }
 
     // 윈도우일 떄 -> tcp 엔드포인트로 도커 엔진에 연결(도커 설정에서 tcp 열어놔야함)
+    @ConditionalOnProperty(name = "docker.mode", havingValue = "tcp")
     @Bean("dockerWebClient")
-//    @ConditionalOnExpression(
-//            "T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
-//    )
-    public WebClient windowsDockerWebClient() {
+    public WebClient tcpDockerWebClient() {
         return WebClient.builder()
                 .baseUrl(dockerEngineApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
 
-    // 윈도우 환경 아닐때 -> 도커 소켓으로 연결하기
-//    @Bean("dockerWebClient")
-//    @ConditionalOnExpression(
-//            "!T(java.lang.System).getProperty('os.name').toLowerCase().contains('win')"
-//    )
-//    public WebClient unixDockerWebClient() {
-//        Class<? extends Channel> channelType =
-//                Epoll.isAvailable()
-//                        ? EpollDomainSocketChannel.class
-//                        : KQueueDomainSocketChannel.class;
-//
-//        TcpClient tcpClient = TcpClient.create()
-//                .bootstrap(b -> b.channel(channelType))
-//                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
-//
-//        HttpClient httpClient = HttpClient.from(tcpClient);
-//
-//        return WebClient.builder()
-//                .clientConnector(new ReactorClientHttpConnector(httpClient))
-//                .defaultHeader(HttpHeaders.HOST, "localhost")
-//                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-//                .build();
-//    }
+    @ConditionalOnProperty(name = "docker.mode", havingValue = "socket")
+    @Bean("dockerWebClient")
+    public WebClient unixDockerWebClient() {
+        Class<? extends Channel> channelType =
+                Epoll.isAvailable() ? EpollDomainSocketChannel.class : KQueueDomainSocketChannel.class;
+
+        TcpClient tcpClient = TcpClient.create()
+                .bootstrap(b -> b.channel(channelType))
+                .remoteAddress(() -> new DomainSocketAddress(dockerEngineSocketUrl));
+
+        return WebClient.builder()
+                .clientConnector(new ReactorClientHttpConnector(HttpClient.from(tcpClient)))
+                .defaultHeader(HttpHeaders.HOST, "localhost")
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
 
     @Bean("dockerHubWebClient")
     public WebClient dockerHubWebClient() {
