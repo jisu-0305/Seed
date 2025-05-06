@@ -2,7 +2,10 @@ export interface ProjectInfo {
   gitlab: {
     repo: string;
     structure: '모노' | '멀티' | string;
-    directory: boolean;
+    directory: {
+      client: string;
+      server: string;
+    };
   };
   server: {
     ip: string;
@@ -10,7 +13,7 @@ export interface ProjectInfo {
   };
   app: {
     name: string;
-    version: string;
+    tag: string;
     port: number;
   }[];
   env: {

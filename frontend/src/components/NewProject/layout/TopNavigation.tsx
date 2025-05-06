@@ -38,6 +38,7 @@ const Title = styled.h2`
   margin-bottom: 2rem;
 
   ${({ theme }) => theme.fonts.Head0};
+  font-size: 2.6rem;
 `;
 
 const StepLabel = styled.div`

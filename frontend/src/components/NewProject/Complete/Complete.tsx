@@ -53,7 +53,7 @@ export default function Complete() {
 const Wrapper = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4rem;
+  gap: 2rem;
 
   width: 100%;
   margin: 0 auto;
@@ -67,6 +67,9 @@ const Header = styled.div`
 
 const Title = styled.h3`
   ${({ theme }) => theme.fonts.Head0};
+  font-size: 2.6rem;
+
+  padding-left: 2rem;
 `;
 
 const ButtonWrapper = styled.div`
