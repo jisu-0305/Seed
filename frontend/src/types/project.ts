@@ -9,11 +9,11 @@ export interface ProjectInfo {
   };
   server: {
     ip: string;
-    pem: File | null;
+    pem: boolean;
   };
   app: {
     name: string;
-    version: string;
+    tag: string;
     port: number;
   }[];
   env: {

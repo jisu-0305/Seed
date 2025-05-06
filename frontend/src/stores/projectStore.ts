@@ -23,14 +23,14 @@ const initialStatus: ProjectInfo = {
   },
   server: {
     ip: '',
-    pem: null,
+    pem: false,
   },
   app: [],
   env: {
     env: false,
     node: '',
     jdk: 17,
-    buildTool: '',
+    buildTool: 'Gradle',
   },
 };
 
