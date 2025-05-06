@@ -32,9 +32,5 @@ public class Project {
     private String backendBranchName;
     private String backendDirectoryName;
     private String pemFilePath;
-
-//    추가 필요 이유: 두번째 기능 jenkins 빌드 실패 요청시에 해당 프로젝트가 jenkins workflow를 통해서 api를 우리 서비스로 보낼때 인증값을 넣어주고 api를 호출해야함 상세내용 "김지수"한테 문의
-//    @Column(nullable = false, unique = true)
-//    private String cicdToken;
 }
 
