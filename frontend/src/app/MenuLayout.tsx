@@ -8,16 +8,21 @@ import React, { ReactNode } from 'react';
 
 import SideBar from '@/components/Common/SideBar';
 import { queryClient } from '@/libs/queryClient';
+import { useThemeStore } from '@/stores/themeStore';
 import { globalStyles } from '@/styles/global';
-import { theme } from '@/styles/theme';
+import { darkTheme, lightTheme } from '@/styles/theme';
 
 export function MenuLayout({ children }: { children: ReactNode }) {
   const pathName = usePathname();
+  const { mode } = useThemeStore();
 
   return (
-    <ThemeProvider theme={theme}>
+    // <ThemeProvider theme={theme}>
+    <ThemeProvider theme={mode === 'dark' ? darkTheme : lightTheme}>
       <QueryClientProvider client={queryClient}>
-        <Global styles={globalStyles(theme)} />
+        <Global
+          styles={globalStyles(mode === 'dark' ? darkTheme : lightTheme)}
+        />
         <LayoutWrapper>
           {pathName !== '/' &&
             pathName !== '/login' &&

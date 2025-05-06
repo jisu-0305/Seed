@@ -220,7 +220,7 @@ export const fonts = {
   `,
 };
 
-export const colors = {
+export const palette = {
   Main_Carrot: '#FFA100',
   Carrot0: '#CA9843',
   Carrot2: '#FFC766',
@@ -258,77 +258,83 @@ export const colors = {
   Green2: '#98CEBA',
 };
 
-export const theme = {
-  colors,
+// export const theme = {
+//   colors,
+//   fonts,
+// };
+
+export const lightColors = {
+  BorderDefault: palette.LightGray1, // LightGray1
+  Background: palette.White, // White
+  Text: palette.Black, // Black
+  NavSelected: palette.LightGray3, // LightGray3
+
+  CalendarInactive: palette.DarkGray2, // DarkGray2
+  CalendarCarrot: palette.Main_Carrot, // Main-Carrot
+  CalendarBlue: palette.Blue1, // Blue1
+  CalendarGreen: palette.Green1, // Green1
+  CalendarRed: palette.Red2, // Red2
+
+  InputBackground: palette.LightGray3, // LightGray3
+
+  BtnPrevBg: palette.Gray3, // Gray3
+  BtnPrevText: palette.White,
+  BtnNextBg: palette.Gray0, // Gray0
+  BtnNextText: palette.White,
+
+  DetailFieldBg: palette.LightGray3, // LightGray3
+  DetailBorder1: palette.LightGray1, // LightGray1
+  DetailBorder2: palette.Black, // Black
+
+  MenuBg: palette.Black, // Black
+  MenuText: palette.White,
+
+  AiReport: palette.Gray4, // Gray4
+
+  // 공통 색상
+  Main_Carrot: palette.Main_Carrot,
+  White: palette.White,
+};
+
+export const darkColors = {
+  BorderDefault: '#323232', // Gray0
+  Background: '#1C1C1C', // Black1
+  Text: '#FFFFFF',
+  NavSelected: '#252525', // DarkGray0
+
+  CalendarInactive: '#3D3D3D', // DarkGray1
+  CalendarCarrot: '#CA9843', // Carrot0
+  CalendarBlue: '#4C6589', // Blue0
+  CalendarGreen: '#5B7A6F', // Green0
+  CalendarRed: '#9D3D3D', // Red0
+
+  InputBackground: '#252525', // DarkGray0
+
+  BtnPrevBg: '#252525', // DarkGray0
+  BtnPrevText: '#969696', // Gray3
+  BtnNextBg: '#FFFFFF',
+  BtnNextText: '#000000',
+
+  DetailFieldBg: '#252525', // DarkGray0
+  DetailBorder1: '#3D3D3D', // DarkGray1
+  DetailBorder2: '#3D3D3D', // DarkGray1
+
+  MenuBg: '#FFFFFF',
+  MenuText: '#000000',
+
+  AiReport: '#252525', // DarkGray0
+
+  // 공통 색상
+  Main_Carrot: palette.Main_Carrot,
+  White: palette.White,
+};
+
+export const lightTheme = {
+  colors: lightColors,
   fonts,
 };
 
-// export const lightColors = {
-//   borderDefault: '#E9E9E9', // LightGray1
-//   background: '#FFFFFF', // White
-//   text: '#000000', // Black
-//   navSelected: '#FCFCFC', // LightGray3
-
-//   calendarInactive: '#D3D3D3', // DarkGray2
-//   calendarCarrot: '#FFA100', // Main-Carrot
-//   calendarBlue: '#4B7BBF', // Blue1
-//   calendarGreen: '#4AA785', // Green1
-//   calendarRed: '#E05B5B', // Red2
-
-//   inputBackground: '#FCFCFC', // LightGray3
-
-//   btnPrevBg: '#969696', // Gray3
-//   btnPrevText: '#FFFFFF',
-//   btnNextBg: '#323232', // Gray0
-//   btnNextText: '#FFFFFF',
-
-//   detailFieldBg: '#FCFCFC', // LightGray3
-//   detailBorder1: '#E9E9E9', // LightGray1
-//   detailBorder2: '#000000', // Black
-
-//   menuBg: '#000000', // Black
-//   menuText: '#FFFFFF',
-
-//   aiReport: '#F7F9FB', // Gray4
-// };
-
-// export const darkColors = {
-//   borderDefault: '#323232', // Gray0
-//   background: '#1C1C1C', // Black1
-//   text: '#FFFFFF',
-//   navSelected: '#252525', // DarkGray0
-
-//   calendarInactive: '#3D3D3D', // DarkGray1
-//   calendarCarrot: '#CA9843', // Carrot0
-//   calendarBlue: '#4C6589', // Blue0
-//   calendarGreen: '#5B7A6F', // Green0
-//   calendarRed: '#9D3D3D', // Red0
-
-//   inputBackground: '#252525', // DarkGray0
-
-//   btnPrevBg: '#252525', // DarkGray0
-//   btnPrevText: '#969696', // Gray3
-//   btnNextBg: '#FFFFFF',
-//   btnNextText: '#000000',
-
-//   detailFieldBg: '#252525', // DarkGray0
-//   detailBorder1: '#3D3D3D', // DarkGray1
-//   detailBorder2: '#3D3D3D', // DarkGray1
-
-//   menuBg: '#FFFFFF',
-//   menuText: '#000000',
-
-//   aiReport: '#252525', // DarkGray0
-// };
-
-// export const lightTheme: Theme = {
-//   mode: 'light',
-//   colors: lightColors,
-//   fonts,
-// };
-
-// export const darkTheme: Theme = {
-//   mode: 'dark',
-//   colors: darkColors,
-//   fonts,
-// };
+export const darkTheme = {
+  colors: darkColors,
+  fonts,
+};
