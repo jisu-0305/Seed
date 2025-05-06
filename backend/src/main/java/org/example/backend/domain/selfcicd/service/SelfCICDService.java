@@ -5,5 +5,5 @@ import org.example.backend.controller.response.log.DockerLogResponse;
 
 public interface SelfCICDService {
     DockerLogResponse getRecentDockerLogs(DockerLogRequest request);
+    void handleSelfHealingCI(Long projectId, int buildNumber, String accessToken);
 }
-
