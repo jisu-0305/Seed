@@ -153,9 +153,10 @@ const Input = styled.input`
   padding: 1rem 1.5rem;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 
@@ -164,7 +165,7 @@ const RadioGroup = styled.div`
   gap: 1rem;
 
   input[type='radio'] {
-    accent-color: ${({ theme }) => theme.colors.DarkGray1};
+    accent-color: ${({ theme }) => theme.colors.RadioSelected};
   }
 
   label {

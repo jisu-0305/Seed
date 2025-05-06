@@ -159,10 +159,10 @@ const Tag = styled.div<{ selected?: boolean }>`
 
   ${({ theme }) => theme.fonts.Body1};
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
   border: 1px solid
     ${({ selected, theme }) =>
-      selected ? theme.colors.Black : theme.colors.LightGray2};
+      selected ? theme.colors.Text : theme.colors.InputStroke};
   border-radius: 1rem;
 
   cursor: pointer;
@@ -192,8 +192,9 @@ const SearchInput = styled.input`
   padding: 1rem;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 
@@ -227,7 +228,7 @@ const SelectedApp = styled.div`
 
   ${({ theme }) => theme.fonts.Title5};
 
-  border: 1px solid ${({ theme }) => theme.colors.Black1};
+  border: 1px solid ${({ theme }) => theme.colors.Text};
   border-radius: 1rem;
 `;
 
@@ -246,10 +247,11 @@ const Select = styled.select`
   padding-right: 4rem;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
   text-align: center;
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 
   appearance: none;
@@ -273,10 +275,11 @@ const PortInput = styled.input`
   padding: 1rem;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
   text-align: center;
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 

@@ -97,7 +97,7 @@ const Aside = styled.aside`
   max-width: 30rem;
   padding: 2rem;
 
-  background-color: ${({ theme }) => theme.colors.Black1};
+  background-color: ${({ theme }) => theme.colors.Black};
   border-radius: 1.5rem;
 
   text-align: center;

@@ -42,17 +42,17 @@ const StWrapper = styled.li<{ important?: boolean }>`
   ${({ theme }) => theme.fonts.Body3}
 
   color: ${({ important, theme }) =>
-    important ? theme.colors.Red1 : theme.colors.Black};
+    important ? theme.colors.Red1 : theme.colors.Text};
 `;
 
 const TipLabel = styled.span<{ important?: boolean }>`
   padding: 0.5rem 1rem;
 
-  color: ${({ theme }) => theme.colors.White};
+  color: ${({ theme }) => theme.colors.Background};
   ${({ theme }) => theme.fonts.Title6}
 
   background-color: ${({ important, theme }) =>
-    important ? theme.colors.Red1 : theme.colors.Black};
+    important ? theme.colors.Red1 : theme.colors.Text};
   border-radius: 1.5rem;
 `;
 

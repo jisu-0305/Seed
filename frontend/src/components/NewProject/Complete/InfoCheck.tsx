@@ -120,7 +120,7 @@ const StWrapper = styled.aside`
   padding: 4rem;
   padding-bottom: 2rem;
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
 `;
 
@@ -150,7 +150,7 @@ const Row = styled.div`
 
 const Label = styled.span`
   ${({ theme }) => theme.fonts.Head5};
-  color: ${({ theme }) => theme.colors.Black};
+  color: ${({ theme }) => theme.colors.Text};
 `;
 
 const Value = styled.span`
@@ -160,7 +160,7 @@ const Value = styled.span`
 const Divider = styled.hr`
   /* max-width: 40rem; */
 
-  border-top: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-top: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   margin: 1rem 0;
 `;
 

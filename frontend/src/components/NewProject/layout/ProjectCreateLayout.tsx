@@ -95,7 +95,7 @@ const Main = styled.main`
 
   /* padding: 0 3rem 2rem; */
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
 `;
 

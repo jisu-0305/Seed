@@ -119,7 +119,7 @@ const SidebarWrapper = styled.aside`
   padding: 1.5rem;
   padding-bottom: 0;
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
 `;
 
@@ -137,7 +137,7 @@ const Row = styled.div`
 
 const Label = styled.span`
   ${({ theme }) => theme.fonts.Head5};
-  color: ${({ theme }) => theme.colors.Black1};
+  color: ${({ theme }) => theme.colors.Text};
 `;
 
 const Value = styled.span`
@@ -160,7 +160,7 @@ const AppTag = styled.span`
 `;
 
 const Divider = styled.hr`
-  border-top: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-top: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   margin: 0.5rem 0;
 `;
 
