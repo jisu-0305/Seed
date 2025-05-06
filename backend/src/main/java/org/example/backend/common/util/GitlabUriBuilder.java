@@ -6,9 +6,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 
 @Slf4j
 @Component
@@ -17,156 +14,99 @@ public class GitlabUriBuilder {
     @Value("${gitlab.api.base-url}")
     private String baseUrl;
 
-    public String projects(int page, int perPage) {
-
-        return UriComponentsBuilder.fromUriString(baseUrl)
-                .path("/projects")
-                .queryParam("membership", true)
-                .queryParam("page", page)
-                .queryParam("per_page", perPage)
-                .toUriString();
-    }
-
-    public URI projectUri(String namespaceAndName) {
-
-        return URI.create(UriComponentsBuilder.fromUriString(baseUrl)
-                .path("/projects/")
-                .build(false)
-                .toUriString() + namespaceAndName);
-    }
-
-    public String repositoryTree(Long projectId,
-                                 String path,
-                                 boolean recursive,
-                                 int page,
-                                 int perPage) {
-
-        return UriComponentsBuilder.fromUriString(baseUrl)
-                .path("/projects/{id}/repository/tree")
-                .queryParam("path", path)
-                .queryParam("recursive", recursive)
-                .queryParam("page", page)
-                .queryParam("per_page", perPage)
-                .build(projectId)
-                .toString();
-    }
-
-    public URI rawFileUri(Long projectId, String filePath, String ref) {
-
-        return UriComponentsBuilder
-                .fromUriString(baseUrl)
-                .pathSegment(
-                        "projects",
-                        projectId.toString(),
-                        "repository",
-                        "files",
-                        filePath,
-                        "raw"
-                )
-                .queryParam("ref", ref)
-                .encode()
-                .build()
-                .toUri();
-    }
-
-    public URI compare(Long projectId, String from, String to) {
-        return URI.create(String.format(
-                "%s/projects/%d/repository/compare?from=%s&to=%s",
-                baseUrl, projectId, from, to
-        ));
-    }
-
-    public URI createBranch(Long projectId, String branchName, String ref) {
-
-        String b = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-        String r = URLEncoder.encode(ref, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-
-        String url = String.format(
-                "%s/projects/%d/repository/branches?branch=%s&ref=%s",
-                baseUrl, projectId, b, r
-        );
-
-        return URI.create(url);
-    }
-
-    public URI deleteBranch(Long projectId, String branchName) {
-        String encodedBranch = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-
-        String url = String.format(
-                "%s/projects/%d/repository/branches/%s",
-                baseUrl, projectId, encodedBranch
-        );
-
-        return URI.create(url);
-    }
-
-    public URI createMergeRequest(Long projectId) {
-        return UriComponentsBuilder.fromUriString(baseUrl)
-                .pathSegment("projects", projectId.toString(), "merge_requests")
-                .build()
-                .toUri();
-    }
-
-    public URI getBranchUri(Long projectId, String branchName) {
-        String encoded = URLEncoder.encode(branchName, StandardCharsets.UTF_8)
-                .replace("+", "%20");
-        return URI.create(String.format(
-                "%s/projects/%d/repository/branches/%s",
-                baseUrl, projectId, encoded
-        ));
-    }
-
-    public URI createProjectHook(Long projectId,  String hookUrl, String branchFilter) {
-        UriComponentsBuilder b = UriComponentsBuilder
-                .fromUriString(baseUrl)
-                .pathSegment("projects", projectId.toString(), "hooks")
+    public URI buildPushWebhookUri(Long projectId, String hookUrl, String wildcard) {
+        return toUri(builder("projects", projectId.toString(), "hooks")
                 .queryParam("url", hookUrl)
                 .queryParam("push_events", true)
-                .queryParam("enable_ssl_verification", true);
-
-        Optional.ofNullable(branchFilter)
-                .filter(f -> !f.isBlank())
-                .ifPresent(f -> b.queryParam("push_events_branch_filter", f));
-
-        return b.build().encode().toUri();
-
+                .queryParam("enable_ssl_verification", true)
+                .queryParam("push_events_branch_filter", wildcard));
     }
 
-    // 프로젝트의 mr 목록 조회 _ 생성일자 내림차순 기준으로, mreged 상태만 가져오자
-    public URI listMergeRequests(Long projectId,
-                                 int page,
-                                 int perPage) {
-        return UriComponentsBuilder.fromUriString(baseUrl)
-                .pathSegment("projects", projectId.toString(), "merge_requests")
+    public URI buildCommitUri(Long projectId) {
+        return toUri(builder("projects", projectId.toString(), "repository", "commits"));
+    }
+
+    public URI buildMergeRequestUri(Long projectId) {
+        return toUri(builder("projects", projectId.toString(), "merge_requests"));
+    }
+
+    public URI buildCreateBranchUri(Long projectId, String branchName, String baseBranchName) {
+        return toUri(
+                builder("projects", projectId.toString(), "repository", "branches")
+                        .queryParam("branch", branchName)
+                        .queryParam("ref", baseBranchName)
+        );
+    }
+
+    public URI buildDeleteBranchUri(Long projectId, String branchName) {
+        return toUri(builder("projects", projectId.toString(),"repository", "branches", branchName));
+    }
+
+    public URI buildProjectsUri(int page, int perPage) {
+        return toUri(
+                builder("projects")
+                        .queryParam("membership", true)
+                        .queryParam("page", page)
+                        .queryParam("per_page", perPage)
+        );
+    }
+
+    public URI buildProjectUri(String namespaceAndName) {
+        return toUri(builder("projects", namespaceAndName));
+    }
+
+    public URI buildListMergedMrsUri(Long projectId, int page, int perPage) {
+        return toUri(builder("projects", projectId.toString(), "merge_requests")
                 .queryParam("page", page)
                 .queryParam("per_page", perPage)
                 .queryParam("order_by", "created_at")
                 .queryParam("sort", "desc")
                 .queryParam("state", "merged")
-                .build()
-                .encode()
-                .toUri();
+        );
     }
 
-    // mr 상세조회 _ diff_ref (base sha, head sha ....)
-    public URI getMergeRequest(Long projectId, Long mergeRequestIid) {
-        return UriComponentsBuilder.fromUriString(baseUrl)
-                .pathSegment("projects", projectId.toString(), "merge_requests", mergeRequestIid.toString())
-                .build()
-                .encode()
-                .toUri();
+    public URI buildMrDetailUri(Long projectId, Long mergeRequestIid) {
+        return toUri(builder("projects", projectId.toString(), "merge_requests", mergeRequestIid.toString()));
     }
 
-    // commit 만들기 (브랜치에 커밋 만들면 push 되는거랑 같음)
-    public URI createCommit(Long projectId) {
-        return UriComponentsBuilder.fromUriString(baseUrl)
-                .pathSegment("projects", projectId.toString(), "repository", "commits")
-                .build()
-                .encode()
-                .toUri();
+    public URI buildCompareCommitsUri(Long projectId, String from, String to) {
+        return toUri(
+                builder("projects", projectId.toString(), "repository", "compare")
+                        .queryParam("from", from)
+                        .queryParam("to", to)
+        );
+    }
+
+    public URI buildRepositoryTreeUri(Long projectId, String path, boolean recursive, int page, int perPage) {
+        return toUri(
+                builder("projects", projectId.toString(), "repository", "tree")
+                        .queryParam("path", path)
+                        .queryParam("recursive", recursive)
+                        .queryParam("page", page)
+                        .queryParam("per_page", perPage)
+        );
+    }
+
+    public URI buildRawFileUri(Long projectId, String filePath, String refBranch) {
+        return toUri(
+                builder("projects", projectId.toString(), "repository", "files", filePath, "raw")
+                        .queryParam("ref", refBranch)
+        );
+    }
+
+    public URI buildBranchUri(Long projectId, String branchName) {
+        return toUri(builder("projects", projectId.toString(),"repository", "branches", branchName));
+    }
+
+    /* 공통 로직 */
+    private UriComponentsBuilder builder(String... segments) {
+        return UriComponentsBuilder
+                .fromUriString(baseUrl)
+                .pathSegment(segments);
+    }
+
+    private URI toUri(UriComponentsBuilder b) {
+        return b.encode().build().toUri();
     }
 
 }
