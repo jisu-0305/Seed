@@ -5,25 +5,30 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.backend.domain.project.enums.PlatformType;
 
 @Entity
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class EnvironmentConfig {
+@Table(name = "project_configs")
+public class ProjectConfig {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Enumerated(EnumType.STRING)
-    private PlatformType platformType;
-
-    private String version;
-    private String envFileName;
-    private String buildTool;
-
     private Long projectId;
+
+    private String nodejsVersion;
+
+    private String frontendFramework;
+
+    private String frontendEnvFile;
+
+    private String jdkVersion;
+
+    private String jdkBuildTool;
+
+    private String backendEnvFile;
 }

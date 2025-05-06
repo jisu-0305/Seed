@@ -23,20 +23,21 @@ public class ProjectStatus {
 
     private Long projectId;
 
-    @Enumerated(EnumType.STRING)
-    private BuildStatus lastBuildStatus;
+    private boolean autoDeploymentEnabled;
+
+    private boolean httpsEnabled;
 
     private LocalDateTime lastBuildAt;
 
-    private boolean httpsEnabled;
-    private boolean autoDeployEnabled;
+    @Enumerated(EnumType.STRING)
+    private BuildStatus buildStatus;
 
     public void enableHttps() {
         this.httpsEnabled = true;
     }
 
     public void updateBuildStatus(BuildStatus status) {
-        this.lastBuildStatus = status;
+        this.buildStatus = status;
         this.lastBuildAt = LocalDateTime.now();
     }
 }

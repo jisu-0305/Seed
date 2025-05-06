@@ -34,9 +34,9 @@ public class NotificationServiceImpl implements NotificationService{
         List<Notification> notifications = userIdList.stream()
                 .map(userId -> Notification.builder()
                         .receiverId(userId)
-                        .title(message.getTitle())
-                        .body(message.getBody())
-                        .sentAt(LocalDateTime.now())
+                        .notificationTile(message.getNotificationTitle())
+                        .notificationContent(message.getNotificationContent())
+                        .createdAt(LocalDateTime.now())
                         .isRead(false)
                         .build())
                 .toList();
@@ -47,13 +47,13 @@ public class NotificationServiceImpl implements NotificationService{
     @Override
     public Page<Notification> getAllNotifications(String accessToken, Pageable pageable) {
         Long userId = redisSessionManager.getSession(accessToken).getUserId();
-        return notificationRepository.findByReceiverIdOrderBySentAtDesc(userId, pageable);
+        return notificationRepository.findByReceiverIdOrderByCreatedAtDesc(userId, pageable);
     }
 
     @Override
     public List<Notification> getUnreadNotifications(String accessToken) {
         Long userId = redisSessionManager.getSession(accessToken).getUserId();
-        return notificationRepository.findByReceiverIdAndIsReadFalseOrderBySentAtDesc(userId);
+        return notificationRepository.findByReceiverIdAndIsReadFalseOrderByCreatedAtDesc(userId);
     }
 
     @Override

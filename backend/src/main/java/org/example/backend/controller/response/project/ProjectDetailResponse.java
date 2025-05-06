@@ -11,20 +11,25 @@ import java.util.List;
 @Builder
 public class ProjectDetailResponse {
     private Long id;
+    private Long ownerId;
     private String projectName;
-    private String repositoryUrl;
-    private String ipAddress;
-    private String pemFilePath;
+    private String serverIP;
     private LocalDateTime createdAt;
+    private String repositoryUrl;
     private ProjectStructure structure;
-    private String clientDirectoryName;
-    private String serverDirectoryName;
-    private String clientBranchName;
-    private String serverBranchName;
-    private String clientNodeVersion;
-    private String clientEnvFilePath;
-    private String serverJdkVersion;
-    private String serverEnvFilePath;
-    private String serverBuildTool;
-    private List<ApplicationResponse> applications;
+
+    private String frontendDirectoryName;
+    private String backendDirectoryName;
+    private String frontendBranchName;
+    private String backendBranchName;
+
+    private String nodejsVersion;
+    private String frontendFramework;
+    private String frontendEnvFilePath;
+    private String jdkVersion;
+    private String jdkBuildTool;
+    private String backendEnvFilePath;
+
+    private List<ApplicationResponse> applicationList;
+    private String pemFilePath;
 }

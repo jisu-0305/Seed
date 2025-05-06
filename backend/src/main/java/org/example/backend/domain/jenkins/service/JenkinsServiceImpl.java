@@ -163,16 +163,13 @@ public class JenkinsServiceImpl implements JenkinsService {
 
         projectExecutionRepository.save(ProjectExecution.builder()
                 .projectId(projectId)
-                .type(ExecutionType.BUILD)
-                .title("#" + buildNumber + " MR 빌드")
-                .status(status)
+                .executionType(ExecutionType.BUILD)
+                .projectExecutionTitle("#" + buildNumber + " MR 빌드")
+                .executionStatus(status)
                 .buildNumber(String.valueOf(buildNumber))
-                .executionDate(LocalDate.now())
-                .executionTime(LocalTime.now())
+                .createdAt(LocalDate.now())
                 .build());
     }
-
-
 
     private List<JenkinsBuildStepResponse> parseConsoleLog(String consoleLog) {
         List<JenkinsBuildStepResponse> steps = new ArrayList<>();

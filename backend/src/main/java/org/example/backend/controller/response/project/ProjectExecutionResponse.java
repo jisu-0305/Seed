@@ -5,7 +5,6 @@ import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Getter
 @Builder
@@ -15,10 +14,9 @@ public class ProjectExecutionResponse {
 
     private Long id;
     private String projectName;
-    private ExecutionType type;
-    private String title;
-    private BuildStatus status;
+    private ExecutionType executionType;
+    private String projectExecutionTitle;
+    private BuildStatus executionStatus;
     private String buildNumber;
-    private LocalDate executionDate;
-    private LocalTime executionTime;
+    private LocalDate createdAt;
 }

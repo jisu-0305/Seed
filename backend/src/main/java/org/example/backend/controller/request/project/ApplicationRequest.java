@@ -4,7 +4,7 @@ import lombok.Getter;
 
 @Getter
 public class ApplicationRequest {
-    private String name;
+    private String imageName;
     private String tag;
     private int port;
 }

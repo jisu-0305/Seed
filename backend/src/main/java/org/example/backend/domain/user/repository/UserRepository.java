@@ -6,7 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
-    Optional<User> findByOauthUserId(String oauthUserId);
+    Optional<User> findByOauthClientId(String oauthUserId);
 
-    boolean existsByOauthUserId(String oauthUserId);
+    boolean existsByOauthClientId(String oauthUserId);
 }

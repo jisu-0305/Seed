@@ -12,9 +12,9 @@ public class UserProjectMapper {
         List<UserInProject> users = userList.stream()
                 .map(user -> UserInProject.builder()
                         .userId(user.getId())
-                        .name(user.getName())
-                        .username(user.getUsername())
-                        .avatarUrl(user.getAvatarUrl())
+                        .userName(user.getUserName())
+                        .userIdentifyId(user.getUserIdentifyId())
+                        .profileImageUrl(user.getProfileImageUrl())
                         .build())
                 .toList();
 
