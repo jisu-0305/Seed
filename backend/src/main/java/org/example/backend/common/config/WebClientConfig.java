@@ -29,9 +29,6 @@ public class WebClientConfig {
     @Value("${docker.engine.api.base-url}")
     private String dockerEngineApiBaseUrl;
 
-    @Value("${docker.engine.socket-url}")
-    private String dockerEngineSocketUrl;
-
     @Bean("webClient")
     public WebClient webClient() {
         return WebClient.builder().build();
