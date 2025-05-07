@@ -7,9 +7,9 @@ export const projects = [
     lastBuildStatus: 'SUCCESS',
     lastBuildAt: '2025-05-01T14:32:10Z',
     users: [
-      { id: 101, name: '김예슬', avatarUrl: '/assets/user.png' },
-      { id: 102, name: '이준호', avatarUrl: '/assets/user.png' },
-      { id: 103, name: '박지민', avatarUrl: '/assets/user.png' },
+      { id: 101, name: '김예슬', profileImageUrl: '/assets/user.png' },
+      { id: 102, name: '이준호', profileImageUrl: '/assets/user.png' },
+      { id: 103, name: '박지민', profileImageUrl: '/assets/user.png' },
     ],
   },
   {
@@ -20,8 +20,8 @@ export const projects = [
     lastBuildStatus: 'FAILURE',
     lastBuildAt: '2025-04-30T09:15:47Z',
     users: [
-      { id: 104, name: '최수빈', avatarUrl: '/assets/user.png' },
-      { id: 105, name: '정우성', avatarUrl: '/assets/user.png' },
+      { id: 104, name: '최수빈', profileImageUrl: '/assets/user.png' },
+      { id: 105, name: '정우성', profileImageUrl: '/assets/user.png' },
     ],
   },
   {
@@ -41,10 +41,10 @@ export const projects = [
     lastBuildStatus: 'SUCCESS',
     lastBuildAt: '2025-05-02T11:22:33Z',
     users: [
-      { id: 106, name: '이소정', avatarUrl: '/assets/user.png' },
-      { id: 107, name: '박준영', avatarUrl: '/assets/user.png' },
-      { id: 108, name: '한지원', avatarUrl: '/assets/user.png' },
-      { id: 109, name: '한지민', avatarUrl: '/assets/user.png' },
+      { id: 106, name: '이소정', profileImageUrl: '/assets/user.png' },
+      { id: 107, name: '박준영', profileImageUrl: '/assets/user.png' },
+      { id: 108, name: '한지원', profileImageUrl: '/assets/user.png' },
+      { id: 109, name: '한지민', profileImageUrl: '/assets/user.png' },
     ],
   },
 ];
