@@ -45,7 +45,10 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         {user && (
           <>
             <ProfileSection>
-              <Avatar src={user.avatarUrl || '/assets/user.png'} alt="avatar" />
+              <Avatar
+                src={user.profileImageUrl || '/assets/user.png'}
+                alt="avatar"
+              />
               <UserName>{user.userName}</UserName>
             </ProfileSection>
 

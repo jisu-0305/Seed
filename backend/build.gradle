@@ -75,9 +75,6 @@ dependencies {
     annotationProcessor "jakarta.annotation:jakarta.annotation-api"
     annotationProcessor "jakarta.persistence:jakarta.persistence-api"
 
-    // linux/maxos docker socket
-    implementation  "io.netty:netty-transport-native-kqueue:4.1.119.Final:osx-x86_64"
-
 }
 
 tasks.named('test') {

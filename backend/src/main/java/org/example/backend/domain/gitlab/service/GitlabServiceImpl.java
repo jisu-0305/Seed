@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
-import org.example.backend.controller.request.gitlab.ProjectUrlRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -13,6 +12,7 @@ import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.time.Instant;
@@ -27,210 +27,22 @@ public class GitlabServiceImpl implements GitlabService {
     private final GitlabApiClient gitlabApiClient;
     private final RedisSessionManager redisSessionManager;
 
-    @Override
-    public List<GitlabProject> getProjects(String accessToken) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        return gitlabApiClient.listProjects(user.getGitlabAccessToken());
-    }
-
-    @Override
-    public GitlabProject getProjectInfo(String accessToken, ProjectUrlRequest request) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        return gitlabApiClient.getProjectInfo(user.getGitlabAccessToken(), request.getRepositoryUrl());
-    }
-
-    @Override
-    public List<GitlabTree> getTree(String accessToken, Long projectId, String path, boolean recursive) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        return gitlabApiClient.listTree(user.getGitlabAccessToken(), projectId, path, recursive);
-    }
-
-    @Override
-    public String getFile(String accessToken, Long projectId, String path, String ref) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        return gitlabApiClient.getRawFile(user.getGitlabAccessToken(), projectId, path, ref);
-    }
-
-    @Override
-    public GitlabCompareResponse getDiff(String accessToken, Long projectId, String from, String to) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        return gitlabApiClient.compareCommits(user.getGitlabAccessToken(), projectId, from, to);
-    }
-
-    @Override
-    public GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        return gitlabApiClient.createBranch(user.getGitlabAccessToken(), projectId, branch, ref);
-    }
-
+    /* Push _ webhook 생성 */
     @Override
     public void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter) {
-        System.out.println("accessToken = " + accessToken);
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        gitlabApiClient.createProjectHook(user.getGitlabAccessToken(), projectId, hookUrl, branchFilter);
-
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        gitlabApiClient.registerPushWebhook(gitlabAccessToken, projectId, hookUrl, branchFilter);
     }
 
-    @Override
-    public String deleteBranch(String accessToken, Long projectId, String branch) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        gitlabApiClient.deleteBranch(user.getGitlabAccessToken(), projectId, branch);
-
-        return branch;
-    }
-
-    @Override
-    public MergeRequestCreateResponse createMergeRequest(
-            String accessToken,
-            Long projectId,
-            String sourceBranch,
-            String targetBranch,
-            String title,
-            String description
-    ) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        // 브랜치 여부 먼저 확인하기
-        gitlabApiClient.getBranch(user.getGitlabAccessToken(), projectId, sourceBranch);
-        gitlabApiClient.getBranch(user.getGitlabAccessToken(), projectId, targetBranch);
-
-        return gitlabApiClient.createMergeRequest(
-                user.getGitlabAccessToken(),
-                projectId,
-                sourceBranch,
-                targetBranch,
-                title,
-                description
-        );
-    }
-
-    @Override
-    public GitlabCompareResponse getLatestMergeRequestDiff(String accessToken, Long projectId) {
-
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        // 1) 최신 mr 하나 조회
-        List<GitlabMergeRequest> mrs =
-                gitlabApiClient.listMergeRequests(user.getGitlabAccessToken(), projectId, 1, 1);
-        if (mrs == null || mrs.isEmpty()) {
-            throw new BusinessException(ErrorCode.GITLAB_NO_MERGE_REQUESTS);
-        }
-        GitlabMergeRequest latest = mrs.get(0);
-
-        // 2)mr 상세 조회해서 diff_refs 가져오기
-        GitlabMergeRequest detail =
-                gitlabApiClient.getMergeRequest(user.getGitlabAccessToken(), projectId, latest.getIid());
-        String base = detail.getDiffRefs().getBaseSha();
-        String head = detail.getDiffRefs().getHeadSha();
-
-        // 3) 비교
-        return gitlabApiClient.compareCommits(user.getGitlabAccessToken(), projectId, base, head);
-    }
-
+    /* Push 트리거 */
     @Override
     public void triggerPushEvent(String accessToken, Long projectId, String branch) {
 
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
+        // 유효성 검사
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        branchValidCheck(gitlabAccessToken, projectId, branch);
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
-        if (user.getGitlabAccessToken().isBlank()) {
-            throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-        }
-
-        // 브랜치 존재 확인 (없으면 404)
-        gitlabApiClient.getBranch(user.getGitlabAccessToken(), projectId, branch);
-
-        // 유니크한 파일명 생성 (루트에 바로)
+        // 유니크한 파일명
         String filePath = String.format(
                 "trigger-%d-%s.txt",
                 Instant.now().toEpochMilli(),
@@ -249,18 +61,140 @@ public class GitlabServiceImpl implements GitlabService {
         delete.setFile_path(filePath);
 
         List<CommitAction> actions = List.of(create, delete);
-        log.debug(">>>>>>>>>> 커밋 action : {}", actions);
+        String commitMessage = "chore: trigger Jenkins build by SEED";
 
-        // 7) 두 액션을 묶어서 한 번의 커밋으로 푸시 이벤트 트리거
-        gitlabApiClient.createCommit(
-                user.getGitlabAccessToken(),
+        gitlabApiClient.submitCommit(gitlabAccessToken, projectId, branch, commitMessage, actions);
+
+        log.debug(">>>>>>>>> 푸시 트리거 동작 완료 for projectId={}, branch={}, filePath={}", projectId, branch, filePath);
+
+    }
+
+    /* MR생성 */
+    @Override
+    public MergeRequestCreateResponse createMergeRequest(String accessToken,
+                                                         Long projectId,
+                                                         String sourceBranch,
+                                                         String targetBranch,
+                                                         String title,
+                                                         String description
+    ) {
+
+        // 유효성 검사
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        branchValidCheck(gitlabAccessToken, projectId, sourceBranch);
+        branchValidCheck(gitlabAccessToken, projectId, targetBranch);
+
+        return gitlabApiClient.submitMergeRequest(
+                gitlabAccessToken,
                 projectId,
-                branch,
-                "chore: trigger Jenkins build by SEED",
-                actions
+                sourceBranch,
+                targetBranch,
+                title,
+                description
         );
-        log.debug(">>>>>>>>> 푸시 트리거 동작 완료 for projectId={}, branch={}, filePath={}",
-                projectId, branch, filePath);
+
+    }
+
+    /* 브랜치 생성*/
+    @Override
+    public GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref) {
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        return gitlabApiClient.submitBranchCreation(gitlabAccessToken, projectId, branch, ref);
+    }
+
+    /*브랜치 삭제*/
+    @Override
+    public void deleteBranch(String accessToken, Long projectId, String branch) {
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        gitlabApiClient.submitBranchDeletion(gitlabAccessToken, projectId, branch);
+    }
+
+    /*레포지토리 목록 조회*/
+    @Override
+    public List<GitlabProject> getProjects(String accessToken) {
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        int page = 1;
+        int perPage = 100;
+
+        return gitlabApiClient.requestProjectList(gitlabAccessToken, page, perPage);
+    }
+
+    /* 레포지토리 단건 조회 (URL) */
+    @Override
+    public GitlabProject getProjectByUrl(String accessToken, String repoUrl) {
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+
+        String repoPath = repoUrl.startsWith("http")
+                ? java.net.URI.create(repoUrl).getPath().substring(1)
+                : repoUrl;
+
+        return gitlabApiClient.requestProjectInfo(gitlabAccessToken, repoPath);
+    }
+
+    /* Diff 1 ) 최신 MR 기준 diff 조회 */
+    @Override
+    public Mono<GitlabCompareResponse> fetchLatestMrDiff(String accessToken, Long projectId) {
+        String token = tokenValidCheck(accessToken);
+        int page = 1;
+        int perPage = 1;
+
+        return gitlabApiClient.requestMergedMrs(token, projectId, page, perPage)
+                .flatMap(mrs -> {
+                    if (mrs.isEmpty()) {
+                        return Mono.error(new BusinessException(ErrorCode.GITLAB_NO_MERGE_REQUESTS));
+                    }
+                    GitlabMergeRequest latest = mrs.get(0);
+
+                    return gitlabApiClient.requestMrDetail(token, projectId, latest.getIid())
+                            .flatMap(detail -> {
+                                String base = detail.getDiffRefs().getBaseSha();
+                                String head = detail.getDiffRefs().getHeadSha();
+                                return gitlabApiClient.requestCommitComparison(token, projectId, base, head);
+                            });
+                });
+    }
+
+    /* Diff 2 ) 커밋 간 변경사항 조회 (from-to) */
+    @Override
+    public Mono<GitlabCompareResponse> compareCommits(String accessToken, Long projectId, String from, String to) {
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        return gitlabApiClient.requestCommitComparison(gitlabAccessToken, projectId, from, to);
+    }
+
+    /* 레포지토리 tree 구조 조회  */
+    @Override
+    public List<GitlabTree> getRepositoryTree(String accessToken, Long projectId, String path, boolean recursive) {
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        int page = 1;
+        int perPage = 100;
+
+        return gitlabApiClient.requestRepositoryTree(gitlabAccessToken, projectId, path, recursive, page, perPage);
+    }
+
+    /* 파일 원본 조회  */
+    @Override
+    public String getRawFileContent(String accessToken, Long projectId, String path, String ref) {
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+        return gitlabApiClient.requestRawFileContent(gitlabAccessToken, projectId, path, ref);
+    }
+
+    /* 공통 로직 */
+    private String tokenValidCheck(String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        if (user.getGitlabAccessToken().isBlank()) {
+           throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
+        }
+
+        return user.getGitlabAccessToken();
+    }
+
+    private void branchValidCheck(String gitlabAccessToken, Long projectId, String branch) {
+        gitlabApiClient.validateBranchExists(gitlabAccessToken, projectId, branch);
     }
 
 }

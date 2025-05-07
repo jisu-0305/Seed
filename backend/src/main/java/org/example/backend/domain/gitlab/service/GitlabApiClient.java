@@ -1,50 +1,44 @@
 package org.example.backend.domain.gitlab.service;
 
-import com.google.firestore.v1.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
+import reactor.core.publisher.Mono;
 
 import java.util.List;
 
 public interface GitlabApiClient {
 
-    List<GitlabProject> listProjects(String pat);
+    void registerPushWebhook(String gitlabAccessToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
 
-    List<GitlabTree> listTree(String pat, Long projectId, String path, boolean recursive);
+    void submitCommit(String gitlabAccessToken, Long projectId, String branch, String commitMessage, List<CommitAction> action);
 
-    String getRawFile(String pat, Long projectId, String path, String ref);
+    MergeRequestCreateResponse submitMergeRequest(String accessToken,
+                                                  Long projectId,
+                                                  String sourceBranch,
+                                                  String targetBranch,
+                                                  String title,
+                                                  String description);
 
-    GitlabProject getProjectInfo(String pat, String projectUrl);
+    GitlabBranch submitBranchCreation(String accessToken, Long projectId, String branch, String ref);
 
-    GitlabCompareResponse compareCommits(String accessToken, Long projectId, String from, String to);
+    void submitBranchDeletion(String accessToken, Long projectId, String branch);
 
-    GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
+    List<GitlabProject> requestProjectList(String gitlabAccessToken, int page, int perPage);
 
-    void createProjectHook(String privateToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
+    GitlabProject requestProjectInfo(String gitlabAccessToken, String projectUrl);
 
-    void deleteBranch(String accessToken, Long projectId, String branch);
+    Mono<List<GitlabMergeRequest>> requestMergedMrs(String accessToken, Long projectId, int page, int perPage);
 
-    MergeRequestCreateResponse createMergeRequest(
-            String accessToken,
-            Long projectId,
-            String sourceBranch,
-            String targetBranch,
-            String title,
-            String description
-    );
+    Mono<GitlabMergeRequest> requestMrDetail(String accessToken, Long projectId, Long mergeRequestIid);
 
-    GitlabBranch getBranch(String accessToken, Long projectId, String branchName);
+    Mono<GitlabCompareResponse> requestCommitComparison(String accessToken, Long projectId, String from, String to);
 
-    List<GitlabMergeRequest> listMergeRequests(String accessToken, Long projectId, int page, int perPage);
 
-    GitlabMergeRequest getMergeRequest(String accessToken, Long projectId, Long mergeRequestIid);
+    List<GitlabTree> requestRepositoryTree(String gitlabAccessToken, Long projectId, String path, boolean recursive, int page, int perPage);
 
-    void createCommit(
-            String gitlabToken,
-            Long projectId,
-            String branch,
-            String commitMessage,
-            List<CommitAction> actions
-    );
+    String requestRawFileContent(String gitlabAccessToken, Long projectId, String path, String ref);
+
+    void validateBranchExists(String accessToken, Long projectId, String branchName);
+
 }
