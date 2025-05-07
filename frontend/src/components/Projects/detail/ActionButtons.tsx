@@ -1,29 +1,58 @@
 /* eslint-disable no-nested-ternary */
 import styled from '@emotion/styled';
+import { useRouter } from 'next/navigation';
 
-export function ActionButtons() {
+interface ActionButtonsProps {
+  projectId: string | undefined;
+}
+
+export function ActionButtons({ projectId }: ActionButtonsProps) {
+  const router = useRouter();
+
+  const goToReport = () => {
+    if (!projectId) return;
+    router.push(`/projects/${projectId}/report`);
+  };
+
+  const runBuild = async () => {
+    console.log('빌드 다시 시작하기 API 연결하기');
+  };
+
+  const runHttps = async () => {
+    console.log('Https 설정 시작하기 API 연결하기');
+  };
+
+  const goToGitLab = () => {
+    window.open('https://lab.ssafy.com/s12-final/S12P31A206', '_blank');
+  };
+
+  const goToEdit = () => {
+    if (!projectId) return;
+    router.push(`/projects/${projectId}/edit`);
+  };
+
   return (
     <Wrapper>
       <MainActions>
-        <Button variant="ai">
+        <Button variant="ai" onClick={goToReport}>
           <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
           AI 보고서
         </Button>
-        <Button variant="build">
+        <Button variant="build" onClick={runBuild}>
           <Icon src="/assets/icons/ic_build.svg" alt="build_now" />
           지금 빌드
         </Button>
-        <Button variant="https">
+        <Button variant="https" onClick={runHttps}>
           <Icon src="/assets/icons/ic_https_true.svg" alt="https" />
           Https 설정
         </Button>
       </MainActions>
       <SubActions>
-        <SmallButton>
+        <SmallButton onClick={goToGitLab}>
           <SmallIcon src="/assets/icons/ic_gitlab_white.svg" alt="gitlab" />{' '}
           GitLab
         </SmallButton>
-        <SmallButton>
+        <SmallButton onClick={goToEdit}>
           <SmallIcon src="/assets/icons/ic_edit.svg" alt="edit" /> 정보수정
         </SmallButton>
         <SmallButton>
