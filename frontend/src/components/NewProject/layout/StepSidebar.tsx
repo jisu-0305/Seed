@@ -16,6 +16,8 @@ export default function StepSidebar() {
     setIsExpanded((prev) => !prev);
   };
 
+  if (mode === null) return null;
+
   return (
     <SidebarWrapper>
       {/* GitLab 정보 */}

@@ -26,6 +26,8 @@ export default function Header({ title }: HeaderProps) {
     );
   }
 
+  if (mode === null) return null;
+
   return (
     <HeaderWrapper>
       <SubTitle>{title}</SubTitle>

@@ -69,6 +69,8 @@ export default function AppInput() {
     }
   };
 
+  if (mode === null) return null;
+
   return (
     <Wrapper>
       <Title>등록한 어플리케이션</Title>

@@ -17,6 +17,8 @@ export function ProjectHeader({
 }: ProjectHeaderProps) {
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <Wrapper>
       <Emoji src={emojiSrc} alt="project" />

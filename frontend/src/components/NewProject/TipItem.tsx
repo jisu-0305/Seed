@@ -15,6 +15,8 @@ export default function TipItem({
 }: TipItemProps) {
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <StWrapper important={important}>
       <TipLabel important={important}>TIP</TipLabel>

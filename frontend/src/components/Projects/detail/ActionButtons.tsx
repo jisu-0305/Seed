@@ -6,6 +6,8 @@ import { useThemeStore } from '@/stores/themeStore';
 export function ActionButtons() {
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <Wrapper>
       <MainActions>
