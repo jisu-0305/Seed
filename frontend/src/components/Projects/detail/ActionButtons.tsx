@@ -14,7 +14,7 @@ export function ActionButtons() {
           AI 보고서
         </Button>
         <Button variant="build">
-          <Icon src="/assets/icons/ic_build.svg" alt="build_now" />
+          <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
           지금 빌드
         </Button>
         <Button variant="https">
