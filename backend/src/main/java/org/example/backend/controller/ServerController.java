@@ -25,25 +25,7 @@ public class ServerController {
 
     private final ServerService serverService;
     private final ConvertHttpsUtil convertHttpsUtil;
-    private final SshUtil sshUtil;
     private final ProjectService projectService;
-
-    @PostMapping(value = "/register", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> register(
-            @RequestPart("request") NewServerRequest newServerRequest,
-            @RequestPart("keyFile") MultipartFile keyFile) throws IOException {
-
-        serverService.registerServer(newServerRequest, keyFile);
-        return ResponseEntity.ok("등록 완료 및 폴더 생성 완료");
-    }
-
-    @DeleteMapping("/delete-folder")
-    public ResponseEntity<String> deleteFolder(
-            @RequestBody DeleteServerFolderRequest request) {
-
-        serverService.deleteFolderOnServer(request);
-        return ResponseEntity.ok("폴더 삭제 완료");
-    }
 
     @PostMapping("/deployment")
     public ResponseEntity<String> registerDeployment(
