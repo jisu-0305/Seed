@@ -40,7 +40,7 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
 }
 
 const Container = styled.div`
-  margin-top: 3rem;
+  margin-top: 1rem;
   border-radius: 1rem;
 `;
 
@@ -75,7 +75,25 @@ const Tab = styled.div<{ active: boolean; mode: string }>`
 const ContentWrapper = styled.div`
   border: 1px solid ${({ theme }) => theme.colors.Gray0};
   border-radius: 1rem 0 1rem 1rem;
-  overflow: hidden;
-  max-height: 40rem;
+  max-height: 35rem;
   min-height: 35rem;
+
+  overflow-y: auto;
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: ${({ theme }) => `${theme.colors.Black} transparent`};
+
+  /* WebKit (Chrome, Safari, Edge) */
+  &::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: ${({ theme }) => theme.colors.Gray3};
+    border-radius: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 `;
