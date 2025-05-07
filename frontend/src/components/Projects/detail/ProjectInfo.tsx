@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 interface ProjectInfoProps {
   folder: string;
   clientDir: string;
@@ -17,6 +19,8 @@ export function ProjectInfo({
   jdkVersion,
   buildTool,
 }: ProjectInfoProps) {
+  const { mode } = useThemeStore();
+
   return (
     <Card>
       <HeaderRow>
@@ -27,14 +31,20 @@ export function ProjectInfo({
       <Row>
         <Label>Client</Label>
         <Value>
-          <FolderIcon src="/assets/icons/ic_folder.svg" alt="folder" />
+          <FolderIcon
+            src={`/assets/icons/ic_folder_${mode}.svg`}
+            alt="folder"
+          />
           {clientDir}
         </Value>
       </Row>
       <Row>
         <Label>Server</Label>
         <Value>
-          <FolderIcon src="/assets/icons/ic_folder.svg" alt="folder" />
+          <FolderIcon
+            src={`/assets/icons/ic_folder_${mode}.svg`}
+            alt="folder"
+          />
           {serverDir}
         </Value>
       </Row>

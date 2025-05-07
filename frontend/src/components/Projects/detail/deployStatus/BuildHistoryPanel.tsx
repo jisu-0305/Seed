@@ -2,12 +2,15 @@ import styled from '@emotion/styled';
 import { useState } from 'react';
 
 import { dummyBuilds } from '@/assets/dummy/builds';
+import { useThemeStore } from '@/stores/themeStore';
 
 import { DeployTable } from './DeployTable';
 
 export function BuildHistoryPanel() {
   const [selectedId, setSelectedId] = useState(dummyBuilds[0].id);
   const selected = dummyBuilds.find((b) => b.id === selectedId)!;
+
+  const { mode } = useThemeStore();
 
   return (
     <Wrapper>
@@ -19,7 +22,7 @@ export function BuildHistoryPanel() {
             onClick={() => setSelectedId(b.id)}
           >
             <Icon status={b.status}>
-              <IcIcon src="/assets/icons/ic_build_white.svg" alt="build" />
+              <IcIcon src={`/assets/icons/ic_build_${mode}.svg`} alt="build" />
             </Icon>
             <Info>
               <Title>
