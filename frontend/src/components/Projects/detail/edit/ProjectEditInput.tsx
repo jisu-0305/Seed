@@ -1,77 +1,53 @@
 import styled from '@emotion/styled';
-import { useState } from 'react';
+import React, { useState } from 'react';
 
-import { useModal } from '@/hooks/Common';
+import FileInput from '@/components/Common/FileInput';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
-import ModalWrapper from '../Common/Modal/ModalWrapper';
-import InformInboundBriefModal from './Modal/InformInboundBriefModal';
-import SearchDockerImageModal from './Modal/SearchDockerImageModal';
-import TipItem from '../Common/TipItem';
+const dummyApps = [
+  {
+    name: 'redis',
+    tag: 'latest',
+    port: 8081,
+  },
+  {
+    name: 'mysql',
+    tag: 'stable',
+    port: 3306,
+  },
+  {
+    name: 'elastic search',
+    tag: 'latest',
+    port: 9200,
+  },
+];
 
-// const dummyApps = [
-//   {
-//     name: 'redis',
-//     tag: 'latest',
-//     port: 8081,
-//   },
-//   {
-//     name: 'mysql',
-//     tag: 'stable',
-//     port: 3306,
-//   },
-//   {
-//     name: 'elastic search',
-//     tag: 'latest',
-//     port: 9200,
-//   },
-// ];
-
-export default function AppInput() {
+export default function ProjectEditInput() {
   const { mode } = useThemeStore();
 
-  const { stepStatus, setAppStatus } = useProjectInfoStore();
-  // const apps = dummyApps;
-  const { app: apps } = stepStatus;
-
-  const inboundTip = useModal();
-  const search = useModal();
+  const { stepStatus, setServerStatus, setEnvStatus, setAppStatus } =
+    useProjectInfoStore();
+  const { server } = stepStatus;
+  const { env } = stepStatus;
+  const apps = dummyApps;
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [tag, setTag] = useState('latest');
   const [port, setPort] = useState(8080);
 
-  const handleAddApp = (app: { name: string }) => {
-    const existingIndex = apps.findIndex((a) => a.name === app.name);
+  const handleIpChange = (index: number, value: string) => {
+    const numeric = value.replace(/\D/g, '');
 
-    if (existingIndex !== -1) {
-      // 새로 추가한 앱
-      const existingApp = apps[existingIndex];
-      setSelectedIndex(existingIndex);
-      setTag(existingApp.tag);
-      setPort(existingApp.port);
-      return;
-    }
+    if (numeric !== '' && parseInt(numeric, 10) > 255) return;
 
-    // 이미 있는 앱
-    const usedPorts = new Set(apps.map((a) => a.port));
-    let assignedPort = 8080;
-    while (usedPorts.has(assignedPort)) {
-      assignedPort += 1;
-    }
+    const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
+    ipParts[index] = numeric;
 
-    const newApp = {
-      name: app.name,
-      tag: 'latest',
-      port: assignedPort,
-    };
-
-    const updatedApps = [...apps, newApp];
-    setAppStatus(updatedApps);
-    setSelectedIndex(updatedApps.length - 1);
-    setTag(newApp.tag);
-    setPort(newApp.port);
+    setServerStatus({
+      ip: ipParts.map((p) => p || '').join('.'),
+      pem: server.pem,
+    });
   };
 
   const handleSelectApp = (index: number) => {
@@ -84,10 +60,7 @@ export default function AppInput() {
     const updated = [...apps];
     updated.splice(index, 1);
     setAppStatus(updated);
-
-    if (selectedIndex === index) {
-      setSelectedIndex(null);
-    }
+    setSelectedIndex(null);
   };
 
   const handleTagChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -111,11 +84,39 @@ export default function AppInput() {
     }
   };
 
-  if (mode === null) return null;
+  const handleClientEnvChange = (file: File) => {
+    setEnvStatus({ ...env, env: !!file });
+  };
+
+  const handleServerEnvChange = (file: File) => {
+    setEnvStatus({ ...env, env: !!file });
+  };
+
+  const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
 
   return (
-    <>
-      <Wrapper>
+    <Container>
+      <Section>
+        <Title>
+          IP 주소 <SubText>포트는 22번으로 고정됩니다.</SubText>
+        </Title>
+
+        <IpInputWrapper>
+          {ipParts.map((val, i) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <React.Fragment key={`${val}-${i}`}>
+              <IpBox
+                maxLength={3}
+                value={val}
+                onChange={(e) => handleIpChange(i, e.target.value)}
+              />
+              {i !== ipParts.length - 1 && '.'}
+            </React.Fragment>
+          ))}
+        </IpInputWrapper>
+      </Section>
+
+      <Section>
         <Title>등록한 어플리케이션</Title>
         <RegisteredList>
           {apps.map((app, idx) => (
@@ -134,13 +135,12 @@ export default function AppInput() {
         <SearchWrapper>
           <SearchInput placeholder="어플리케이션을 검색해주세요." readOnly />
           <SearchIcon
-            onClick={search.toggle}
             src={`/assets/icons/ic_search_${mode}.svg`}
             alt="search"
           />
         </SearchWrapper>
 
-        {selectedIndex !== null && apps[selectedIndex] && (
+        {selectedIndex !== null && (
           <>
             <Row>
               <Label>선택한 어플리케이션</Label>
@@ -163,50 +163,110 @@ export default function AppInput() {
                 />
               </SelectWrapper>
 
-              <div>
+              <SelectWrapper>
                 <Label>포트번호</Label>
                 <PortInput
                   type="number"
                   value={port}
                   onChange={handlePortChange}
                 />
-              </div>
+              </SelectWrapper>
             </Row>
           </>
         )}
+      </Section>
 
-        <TipList>
-          <TipItem text="포트번호는 반드시 중복되지 않도록 설정해주세요" />
-          <TipItem
-            text="EC2에서 어플리케이션의 포트를 열어주세요"
-            important
-            help
-            openModal={inboundTip.toggle}
+      <Section>
+        <Row>
+          <Label>Client 환경변수</Label>
+          <FileInput
+            handleFileChange={handleClientEnvChange}
+            accept=".env"
+            placeholder="frontend.env"
           />
-        </TipList>
-      </Wrapper>
-      <ModalWrapper isShowing={inboundTip.isShowing || search.isShowing}>
-        <InformInboundBriefModal
-          isShowing={inboundTip.isShowing}
-          handleClose={inboundTip.toggle}
-        />
-        <SearchDockerImageModal
-          isShowing={search.isShowing}
-          handleClose={search.toggle}
-          onSelect={handleAddApp}
-        />
-      </ModalWrapper>
-    </>
+        </Row>
+        <Row>
+          <Label>Server 환경변수</Label>
+          <FileInput
+            handleFileChange={handleServerEnvChange}
+            accept=".env"
+            placeholder="backend.env"
+          />
+        </Row>
+      </Section>
+    </Container>
   );
 }
 
-const Wrapper = styled.div`
+const Container = styled.div`
   width: 100%;
   padding: 4rem;
 `;
 
+const Section = styled.section`
+  margin-bottom: 3rem;
+
+  &:not(:first-of-type) {
+    padding-top: 3rem;
+    border-top: 1px solid ${({ theme }) => theme.colors.BorderDefault};
+  }
+
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+`;
+
+const Row = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+
+  padding-left: 2rem;
+  margin-bottom: 2rem;
+`;
+
+const Label = styled.label`
+  min-width: fit-content;
+
+  ${({ theme }) => theme.fonts.Title5};
+`;
+
 const Title = styled.h3`
+  width: fit-content;
+  margin: 4rem 0 2rem;
+
+  &:first-of-type {
+    margin-top: 0;
+  }
+
   ${({ theme }) => theme.fonts.Head4};
+`;
+
+const SubText = styled.span`
+  ${({ theme }) => theme.fonts.Body6};
+  color: ${({ theme }) => theme.colors.Gray3};
+
+  margin-left: 1rem;
+`;
+
+const IpInputWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+`;
+
+const IpBox = styled.input`
+  width: 6rem;
+  padding: 1rem;
+  text-align: center;
+
+  ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
+
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
+  border-radius: 1rem;
 `;
 
 const RegisteredList = styled.div`
@@ -272,21 +332,6 @@ const SearchIcon = styled.img`
   cursor: pointer;
 `;
 
-const Row = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-
-  margin-bottom: 1.5rem;
-`;
-
-const Label = styled.label`
-  min-width: fit-content;
-  margin-right: 1.2rem;
-  ${({ theme }) => theme.fonts.Head4}
-`;
-
 const SelectedApp = styled.div`
   display: flex;
   align-items: center;
@@ -307,6 +352,9 @@ const IcIcon = styled.img`
 const SelectWrapper = styled.div`
   position: relative;
   width: 20rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 `;
 
 const Select = styled.select`
@@ -351,12 +399,4 @@ const PortInput = styled.input`
   background-color: ${({ theme }) => theme.colors.InputBackground};
   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
-`;
-
-const TipList = styled.ul`
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-
-  margin-top: 4rem;
 `;

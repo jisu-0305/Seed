@@ -3,8 +3,8 @@ import { ChangeEvent } from 'react';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
 
-import FileInput from './FileInput';
-import TipItem from './TipItem';
+import FileInput from '../Common/FileInput';
+import TipItem from '../Common/TipItem';
 
 export default function EnvInput() {
   const { stepStatus, setEnvStatus } = useProjectInfoStore();

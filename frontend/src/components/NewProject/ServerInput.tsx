@@ -5,11 +5,11 @@ import { useModal } from '@/hooks/Common';
 import { useProjectInfoStore } from '@/stores/projectStore';
 
 import ModalWrapper from '../Common/Modal/ModalWrapper';
-import FileInput from './FileInput';
+import FileInput from '../Common/FileInput';
 import InformInboundModal from './Modal/InformInboundModal';
 import InformIpModal from './Modal/InformIpModal';
 import InformPemKeyModal from './Modal/InformPemKeyModal';
-import TipItem from './TipItem';
+import TipItem from '../Common/TipItem';
 
 export default function ServerInput() {
   const { stepStatus, setServerStatus } = useProjectInfoStore();
