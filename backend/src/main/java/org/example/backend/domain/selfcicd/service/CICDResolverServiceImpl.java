@@ -5,7 +5,6 @@ import org.example.backend.controller.request.log.DockerLogRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.log.DockerLogResponse;
 import org.example.backend.domain.docker.service.DockerService;
-import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.service.JenkinsService;
 import org.example.backend.domain.project.entity.Application;
@@ -14,14 +13,11 @@ import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
+import org.example.backend.util.fastai.FastAIClient;
 import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.example.backend.domain.project.enums.ProjectStructure.MONO;
 
@@ -30,7 +26,7 @@ import static org.example.backend.domain.project.enums.ProjectStructure.MONO;
 public class CICDResolverServiceImpl implements CICDResolverService {
     private final JenkinsService jenkinsService;
     private final DockerService dockerService;
-//    private final FastAIAgent fastAIAgent;
+    private final FastAIClient fastAIClient;
     private final GitlabService gitlabService;
     private final ProjectRepository projectRepository;
     private final ApplicationRepository applicationRepository;
@@ -80,14 +76,13 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 파라미터: jenkins log, appNames, gitDiff
          * 담당자: 공예슬, 김지수
          * */
-//        SuspectedFileRequest suspectRequest = SuspectedFileRequest.builder()
+//        SuspectFileRequest suspectRequest = SuspectFileRequest.builder()
 //                .gitDiff(gitlabCompareResponse.getDiffs())
-//                .commitLog(gitlabCompareResponse.getCommit())
 //                .jenkinsLog(jenkinsErrorLog)
 //                .applicationNames(appNames)
 //                .build();
 //
-//        List<String> suspectedApplications = fastAIAgent.getSuspectedApplications(suspectRequest);
+//        List<String> suspectedApplications = fastAIClient.getSuspectedApplications(suspectRequest);
 
         /**
          * 2-1. 해당 어플리케이션들의 트리 구조 가져오기
@@ -116,7 +111,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 //        }
 
         // 2-3. AI API 호출: 문제 있는 파일 path 추론 요청
-//        List<String> filePaths = fastAIAgent.requestSuspectFiles(
+//        List<String> filePaths = fastAIClient.requestSuspectFiles(
 //                gitlabCompareResponse.getDiffs(),
 //                appTree,
 //                appLogs
@@ -126,8 +121,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 //        List<PatchedFile> patchedFiles = new ArrayList<>();
 //        for (String path : filePaths) {
 //            String originalCode = gitlabService.getFile(accessToken, projectId, path, ref);
-//            String instruction = fastAIAgent.requestFixInstruction(jenkinsErrorLog, path, originalCode);
-//            PatchedFile patchedFile = fastAIAgent.requestPatchFile(path, originalCode, instruction);
+//            String instruction = fastAIClient.requestFixInstruction(jenkinsErrorLog, path, originalCode);
+//            PatchedFile patchedFile = fastAIClient.requestPatchFile(path, originalCode, instruction);
 //            patchedFiles.add(patchedFile);
 //        }
 
@@ -203,7 +198,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 //                ))
 //                .build();
 //
-//        fastAIAgent.generateSummaryReport(reportRequest);
+//        fastAIClient.generateSummaryReport(reportRequest);
 //
 //        // 6. GitLab Merge Request 생성 (빌드 성공 시)
 //        if (buildSucceeded) {
