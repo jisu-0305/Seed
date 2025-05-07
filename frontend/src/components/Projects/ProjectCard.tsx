@@ -53,7 +53,7 @@ export const ProjectCard = ({
       <Right>
         <Item>
           자동배포{' '}
-          <Icon src="/assets/icons/ic_autoDeploy.svg" alt="auto-deploy" />
+          <Icon src="/assets/icons/ic_autoDeploy_light.svg" alt="auto-deploy" />
         </Item>
         <Item>
           HTTPS{' '}

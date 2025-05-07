@@ -51,7 +51,10 @@ export const ProjectCard = ({
           </p>
           <p>
             자동배포
-            <IcStatus src="/assets/icons/ic_autoDeploy.svg" alt="auto deploy" />
+            <IcStatus
+              src="/assets/icons/ic_autoDeploy_light.svg"
+              alt="auto deploy"
+            />
           </p>
         </Info>
       </Content>
