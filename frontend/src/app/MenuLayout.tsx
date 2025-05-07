@@ -14,14 +14,18 @@ import { darkTheme, lightTheme } from '@/styles/theme';
 
 export function MenuLayout({ children }: { children: ReactNode }) {
   const pathName = usePathname();
-  const { mode, setMode } = useThemeStore();
+  const { mode, setMode, hasHydrated } = useThemeStore();
 
   useEffect(() => {
-    if (mode === null) {
+    if (hasHydrated && mode === null) {
       const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       setMode(isDark ? 'dark' : 'light');
     }
-  }, [mode, setMode]);
+  }, [hasHydrated, mode, setMode]);
+
+  if (!hasHydrated || mode === null) {
+    return null;
+  }
 
   return (
     // <ThemeProvider theme={theme}>
