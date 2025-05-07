@@ -44,23 +44,8 @@ export function DeployTable({ tasks }: { tasks: Task[] }) {
 
 const TableWrapper = styled.div`
   overflow-y: auto;
-  /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: ${({ theme }) => `${theme.colors.Text} transparent`};
-
-  /* WebKit (Chrome, Safari, Edge) */
-  &::-webkit-scrollbar {
-    width: 8px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: ${({ theme }) => theme.colors.Gray3};
-    border-radius: 4px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
+  scrollbar-color: ${({ theme }) => `${theme.colors.Gray0} transparent`};
 `;
 
 const Table = styled.table`
@@ -79,7 +64,7 @@ const Table = styled.table`
   th {
     color: ${({ theme }) => theme.colors.Gray3};
     ${({ theme }) => theme.fonts.EnBody2};
-    border-bottom: 1px solid ${({ theme }) => theme.colors.LightGray2};
+    border-bottom: 1px solid ${({ theme }) => theme.colors.InputStroke};
   }
 
   th:last-child {

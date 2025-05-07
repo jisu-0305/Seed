@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
-import TipItem from './TipItem';
+import TipItem from '../Common/TipItem';
 
 const dummyApps = [
   {

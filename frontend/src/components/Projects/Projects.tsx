@@ -52,8 +52,7 @@ const SectionWrapper = styled.section`
   justify-content: flex-start;
   align-items: center;
   width: 100%;
-  padding-top: 10rem;
-  padding-bottom: 10rem;
+  padding: 10rem 2rem;
   border-radius: 1.5rem;
 `;
 
