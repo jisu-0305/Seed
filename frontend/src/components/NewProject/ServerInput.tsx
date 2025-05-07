@@ -104,9 +104,10 @@ const IpBox = styled.input`
   text-align: center;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 

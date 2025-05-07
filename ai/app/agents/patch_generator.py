@@ -12,13 +12,16 @@ class PatchGeneratorAgent(BaseAgent):
             - Error explanation / reason: {instruction}
 
             Your task:
+            - Apply the minimal changes needed to resolve the described error.
+            - Preserve every line of the original file that does not require modification—keep all imports, comments, formatting, and indentation exactly as in the input.
             - Keep the existing structure, comments and formatting of the file unchanged as much as possible.
             - Modify only the lines or small blocks necessary to resolve the error described.
             - Return the entire corrected file contents, preserving indentation and line breaks.
+            - Return the complete contents of the patched file, with no omissions.
             - Do not wrap your answer in markdown fences or add any commentary—return raw file text.
 
             Output:
             <the full, patched file contents>
 
             """
-        return await ask_gpt(prompt)
+        return await ask_gpt(prompt, model="gpt-4.1")

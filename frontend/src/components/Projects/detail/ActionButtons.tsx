@@ -1,33 +1,68 @@
 /* eslint-disable no-nested-ternary */
 import styled from '@emotion/styled';
+import { useRouter } from 'next/navigation';
 
-export function ActionButtons() {
+import { useThemeStore } from '@/stores/themeStore';
+
+interface ActionButtonsProps {
+  projectId: string | undefined;
+}
+
+export function ActionButtons({ projectId }: ActionButtonsProps) {
+  const { mode } = useThemeStore();
+
+  const router = useRouter();
+
+  const goToReport = () => {
+    if (!projectId) return;
+    router.push(`/projects/${projectId}/report`);
+  };
+
+  const runBuild = async () => {
+    console.log('빌드 다시 시작하기 API 연결하기');
+  };
+
+  const runHttps = async () => {
+    console.log('Https 설정 시작하기 API 연결하기');
+  };
+
+  const goToGitLab = () => {
+    window.open('https://lab.ssafy.com/s12-final/S12P31A206', '_blank');
+  };
+
+  const goToEdit = () => {
+    if (!projectId) return;
+    router.push(`/projects/${projectId}/edit`);
+  };
+
   return (
     <Wrapper>
       <MainActions>
-        <Button variant="ai">
+        <Button variant="ai" onClick={goToReport}>
           <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
           AI 보고서
         </Button>
-        <Button variant="build">
-          <Icon src="/assets/icons/ic_build.svg" alt="build_now" />
+        <Button variant="build" onClick={runBuild}>
+          <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
           지금 빌드
         </Button>
-        <Button variant="https">
-          <Icon src="/assets/icons/ic_https_true.svg" alt="https" />
+        <Button variant="https" onClick={runHttps}>
+          <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
           Https 설정
         </Button>
       </MainActions>
       <SubActions>
-        <SmallButton>
-          <SmallIcon src="/assets/icons/ic_gitlab_white.svg" alt="gitlab" />{' '}
+        <SmallButton onClick={goToGitLab}>
+          <SmallIcon src={`/assets/icons/ic_gitlab_${mode}.svg`} alt="gitlab" />{' '}
           GitLab
         </SmallButton>
-        <SmallButton>
-          <SmallIcon src="/assets/icons/ic_edit.svg" alt="edit" /> 정보수정
+        <SmallButton onClick={goToEdit}>
+          <SmallIcon src={`/assets/icons/ic_edit_${mode}.svg`} alt="edit" />{' '}
+          정보수정
         </SmallButton>
         <SmallButton>
-          <SmallIcon src="/assets/icons/ic_team.svg" alt="team" /> 팀원 관리
+          <SmallIcon src={`/assets/icons/ic_team_${mode}.svg`} alt="team" />{' '}
+          팀원 관리
         </SmallButton>
       </SubActions>
     </Wrapper>
@@ -89,8 +124,8 @@ const SmallButton = styled.button`
   padding: 0.7rem 1rem;
   border: none;
   border-radius: 1.5rem;
-  background: ${({ theme }) => theme.colors.Black};
-  color: ${({ theme }) => theme.colors.White};
+  background: ${({ theme }) => theme.colors.Text};
+  color: ${({ theme }) => theme.colors.Background};
   ${({ theme }) => theme.fonts.Body2};
 `;
 

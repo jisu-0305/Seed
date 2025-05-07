@@ -2,12 +2,14 @@ import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 
 import SmallButton from '@/components/Common/button/SmallButton';
+import { useThemeStore } from '@/stores/themeStore';
 import { getUrlFromId } from '@/utils/getProjectStep';
 
 import InfoCheck from './InfoCheck';
 
 export default function Complete() {
   const router = useRouter();
+  const { mode } = useThemeStore();
 
   return (
     <Wrapper>
@@ -18,7 +20,10 @@ export default function Complete() {
             variant="cancel"
             onClick={() => router.push(getUrlFromId(4))}
           >
-            <Icon src="/assets/icons/ic_button_arrow_left.svg" alt="back" />
+            <Icon
+              src={`/assets/icons/ic_button_arrow_left_${mode}.svg`}
+              alt="back"
+            />
             이전
           </SmallButton>
           <SmallButton
@@ -28,7 +33,10 @@ export default function Complete() {
             }}
           >
             프로젝트 생성하기
-            <Icon src="/assets/icons/ic_button_arrow_right.svg" alt="next" />
+            <Icon
+              src="/assets/icons/ic_button_arrow_right_light.svg"
+              alt="next"
+            />
           </SmallButton>
         </ButtonWrapper>
       </Header>
@@ -68,8 +76,6 @@ const Header = styled.div`
 const Title = styled.h3`
   ${({ theme }) => theme.fonts.Head0};
   font-size: 2.6rem;
-
-  padding-left: 2rem;
 `;
 
 const ButtonWrapper = styled.div`
@@ -83,6 +89,8 @@ const MainPanel = styled.section`
   display: flex;
   flex-direction: row;
   justify-content: center;
+
+  min-height: 55rem;
 `;
 
 const Aside = styled.aside`
@@ -97,7 +105,7 @@ const Aside = styled.aside`
   max-width: 30rem;
   padding: 2rem;
 
-  background-color: ${({ theme }) => theme.colors.Black1};
+  background-color: ${({ theme }) => theme.colors.Black};
   border-radius: 1.5rem;
 
   text-align: center;

@@ -184,4 +184,22 @@ public class GitlabController {
 
     }
 
+    /* ai 자동수정된 파일들을 한 번에 커밋 */
+    @PostMapping("/projects/{projectId}/files/patch")
+    @Operation(
+            summary = "AI 자동 수정 파일 일괄 커밋",
+            description = "AI가 생성한 patchedFiles 목록을 단일 커밋으로 저장소에 반영합니다.",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    public ResponseEntity<ApiResponse<Void>> commitPatchedFiles(
+            @Parameter(description = "프로젝트 ID", required = true, example = "998708")
+            @PathVariable Long projectId,
+            @RequestBody CommitPatchedFilesRequest request,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+
+        gitlabService.commitPatchedFiles(accessToken, projectId, request.branch(), request.commitMessage(), request.patchedFiles());
+        return ResponseEntity.ok(ApiResponse.success());
+
+    }
+
 }
