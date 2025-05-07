@@ -32,6 +32,5 @@ public class Project {
     private String backendBranchName;
     private String backendDirectoryName;
     private String pemFilePath;
-
 }
 

@@ -11,7 +11,9 @@ public interface GitlabService {
 
     void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter);
 
-    void triggerPushEvent(String authHeader, Long projectId, String branch);
+    GitlabCompareResponse getLatestMergeRequestDiff(String accessToken, Long projectId);
+
+    void triggerPushEvent(String accessToken, Long projectId, String branch);
 
     MergeRequestCreateResponse createMergeRequest(String accessToken,
                                                   Long projectId,
