@@ -79,6 +79,3 @@ redis-cli ping
 # 종료
 sudo service redis-server stop
 ```
-
-test#31
-

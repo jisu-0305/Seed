@@ -16,8 +16,8 @@ import { ProjectInfo } from './ProjectInfo';
 
 export default function ProjectDetail() {
   const params = useParams();
-  const id = params?.id;
-  console.log('프로젝트 상세: ', id);
+  const rawId = params?.id;
+  const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
 
   // 1) state로 관리
   const [tasksByTab, setTasksByTab] = useState<Record<DeployTabName, Task[]>>(
@@ -42,7 +42,7 @@ export default function ProjectDetail() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [id]);
+  }, [projectId]);
 
   return (
     <SectionWrapper>
@@ -69,7 +69,7 @@ export default function ProjectDetail() {
             buildTool={project.projectInfo.buildTool}
           />
 
-          <ActionButtons />
+          <ActionButtons projectId={projectId} />
         </SectionInfo>
 
         <SubTitle>Deploy Status</SubTitle>
