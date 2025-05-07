@@ -45,7 +45,7 @@ export const ProjectCard = ({
           <p>
             HTTPS
             <IcStatus
-              src={`/assets/icons/ic_https_${https ? 'true' : 'false'}.svg`}
+              src={`/assets/icons/ic_https_${https ? 'true' : 'false'}_light.svg`}
               alt={`https_${https ? 'true' : 'false'}`}
             />
           </p>

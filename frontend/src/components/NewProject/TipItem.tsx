@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 interface TipItemProps {
   text: string;
   important?: boolean;
@@ -11,6 +13,8 @@ export default function TipItem({
   important = false,
   help = false,
 }: TipItemProps) {
+  const { mode } = useThemeStore();
+
   return (
     <StWrapper important={important}>
       <TipLabel important={important}>TIP</TipLabel>
@@ -21,7 +25,7 @@ export default function TipItem({
           src={
             important
               ? `/assets/icons/ic_help_important.svg`
-              : `/assets/icons/ic_help.svg`
+              : `/assets/icons/ic_help_${mode}.svg`
           }
           alt="help_icon"
         />

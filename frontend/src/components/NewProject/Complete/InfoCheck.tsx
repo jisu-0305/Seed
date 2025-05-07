@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 export default function InfoCheck() {
   const { stepStatus: status } = useProjectInfoStore();
+  const { mode } = useThemeStore();
 
   return (
     <StWrapper>
@@ -24,8 +26,8 @@ export default function InfoCheck() {
           <Icon
             src={
               status.gitlab.directory
-                ? '/assets/icons/ic_checked_true.svg'
-                : '/assets/icons/ic_checked_false.svg'
+                ? `/assets/icons/ic_checked_${mode}_true.svg`
+                : `/assets/icons/ic_checked_${mode}_false.svg`
             }
             alt="checked"
           />
@@ -45,8 +47,8 @@ export default function InfoCheck() {
           <Icon
             src={
               status.server.pem
-                ? '/assets/icons/ic_checked_true.svg'
-                : '/assets/icons/ic_checked_false.svg'
+                ? `/assets/icons/ic_checked_${mode}_true.svg`
+                : `/assets/icons/ic_checked_${mode}_false.svg`
             }
             alt="checked"
           />
@@ -92,8 +94,8 @@ export default function InfoCheck() {
             <Icon
               src={
                 status.env.env
-                  ? '/assets/icons/ic_checked_true.svg'
-                  : '/assets/icons/ic_checked_false.svg'
+                  ? `/assets/icons/ic_checked_${mode}_true.svg`
+                  : `/assets/icons/ic_checked_${mode}_false.svg`
               }
               alt="checked"
             />
@@ -117,6 +119,11 @@ export default function InfoCheck() {
 }
 
 const StWrapper = styled.aside`
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  min-height: 55rem;
+
   padding: 4rem;
   padding-bottom: 2rem;
 

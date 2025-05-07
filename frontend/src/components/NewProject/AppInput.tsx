@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import { useState } from 'react';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 import TipItem from './TipItem';
 
@@ -24,6 +25,8 @@ const dummyApps = [
 ];
 
 export default function AppInput() {
+  const { mode } = useThemeStore();
+
   const { setAppStatus } = useProjectInfoStore();
   const apps = dummyApps;
   //   const { app } = stepStatus;
@@ -85,7 +88,7 @@ export default function AppInput() {
 
       <SearchWrapper>
         <SearchInput placeholder="어플리케이션을 검색해주세요." readOnly />
-        <SearchIcon src="/assets/icons/ic_search.svg" alt="search" />
+        <SearchIcon src={`/assets/icons/ic_search_${mode}.svg`} alt="search" />
       </SearchWrapper>
 
       {selectedIndex !== null && (
@@ -105,7 +108,10 @@ export default function AppInput() {
                 <option value="latest">latest</option>
                 <option value="stable">stable</option>
               </Select>
-              <ArrowIcon src="/assets/icons/ic_arrow_down.svg" alt="arrow" />
+              <ArrowIcon
+                src={`/assets/icons/ic_arrow_down_${mode}.svg`}
+                alt="arrow"
+              />
             </SelectWrapper>
 
             <div>
@@ -259,6 +265,8 @@ const Select = styled.select`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  cursor: pointer;
 `;
 
 const ArrowIcon = styled.img`

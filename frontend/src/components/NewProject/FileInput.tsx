@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import { ChangeEvent, useState } from 'react';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 interface FileInputProps {
   handleFileChange: (file: File) => void;
   accept?: string;
@@ -12,6 +14,7 @@ export default function FileInput({
   accept,
   placeholder,
 }: FileInputProps) {
+  const { mode } = useThemeStore();
   const [file, setFile] = useState<File | null>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -31,7 +34,7 @@ export default function FileInput({
         placeholder={placeholder || ''}
       />
       <UploadLabel htmlFor="upload">
-        <UploadIcon src="/assets/icons/ic_upload.svg" alt="upload" />
+        <UploadIcon src={`/assets/icons/ic_upload_${mode}.svg`} alt="upload" />
       </UploadLabel>
       <HiddenInput
         type="file"

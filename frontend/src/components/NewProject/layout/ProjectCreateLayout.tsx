@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import SmallButton from '@/components/Common/button/SmallButton';
 import Header from '@/components/Common/Header';
+import { useThemeStore } from '@/stores/themeStore';
 import { getIdFromUrl, getUrlFromId } from '@/utils/getProjectStep';
 
 import StepSidebar from './StepSidebar';
@@ -19,6 +20,7 @@ export default function ProjectCreateLayout({
   const pathName = usePathname();
   const key = pathName.split('/').pop() || '';
   const currentStep = getIdFromUrl(key);
+  const { mode } = useThemeStore();
 
   return (
     <>
@@ -41,7 +43,7 @@ export default function ProjectCreateLayout({
                   }}
                 >
                   <Icon
-                    src="/assets/icons/ic_button_arrow_left.svg"
+                    src={`/assets/icons/ic_button_arrow_left_${mode}.svg`}
                     alt="arrow left"
                   />
                   이전
@@ -54,7 +56,7 @@ export default function ProjectCreateLayout({
                 >
                   다음
                   <Icon
-                    src="/assets/icons/ic_button_arrow_right.svg"
+                    src={`/assets/icons/ic_button_arrow_right_${mode}.svg`}
                     alt="arrow left"
                   />
                 </SmallButton>
@@ -70,7 +72,7 @@ export default function ProjectCreateLayout({
 }
 
 const Wrapper = styled.div`
-  max-width: 120rem;
+  max-width: 100rem;
 
   display: flex;
   flex-direction: column;

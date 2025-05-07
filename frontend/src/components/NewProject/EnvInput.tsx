@@ -164,12 +164,45 @@ const RadioGroup = styled.div`
   display: flex;
   gap: 1rem;
 
-  input[type='radio'] {
+  /* input[type='radio'] {
     accent-color: ${({ theme }) => theme.colors.RadioSelected};
+  } */
+
+  input[type='radio'] {
+    appearance: none;
+
+    width: 2rem;
+    height: 2rem;
+
+    border: 2px solid ${({ theme }) => theme.colors.Text};
+    border-radius: 50%;
+
+    position: relative;
+
+    cursor: pointer;
+
+    &:checked {
+      &::after {
+        content: '';
+
+        width: 1.2rem;
+        height: 1.2rem;
+
+        background-color: ${({ theme }) => theme.colors.Text};
+        border-radius: 50%;
+
+        position: absolute;
+        top: 0.2rem;
+        left: 0.2rem;
+      }
+    }
   }
 
   label {
     ${({ theme }) => theme.fonts.Body1};
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
 `;
 
