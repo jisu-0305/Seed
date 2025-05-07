@@ -81,7 +81,7 @@ const ContentWrapper = styled.div`
   overflow-y: auto;
   /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: ${({ theme }) => `${theme.colors.Black} transparent`};
+  scrollbar-color: ${({ theme }) => `${theme.colors.Gray0} transparent`};
 
   /* WebKit (Chrome, Safari, Edge) */
   &::-webkit-scrollbar {
