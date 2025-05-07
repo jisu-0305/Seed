@@ -16,6 +16,7 @@ import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -67,8 +68,11 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                 .toList();
 
         // 1-3. Git diff 정보 가져오기 -> 관련해서 GitlabCompareCommit.id 필드가 실제 커밋 id인지 사실 여부 확인 필요 - 담당자: 박유진
-        GitlabCompareResponse gitlabCompareResponse = gitlabService.getLatestMergeRequestDiff(accessToken, project.getId());
-        String ref = gitlabCompareResponse.getCommit().getId(); //아래 4에서 진행될 git관련에서 사용
+        GitlabCompareResponse gitlabCompareResponse = gitlabService.fetchLatestMrDiff(accessToken, project.getId()).block();
+        String ref = "";
+        if (gitlabCompareResponse != null) {
+            ref = gitlabCompareResponse.getCommit().getId();
+        }
 
         /**
          * 1-4. AI API 호출: 1~3의 재료주고 의심되는 애플리케이션 추론 요청
