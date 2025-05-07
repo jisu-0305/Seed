@@ -32,7 +32,7 @@ export default function Header({ title }: HeaderProps) {
         <Alarm src="/assets/icons/ic_alarm.svg" alt="alarm" />
         <Profile onClick={toggle}>
           <ProfileImg
-            src={user?.avatarUrl || '/assets/user.png'}
+            src={user?.profileImageUrl || '/assets/user.png'}
             alt="profile"
           />
           {loading ? '...' : user?.userName || 'SSAFY'}
