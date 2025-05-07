@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import React from 'react';
 
 import { logout } from '@/apis/user';
+import { useThemeStore } from '@/stores/themeStore';
 import { useUserStore } from '@/stores/userStore';
 import { clearUserData } from '@/utils/auth';
 
@@ -15,6 +16,7 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const user = useUserStore((s) => s.user);
   const loading = useUserStore((s) => s.loading);
   const error = useUserStore((s) => s.error);
+  const { mode } = useThemeStore();
 
   const handleLogout = async () => {
     try {
@@ -53,7 +55,7 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 {user.userIdentifyId}
               </Item>
               <Item onClick={handleLogout}>
-                <Icon src="/assets/icons/ic_logout.svg" />
+                <Icon src={`/assets/icons/ic_logout_${mode}.svg`} />
                 로그아웃
               </Item>
             </List>

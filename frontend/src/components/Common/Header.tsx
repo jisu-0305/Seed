@@ -16,7 +16,7 @@ export default function Header({ title }: HeaderProps) {
   const hasHydrated = useUserStore((s) => s.hasHydrated);
 
   const { isShowing, toggle } = useModal();
-  const { toggleMode } = useThemeStore();
+  const { mode, toggleMode } = useThemeStore();
 
   if (!hasHydrated) {
     return (
@@ -32,10 +32,10 @@ export default function Header({ title }: HeaderProps) {
       <MenuWrapper>
         <LightMode
           onClick={toggleMode}
-          src="/assets/icons/ic_light.svg"
+          src={`/assets/icons/ic_${mode}.svg`}
           alt="light mode"
         />
-        <Alarm src="/assets/icons/ic_alarm.svg" alt="alarm" />
+        <Alarm src={`/assets/icons/ic_alarm_${mode}.svg`} alt="alarm" />
         <Profile onClick={toggle}>
           <ProfileImg
             src={user?.avatarUrl || '/assets/user.png'}
