@@ -8,13 +8,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
-import org.example.backend.controller.request.server.DeleteServerFolderRequest;
 import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
 import org.example.backend.controller.request.server.InitServerRequest;
-import org.example.backend.controller.request.server.NewServerRequest;
 import org.example.backend.domain.gitlab.service.GitlabService;
-import org.example.backend.domain.server.entity.ServerInfo;
-import org.example.backend.domain.server.repository.ServerInfoRepository;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -23,13 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.stream.Stream;
 
 @Service
@@ -39,93 +33,7 @@ public class ServerServiceImpl implements ServerService {
 
     private final UserRepository userRepository;
     private final RedisSessionManager redisSessionManager;
-    private final ServerInfoRepository repository;
     private final GitlabService gitlabService;
-
-    public void registerServer(NewServerRequest newServerRequest, MultipartFile keyFile) throws IOException {
-        // 1. key.pem 저장
-        String dirPath = System.getProperty("user.dir") + "/keys/";
-        new File(dirPath).mkdirs();
-        String filePath = dirPath + UUID.randomUUID() + "_" + keyFile.getOriginalFilename();
-        File savedFile = new File(filePath);
-        keyFile.transferTo(savedFile);
-
-        // 1-1. chmod 400 유사한 파일 권한 제한
-        savedFile.setReadable(true, true);      // 소유자만 읽기 가능
-        savedFile.setWritable(false, false);    // 쓰기 금지
-        savedFile.setExecutable(false, false);  // 실행 금지
-
-        // 2. request + key 경로 → DTO 업데이트
-        NewServerRequest completedRequest = newServerRequest.withKeyFilePath(filePath);
-
-        // 3. Entity 생성
-        ServerInfo server = ServerInfo.create(completedRequest.ipAddress(), completedRequest.keyFilePath());
-
-        // 4. 저장
-        repository.save(server);
-
-        // 5. EC2 SSH 폴더 생성
-        createFolderOnEC2(server.getIpAddress(), server.getKeyFilePath(), "/home/ubuntu/test-folder");
-    }
-
-    @Override
-    public void deleteFolderOnServer(DeleteServerFolderRequest request) {
-        String ip = request.ipAddress();
-
-        // 1. DB에서 keyFilePath 조회
-        ServerInfo server = repository.findByIpAddress(ip)
-                .orElseThrow(() -> new IllegalArgumentException("해당 IP의 서버 정보가 없습니다: " + ip));
-
-        String keyFilePath = server.getKeyFilePath();
-        String folderPath = "/home/ubuntu/test-folder"; // 고정 경로 (테스트 전용)
-
-        try {
-            JSch jsch = new JSch();
-            jsch.addIdentity(keyFilePath);
-
-            Session session = jsch.getSession("ubuntu", ip, 22);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.connect();
-
-            ChannelExec channel = (ChannelExec) session.openChannel("exec");
-            channel.setCommand("rm -rf " + folderPath);
-            channel.connect();
-
-            channel.disconnect();
-            session.disconnect();
-
-        } catch (Exception e) {
-            throw new RuntimeException("EC2 폴더 삭제 실패", e);
-        }
-    }
-
-    private void createFolderOnEC2(String ip, String pemPath, String folderPath) {
-        try {
-            JSch jsch = new JSch();
-            jsch.addIdentity(pemPath);
-
-            Session session = jsch.getSession("ubuntu", ip, 22);
-            session.setConfig("StrictHostKeyChecking", "no");
-            session.connect();
-
-            // 1. 폴더 만들기 + 2. hello.txt 만들기
-            String commands = String.join(" && ", List.of(
-                    "mkdir -p " + folderPath,
-                    "echo 'Hello World' > " + folderPath + "/hello.txt"
-            ));
-
-            ChannelExec channel = (ChannelExec) session.openChannel("exec");
-            channel.setCommand(commands);
-            channel.connect();
-
-            // 종료
-            channel.disconnect();
-            session.disconnect();
-
-        } catch (Exception e) {
-            throw new RuntimeException("EC2 폴더 또는 파일 생성 실패", e);
-        }
-    }
 
     @Override
     public void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile envFile, String accessToken) {

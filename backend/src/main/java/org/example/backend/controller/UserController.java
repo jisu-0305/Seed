@@ -47,7 +47,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @GetMapping("/oauth/gitlab/callback")
+    @GetMapping("/oauth/callback")
     public RedirectView gitlabCallback(@RequestParam("code") String code) {
         AuthResponse auth = gitlabOauthService.processUserAndSave(code);
 
