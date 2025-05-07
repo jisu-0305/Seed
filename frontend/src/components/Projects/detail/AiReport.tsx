@@ -86,21 +86,35 @@ const Wrapper = styled.div`
 const LeftPanel = styled.div`
   width: 220px;
   background: ${({ theme }) => theme.colors.White};
-  border-right: 1px solid ${({ theme }) => theme.colors.Gray1};
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   overflow-y: auto;
 
+  /* WebKit 기반 브라우저 (Chrome, Safari) */
   &::-webkit-scrollbar {
     width: 8px;
     background: transparent;
   }
+
+  /* 스크롤바 버튼(위/아래) 숨기기 */
+  &::-webkit-scrollbar-button {
+    display: none;
+  }
+
+  /* 스크롤바 thumb */
   &::-webkit-scrollbar-thumb {
     background-color: transparent;
     border-radius: 4px;
   }
+
+  /* hover 시 thumb 보이기 */
   &:hover::-webkit-scrollbar-thumb {
     background-color: ${({ theme }) => theme.colors.Gray3};
   }
+
+  /* Firefox: 기본에는 숨기기 */
   scrollbar-width: none;
+
+  /* hover 시만 가늘게 표시 */
   &:hover {
     scrollbar-width: thin;
     scrollbar-color: ${({ theme }) => `${theme.colors.Gray3} transparent`};
@@ -109,19 +123,19 @@ const LeftPanel = styled.div`
 
 const ReportItem = styled.div<{ active: boolean }>`
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   background: ${({ active, theme }) =>
     active ? theme.colors.LightGray2 : 'transparent'};
   cursor: pointer;
 
   &:hover {
-    background: ${({ theme }) => theme.colors.LightGray1};
+    background: ${({ theme }) => theme.colors.BuildHover};
   }
 `;
 
 const Date = styled.div`
   ${({ theme }) => theme.fonts.Body4};
-  color: ${({ theme }) => theme.colors.Gray4};
+  color: ${({ theme }) => theme.colors.Gray3};
   margin-bottom: 0.25rem;
 `;
 
@@ -146,8 +160,8 @@ const Status = styled.div<{ status: AiReport['status'] }>`
     status === 'In Progress'
       ? theme.colors.Main_Carrot
       : status === 'Merged'
-        ? theme.colors.Green0
-        : theme.colors.Gray4};
+        ? theme.colors.CalendarGreen
+        : theme.colors.Gray3};
   margin-top: 0.5rem;
 `;
 
@@ -177,7 +191,7 @@ const SectionTitle = styled.h3`
 
 const SummaryBox = styled.div`
   padding: 4rem;
-  background: ${({ theme }) => theme.colors.Gray4};
+  background: ${({ theme }) => theme.colors.BuildHover};
   border-radius: 1.5rem;
   ${({ theme }) => theme.fonts.Body1};
   line-height: 1.6;
@@ -205,7 +219,7 @@ const ConfirmButton = styled.button`
 
 const DetailBox = styled.div`
   padding: 4rem;
-  background: ${({ theme }) => theme.colors.Gray4};
+  background: ${({ theme }) => theme.colors.BuildHover};
   border-radius: 1.5rem;
   ${({ theme }) => theme.fonts.Body1};
   white-space: pre-line;
