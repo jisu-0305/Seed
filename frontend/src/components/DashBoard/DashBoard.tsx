@@ -163,7 +163,7 @@ const DevelopmentSection = styled.section`
 
   padding: 2rem 3rem;
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 2rem;
 `;
 

@@ -46,7 +46,7 @@ const TableWrapper = styled.div`
   overflow-y: auto;
   /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: ${({ theme }) => `${theme.colors.Black} transparent`};
+  scrollbar-color: ${({ theme }) => `${theme.colors.Text} transparent`};
 
   /* WebKit (Chrome, Safari, Edge) */
   &::-webkit-scrollbar {
@@ -54,7 +54,7 @@ const TableWrapper = styled.div`
   }
 
   &::-webkit-scrollbar-thumb {
-    background-color: ${({ theme }) => theme.colors.Gray2};
+    background-color: ${({ theme }) => theme.colors.Gray3};
     border-radius: 4px;
   }
 
@@ -93,7 +93,7 @@ const Table = styled.table`
   }
 
   tbody tr:hover {
-    background-color: ${({ theme }) => theme.colors.Gray4};
+    background-color: ${({ theme }) => theme.colors.BuildHover};
   }
 `;
 

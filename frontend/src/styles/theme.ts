@@ -220,7 +220,7 @@ export const fonts = {
   `,
 };
 
-export const colors = {
+export const palette = {
   Main_Carrot: '#FFA100',
   Carrot0: '#CA9843',
   Carrot2: '#FFC766',
@@ -258,77 +258,127 @@ export const colors = {
   Green2: '#98CEBA',
 };
 
-export const theme = {
-  colors,
+// export const theme = {
+//   colors,
+//   fonts,
+// };
+
+export const lightColors = {
+  BorderDefault: palette.LightGray1,
+  Background: palette.White,
+  Text: palette.Black,
+  NavSelected: palette.LightGray3,
+
+  CalendarInactive: palette.DarkGray2,
+  CalenderDefault: palette.DarkGray0,
+  CalendarCarrot: palette.Main_Carrot,
+  CalendarBlue: palette.Blue1,
+  CalendarGreen: palette.Green1,
+  CalendarRed: palette.Red2,
+
+  InputBackground: palette.LightGray3,
+  InputStroke: palette.LightGray2,
+  RadioSelected: palette.DarkGray0,
+
+  BtnPrevBg: palette.Gray3,
+  BtnPrevText: palette.White,
+  BtnNextBg: palette.Gray0,
+  BtnNextText: palette.White,
+
+  DetailFieldBg: palette.LightGray3,
+  DetailBorder1: palette.LightGray1,
+  DetailBorder2: palette.Black,
+  DetailText: palette.Gray1,
+
+  BuildSelected: palette.LightGray1,
+  BuildHover: palette.Gray4,
+
+  MenuBg: palette.Black,
+  MenuText: palette.White,
+
+  AiReport: palette.Gray4,
+
+  // 공통 색상
+  Main_Carrot: palette.Main_Carrot,
+  Carrot2: palette.Carrot2,
+  White: palette.White,
+  Black: palette.Black,
+  Black1: palette.Black1,
+  Gray0: palette.Gray0,
+  Gray3: palette.Gray3,
+  LightGray2: palette.LightGray2,
+  Red1: palette.Red1,
+  Red2: palette.Red2,
+  Red3: palette.Red3,
+  Blue1: palette.Blue1,
+  Blue2: palette.Blue2,
+  Blue4: palette.Blue4,
+  Blue3: palette.Blue3,
+  Purple1: palette.Purple1,
+  Purple3: palette.Purple3,
+};
+
+export const darkColors = {
+  BorderDefault: palette.Gray0,
+  Background: palette.Black1,
+  Text: palette.White,
+  NavSelected: palette.DarkGray0,
+
+  CalendarInactive: palette.DarkGray1,
+  CalenderDefault: palette.White,
+  CalendarCarrot: palette.Carrot0,
+  CalendarBlue: palette.Blue0,
+  CalendarGreen: palette.Green0,
+  CalendarRed: palette.Red0,
+
+  InputBackground: palette.DarkGray0,
+  InputStroke: palette.Gray0,
+  RadioSelected: palette.White,
+
+  BtnPrevBg: palette.DarkGray0,
+  BtnPrevText: palette.Gray3,
+  BtnNextBg: palette.White,
+  BtnNextText: palette.Black,
+
+  DetailFieldBg: palette.DarkGray0,
+  DetailBorder1: palette.DarkGray1,
+  DetailBorder2: palette.DarkGray1,
+  DetailText: palette.Gray3,
+
+  BuildSelected: palette.DarkGray0,
+  BuildHover: palette.DarkGray0,
+
+  MenuBg: palette.White,
+  MenuText: palette.Black,
+
+  AiReport: palette.DarkGray0,
+
+  // 공통 색상
+  Main_Carrot: palette.Main_Carrot,
+  Carrot2: palette.Carrot2,
+  White: palette.White,
+  Black: palette.Black,
+  Black1: palette.Black1,
+  Gray0: palette.Gray0,
+  Gray3: palette.Gray3,
+  LightGray2: palette.LightGray2,
+  Red1: palette.Red1,
+  Red2: palette.Red2,
+  Red3: palette.Red3,
+  Blue1: palette.Blue1,
+  Blue2: palette.Blue2,
+  Blue4: palette.Blue4,
+  Blue3: palette.Blue3,
+  Purple1: palette.Purple1,
+  Purple3: palette.Purple3,
+};
+
+export const lightTheme = {
+  colors: lightColors,
   fonts,
 };
 
-// export const lightColors = {
-//   borderDefault: '#E9E9E9', // LightGray1
-//   background: '#FFFFFF', // White
-//   text: '#000000', // Black
-//   navSelected: '#FCFCFC', // LightGray3
-
-//   calendarInactive: '#D3D3D3', // DarkGray2
-//   calendarCarrot: '#FFA100', // Main-Carrot
-//   calendarBlue: '#4B7BBF', // Blue1
-//   calendarGreen: '#4AA785', // Green1
-//   calendarRed: '#E05B5B', // Red2
-
-//   inputBackground: '#FCFCFC', // LightGray3
-
-//   btnPrevBg: '#969696', // Gray3
-//   btnPrevText: '#FFFFFF',
-//   btnNextBg: '#323232', // Gray0
-//   btnNextText: '#FFFFFF',
-
-//   detailFieldBg: '#FCFCFC', // LightGray3
-//   detailBorder1: '#E9E9E9', // LightGray1
-//   detailBorder2: '#000000', // Black
-
-//   menuBg: '#000000', // Black
-//   menuText: '#FFFFFF',
-
-//   aiReport: '#F7F9FB', // Gray4
-// };
-
-// export const darkColors = {
-//   borderDefault: '#323232', // Gray0
-//   background: '#1C1C1C', // Black1
-//   text: '#FFFFFF',
-//   navSelected: '#252525', // DarkGray0
-
-//   calendarInactive: '#3D3D3D', // DarkGray1
-//   calendarCarrot: '#CA9843', // Carrot0
-//   calendarBlue: '#4C6589', // Blue0
-//   calendarGreen: '#5B7A6F', // Green0
-//   calendarRed: '#9D3D3D', // Red0
-
-//   inputBackground: '#252525', // DarkGray0
-
-//   btnPrevBg: '#252525', // DarkGray0
-//   btnPrevText: '#969696', // Gray3
-//   btnNextBg: '#FFFFFF',
-//   btnNextText: '#000000',
-
-//   detailFieldBg: '#252525', // DarkGray0
-//   detailBorder1: '#3D3D3D', // DarkGray1
-//   detailBorder2: '#3D3D3D', // DarkGray1
-
-//   menuBg: '#FFFFFF',
-//   menuText: '#000000',
-
-//   aiReport: '#252525', // DarkGray0
-// };
-
-// export const lightTheme: Theme = {
-//   mode: 'light',
-//   colors: lightColors,
-//   fonts,
-// };
-
-// export const darkTheme: Theme = {
-//   mode: 'dark',
-//   colors: darkColors,
-//   fonts,
-// };
+export const darkTheme = {
+  colors: darkColors,
+  fonts,
+};

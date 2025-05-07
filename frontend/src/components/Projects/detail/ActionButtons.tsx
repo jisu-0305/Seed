@@ -1,7 +1,11 @@
 /* eslint-disable no-nested-ternary */
 import styled from '@emotion/styled';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 export function ActionButtons() {
+  const { mode } = useThemeStore();
+
   return (
     <Wrapper>
       <MainActions>
@@ -14,20 +18,22 @@ export function ActionButtons() {
           지금 빌드
         </Button>
         <Button variant="https">
-          <Icon src="/assets/icons/ic_https_true.svg" alt="https" />
+          <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
           Https 설정
         </Button>
       </MainActions>
       <SubActions>
         <SmallButton>
-          <SmallIcon src="/assets/icons/ic_gitlab_white.svg" alt="gitlab" />{' '}
+          <SmallIcon src={`/assets/icons/ic_gitlab_${mode}.svg`} alt="gitlab" />{' '}
           GitLab
         </SmallButton>
         <SmallButton>
-          <SmallIcon src="/assets/icons/ic_edit.svg" alt="edit" /> 정보수정
+          <SmallIcon src={`/assets/icons/ic_edit_${mode}.svg`} alt="edit" />{' '}
+          정보수정
         </SmallButton>
         <SmallButton>
-          <SmallIcon src="/assets/icons/ic_team.svg" alt="team" /> 팀원 관리
+          <SmallIcon src={`/assets/icons/ic_team_${mode}.svg`} alt="team" />{' '}
+          팀원 관리
         </SmallButton>
       </SubActions>
     </Wrapper>
@@ -89,8 +95,8 @@ const SmallButton = styled.button`
   padding: 0.7rem 1rem;
   border: none;
   border-radius: 1.5rem;
-  background: ${({ theme }) => theme.colors.Black};
-  color: ${({ theme }) => theme.colors.White};
+  background: ${({ theme }) => theme.colors.Text};
+  color: ${({ theme }) => theme.colors.Background};
   ${({ theme }) => theme.fonts.Body2};
 `;
 

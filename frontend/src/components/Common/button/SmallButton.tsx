@@ -33,14 +33,20 @@ const Button = styled.button<{ variant: 'cancel' | 'next' | 'complete' }>`
   width: fit-content;
 
   ${({ theme }) => theme.fonts.Title5}
-  color: ${({ theme }) => theme.colors.White};
+  color: ${({ variant, theme }) =>
+    // eslint-disable-next-line no-nested-ternary
+    variant === 'next'
+      ? theme.colors.BtnNextText
+      : variant === 'cancel'
+        ? theme.colors.BtnPrevText
+        : theme.colors.White};
 
   background-color: ${({ variant, theme }) =>
     // eslint-disable-next-line no-nested-ternary
     variant === 'next'
-      ? theme.colors.Gray0
+      ? theme.colors.BtnNextBg
       : variant === 'cancel'
-        ? theme.colors.Gray3
+        ? theme.colors.BtnPrevBg
         : theme.colors.Main_Carrot};
 
   &:disabled {

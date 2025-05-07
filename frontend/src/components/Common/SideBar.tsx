@@ -1,9 +1,12 @@
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 export default function SideBar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { mode } = useThemeStore();
 
   const handleMovePage = (url: string) => {
     router.push(url);
@@ -12,8 +15,15 @@ export default function SideBar() {
   return (
     <SideWrapper>
       <Logo>
-        <LogoImage src="/assets/icons/ic_logo.svg" alt="logo" />
-        <LogoText src="/assets/icons/ic_logoText.svg" alt="logoText" />
+        <LogoImage src={`/assets/icons/ic_logo_${mode}.svg`} alt="logo" />
+        <LogoText
+          src={
+            mode === 'light'
+              ? '/assets/icons/ic_logoText.svg'
+              : '/assets/icons/ic_logoText_white.svg'
+          }
+          alt="logoText"
+        />
       </Logo>
 
       <Menu>
@@ -24,8 +34,8 @@ export default function SideBar() {
           <IcDashBoard
             src={
               pathname === '/dashboard'
-                ? '/assets/icons/ic_board_true.svg'
-                : '/assets/icons/ic_board_false.svg'
+                ? `/assets/icons/ic_board_${mode}_true.svg`
+                : `/assets/icons/ic_board_${mode}_false.svg`
             }
             alt="대시보드 아이콘"
           />
@@ -39,8 +49,8 @@ export default function SideBar() {
           <IcCreate
             src={
               pathname.startsWith('/create')
-                ? '/assets/icons/ic_create_true.svg'
-                : '/assets/icons/ic_create_false.svg'
+                ? `/assets/icons/ic_create_${mode}_true.svg`
+                : `/assets/icons/ic_create_${mode}_false.svg`
             }
             alt="새 프로젝트 아이콘"
           />
@@ -54,8 +64,8 @@ export default function SideBar() {
           <IcProject
             src={
               pathname.startsWith('/projects')
-                ? '/assets/icons/ic_project_true.svg'
-                : '/assets/icons/ic_project_false.svg'
+                ? `/assets/icons/ic_project_${mode}_true.svg`
+                : `/assets/icons/ic_project_${mode}_false.svg`
             }
             alt="프로젝트 관리 아이콘"
           />
@@ -75,7 +85,7 @@ const SideWrapper = styled.div`
   min-width: 18rem;
   padding: 2rem;
 
-  border-right: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-right: 1px solid ${({ theme }) => theme.colors.BorderDefault};
 `;
 
 const Logo = styled.div`
@@ -119,11 +129,10 @@ const MenuItem = styled.li<{ active?: boolean }>`
     active ? 'theme.colors.LightGray3' : 'transparent'};
   border-radius: 0.8rem;
 
-  color: ${({ theme }) => theme.colors.Black1};
   ${({ active, theme }) => (active ? theme.fonts.Title6 : theme.fonts.Body3)}
 
   &:hover {
-    background-color: ${({ theme }) => theme.colors.LightGray3};
+    background-color: ${({ theme }) => theme.colors.NavSelected};
 
     ${({ theme }) => theme.fonts.Title6};
   }

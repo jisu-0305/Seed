@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 interface ProjectHeaderProps {
   emojiSrc: string;
   https: boolean;
@@ -13,6 +15,8 @@ export function ProjectHeader({
   lastBuildStatus,
   lastBuildTime,
 }: ProjectHeaderProps) {
+  const { mode } = useThemeStore();
+
   return (
     <Wrapper>
       <Emoji src={emojiSrc} alt="project" />
@@ -34,13 +38,16 @@ export function ProjectHeader({
           <StatusItem>
             <Label>HTTPS</Label>
             <Icon
-              src={`/assets/icons/ic_https_${https}.svg`}
+              src={`/assets/icons/ic_https_${https}_${mode}.svg`}
               alt={`https_${https}`}
             />
           </StatusItem>
           <StatusItem>
             <Label>자동배포</Label>
-            <Icon src="/assets/icons/ic_autoDeploy.svg" alt="auto-deploy" />
+            <Icon
+              src={`/assets/icons/ic_autoDeploy_${mode}.svg`}
+              alt="auto-deploy"
+            />
           </StatusItem>
         </StatusGroup>
       </StatusRow>
@@ -55,7 +62,7 @@ const Wrapper = styled.div`
   width: 25rem;
   height: 25rem;
   padding: 1rem 2rem;
-  border: 0.15rem solid ${({ theme }) => theme.colors.Black};
+  border: 0.15rem solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
 `;
 
@@ -92,7 +99,7 @@ const Label = styled.div`
 
 const Time = styled.div`
   ${({ theme }) => theme.fonts.EnBody2};
-  color: ${({ theme }) => theme.colors.Gray1};
+  color: ${({ theme }) => theme.colors.DetailText};
 `;
 
 const Icon = styled.img`

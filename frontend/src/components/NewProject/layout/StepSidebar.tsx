@@ -2,10 +2,12 @@ import styled from '@emotion/styled';
 import { useState } from 'react';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 export default function StepSidebar() {
   const { stepStatus: status } = useProjectInfoStore();
   const [isExpanded, setIsExpanded] = useState(false);
+  const { mode } = useThemeStore();
 
   const appCnt = status.app.length;
   const mainAppName = status.app[0]?.name || '-';
@@ -31,8 +33,8 @@ export default function StepSidebar() {
           <Icon
             src={
               status.gitlab.directory.client && status.gitlab.directory.server
-                ? '/assets/icons/ic_checked_true.svg'
-                : '/assets/icons/ic_checked_false.svg'
+                ? `/assets/icons/ic_checked_${mode}_true.svg`
+                : `/assets/icons/ic_checked_${mode}_false.svg`
             }
             alt="ic_checked"
           />
@@ -52,8 +54,8 @@ export default function StepSidebar() {
           <Icon
             src={
               status.server.pem
-                ? '/assets/icons/ic_checked_true.svg'
-                : '/assets/icons/ic_checked_false.svg'
+                ? `/assets/icons/ic_checked_${mode}_true.svg`
+                : `/assets/icons/ic_checked_${mode}_false.svg`
             }
             alt="ic_checked"
           />
@@ -69,7 +71,7 @@ export default function StepSidebar() {
             어플리케이션
             {appCnt > 1 && (
               <ArrowIcon
-                src="/assets/icons/ic_arrow_down.svg"
+                src={`/assets/icons/ic_arrow_down_${mode}.svg`}
                 alt="arrow"
                 isExpanded={isExpanded}
                 onClick={toggleExpand}
@@ -103,8 +105,8 @@ export default function StepSidebar() {
           <Icon
             src={
               status.env
-                ? '/assets/icons/ic_checked_true.svg'
-                : '/assets/icons/ic_checked_false.svg'
+                ? `/assets/icons/ic_checked_${mode}_true.svg`
+                : `/assets/icons/ic_checked_${mode}_false.svg`
             }
             alt="ic_checked"
           />
@@ -119,7 +121,7 @@ const SidebarWrapper = styled.aside`
   padding: 1.5rem;
   padding-bottom: 0;
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
 `;
 
@@ -137,7 +139,7 @@ const Row = styled.div`
 
 const Label = styled.span`
   ${({ theme }) => theme.fonts.Head5};
-  color: ${({ theme }) => theme.colors.Black1};
+  color: ${({ theme }) => theme.colors.Text};
 `;
 
 const Value = styled.span`
@@ -160,7 +162,7 @@ const AppTag = styled.span`
 `;
 
 const Divider = styled.hr`
-  border-top: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-top: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   margin: 0.5rem 0;
 `;
 

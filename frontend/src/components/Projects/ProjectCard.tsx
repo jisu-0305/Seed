@@ -58,7 +58,7 @@ export const ProjectCard = ({
         <Item>
           HTTPS{' '}
           <Icon
-            src={`/assets/icons/ic_https_${https ? 'true' : 'false'}.svg`}
+            src={`/assets/icons/ic_https_${https ? 'true' : 'false'}_light.svg`}
             alt="https"
           />
         </Item>
@@ -97,6 +97,7 @@ const Right = styled.div`
 
 const Title = styled.h3`
   ${({ theme }) => theme.fonts.EnTitle2};
+  color: ${({ theme }) => theme.colors.Black};
 `;
 
 const ProjectImage = styled.img`
@@ -115,8 +116,10 @@ const Item = styled.div`
   align-items: center;
   gap: 0.5rem;
   ${({ theme }) => theme.fonts.Body4};
+  color: ${({ theme }) => theme.colors.Black};
 `;
 
 const Time = styled.div`
   ${({ theme }) => theme.fonts.Body5};
+  color: ${({ theme }) => theme.colors.Black};
 `;
