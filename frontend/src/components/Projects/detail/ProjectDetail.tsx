@@ -1,7 +1,12 @@
 import styled from '@emotion/styled';
 import { useParams } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-import { project, tasksByTab } from '@/assets/dummy/project_detail';
+import { tasksByTab as dummyTasks } from '@/assets/dummy/builds';
+import { project } from '@/assets/dummy/project_detail';
+import type { DeployTabName } from '@/types/deploy';
+import { DeployTabNames } from '@/types/deploy';
+import type { Task } from '@/types/task';
 
 import { AvatarList } from '../AvatarList';
 import { ActionButtons } from './ActionButtons';
@@ -13,6 +18,31 @@ export default function ProjectDetail() {
   const params = useParams();
   const id = params?.id;
   console.log('프로젝트 상세: ', id);
+
+  // 1) state로 관리
+  const [tasksByTab, setTasksByTab] = useState<Record<DeployTabName, Task[]>>(
+    // 초기에는 모든 탭 빈 배열
+    DeployTabNames.reduce(
+      (acc, tab) => {
+        acc[tab] = [];
+        return acc;
+      },
+      {} as Record<DeployTabName, Task[]>,
+    ),
+  );
+
+  // 2) 마운트 시에 "API 호출" (여기서는 더미)
+  useEffect(() => {
+    // 실제 API 호출이라면 fetch(...) 후 json 파싱
+    // 예: fetch(`/api/projects/${id}/deploy-tasks`).then(res => res.json()).then(data => setTasksByTab(data));
+
+    // 더미 데이터를 가져와서 500ms 뒤에 세팅
+    const timer = setTimeout(() => {
+      setTasksByTab(dummyTasks);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [id]);
 
   return (
     <SectionWrapper>
