@@ -87,6 +87,7 @@ export const globalStyles = (theme: Theme): SerializedStyles => css`
     border: 0;
     font-size: 60%;
     vertical-align: baseline;
+    color: ${theme.colors.Text};
   }
 
   article,
@@ -154,7 +155,7 @@ export const globalStyles = (theme: Theme): SerializedStyles => css`
 
   hr {
     border: none;
-    border-top: 0.06rem solid ${theme.colors.Black1};
+    border-top: 0.06rem solid ${theme.colors.BorderDefault};
     width: 100%;
   }
 
@@ -166,7 +167,7 @@ export const globalStyles = (theme: Theme): SerializedStyles => css`
     margin: 0 auto;
     overflow-y: auto;
 
-    background-color: ${theme.colors.White};
+    background-color: ${theme.colors.Background};
 
     -ms-overflow-style: none; /* IE */
     scrollbar-width: none; /* Firefox */

@@ -2,11 +2,15 @@
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 interface ActionButtonsProps {
   projectId: string | undefined;
 }
 
 export function ActionButtons({ projectId }: ActionButtonsProps) {
+  const { mode } = useThemeStore();
+
   const router = useRouter();
 
   const goToReport = () => {
@@ -39,24 +43,26 @@ export function ActionButtons({ projectId }: ActionButtonsProps) {
           AI 보고서
         </Button>
         <Button variant="build" onClick={runBuild}>
-          <Icon src="/assets/icons/ic_build.svg" alt="build_now" />
+          <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
           지금 빌드
         </Button>
         <Button variant="https" onClick={runHttps}>
-          <Icon src="/assets/icons/ic_https_true.svg" alt="https" />
+          <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
           Https 설정
         </Button>
       </MainActions>
       <SubActions>
         <SmallButton onClick={goToGitLab}>
-          <SmallIcon src="/assets/icons/ic_gitlab_white.svg" alt="gitlab" />{' '}
+          <SmallIcon src={`/assets/icons/ic_gitlab_${mode}.svg`} alt="gitlab" />{' '}
           GitLab
         </SmallButton>
         <SmallButton onClick={goToEdit}>
-          <SmallIcon src="/assets/icons/ic_edit.svg" alt="edit" /> 정보수정
+          <SmallIcon src={`/assets/icons/ic_edit_${mode}.svg`} alt="edit" />{' '}
+          정보수정
         </SmallButton>
         <SmallButton>
-          <SmallIcon src="/assets/icons/ic_team.svg" alt="team" /> 팀원 관리
+          <SmallIcon src={`/assets/icons/ic_team_${mode}.svg`} alt="team" />{' '}
+          팀원 관리
         </SmallButton>
       </SubActions>
     </Wrapper>
@@ -118,8 +124,8 @@ const SmallButton = styled.button`
   padding: 0.7rem 1rem;
   border: none;
   border-radius: 1.5rem;
-  background: ${({ theme }) => theme.colors.Black};
-  color: ${({ theme }) => theme.colors.White};
+  background: ${({ theme }) => theme.colors.Text};
+  color: ${({ theme }) => theme.colors.Background};
   ${({ theme }) => theme.fonts.Body2};
 `;
 

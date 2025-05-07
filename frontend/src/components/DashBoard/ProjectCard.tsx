@@ -45,13 +45,16 @@ export const ProjectCard = ({
           <p>
             HTTPS
             <IcStatus
-              src={`/assets/icons/ic_https_${https ? 'true' : 'false'}.svg`}
+              src={`/assets/icons/ic_https_${https ? 'true' : 'false'}_light.svg`}
               alt={`https_${https ? 'true' : 'false'}`}
             />
           </p>
           <p>
             자동배포
-            <IcStatus src="/assets/icons/ic_autoDeploy.svg" alt="auto deploy" />
+            <IcStatus
+              src="/assets/icons/ic_autoDeploy_light.svg"
+              alt="auto deploy"
+            />
           </p>
         </Info>
       </Content>
@@ -80,6 +83,7 @@ const Title = styled.h3`
   gap: 1rem;
 
   ${({ theme }) => theme.fonts.EnTitle2};
+  color: ${({ theme }) => theme.colors.Black1};
 `;
 
 const ProjectImage = styled.img`
@@ -108,10 +112,12 @@ const BuildInfo = styled.div`
     gap: 1rem;
 
     ${({ theme }) => theme.fonts.Head5};
+    color: ${({ theme }) => theme.colors.Black1};
   }
 
   p {
     ${({ theme }) => theme.fonts.Body5};
+    color: ${({ theme }) => theme.colors.Black1};
   }
 `;
 
@@ -129,5 +135,6 @@ const Info = styled.div`
     gap: 1rem;
 
     ${({ theme }) => theme.fonts.Body4};
+    color: ${({ theme }) => theme.colors.Black1};
   }
 `;

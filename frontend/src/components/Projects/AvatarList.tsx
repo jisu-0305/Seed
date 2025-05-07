@@ -55,5 +55,5 @@ const MoreCount = styled.div`
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-  color: ${({ theme }) => theme.colors.Gray2};
+  color: ${({ theme }) => theme.colors.Black1};
 `;

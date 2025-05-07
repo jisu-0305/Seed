@@ -47,6 +47,8 @@ export default function Login() {
 const Wrapper = styled.div`
   display: flex;
   height: 100%;
+
+  background-color: ${({ theme }) => theme.colors.White};
 `;
 
 // Left pane
@@ -109,7 +111,7 @@ const GitlabButton = styled.button`
   ${({ theme }) => theme.fonts.EnTitle2};
 
   &:hover {
-    background: ${({ theme }) => theme.colors.Black};
+    background: ${({ theme }) => theme.colors.Text};
   }
 `;
 
