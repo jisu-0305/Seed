@@ -21,6 +21,8 @@ export function ProjectInfo({
 }: ProjectInfoProps) {
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <Card>
       <HeaderRow>

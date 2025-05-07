@@ -22,6 +22,8 @@ export default function ProjectCreateLayout({
   const currentStep = getIdFromUrl(key);
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <>
       <Header title="새 프로젝트" />

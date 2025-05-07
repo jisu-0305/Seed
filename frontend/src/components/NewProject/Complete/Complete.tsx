@@ -11,6 +11,8 @@ export default function Complete() {
   const router = useRouter();
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <Wrapper>
       <Header>

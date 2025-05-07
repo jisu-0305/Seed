@@ -25,6 +25,8 @@ export default function FileInput({
     }
   };
 
+  if (mode === null) return null;
+
   return (
     <PemInputWrapper>
       <PemInput

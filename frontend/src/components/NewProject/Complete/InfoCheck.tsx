@@ -7,6 +7,8 @@ export default function InfoCheck() {
   const { stepStatus: status } = useProjectInfoStore();
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <StWrapper>
       <Title>5. 최종 확인</Title>

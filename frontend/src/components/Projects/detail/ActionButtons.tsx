@@ -35,6 +35,8 @@ export function ActionButtons({ projectId }: ActionButtonsProps) {
     router.push(`/projects/${projectId}/edit`);
   };
 
+  if (mode === null) return null;
+
   return (
     <Wrapper>
       <MainActions>

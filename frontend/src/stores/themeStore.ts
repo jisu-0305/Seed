@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-type ThemeMode = 'light' | 'dark';
+type ThemeMode = 'light' | 'dark' | null;
 
 interface ThemeStore {
   mode: ThemeMode;
@@ -12,11 +12,7 @@ interface ThemeStore {
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
-      mode:
-        typeof window !== 'undefined' &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light',
+      mode: null,
       setMode: (mode) => set({ mode }),
       toggleMode: () =>
         set({ mode: get().mode === 'light' ? 'dark' : 'light' }),

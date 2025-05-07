@@ -13,6 +13,8 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
   const [active, setActive] = useState<DeployTabName>(tabs[0]);
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <Container>
       <TabList>

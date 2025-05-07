@@ -1,39 +1,78 @@
 import styled from '@emotion/styled';
 import { useState } from 'react';
 
+import { useModal } from '@/hooks/Common';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
+import ModalWrapper from '../Common/Modal/ModalWrapper';
+import InformInboundBriefModal from './Modal/InformInboundBriefModal';
+import SearchDockerImageModal from './Modal/SearchDockerImageModal';
 import TipItem from '../Common/TipItem';
 
-const dummyApps = [
-  {
-    name: 'redis',
-    tag: 'latest',
-    port: 8081,
-  },
-  {
-    name: 'mysql',
-    tag: 'stable',
-    port: 3306,
-  },
-  {
-    name: 'elastic search',
-    tag: 'latest',
-    port: 9200,
-  },
-];
+// const dummyApps = [
+//   {
+//     name: 'redis',
+//     tag: 'latest',
+//     port: 8081,
+//   },
+//   {
+//     name: 'mysql',
+//     tag: 'stable',
+//     port: 3306,
+//   },
+//   {
+//     name: 'elastic search',
+//     tag: 'latest',
+//     port: 9200,
+//   },
+// ];
 
 export default function AppInput() {
   const { mode } = useThemeStore();
 
-  const { setAppStatus } = useProjectInfoStore();
-  const apps = dummyApps;
-  //   const { app } = stepStatus;
+  const { stepStatus, setAppStatus } = useProjectInfoStore();
+  // const apps = dummyApps;
+  const { app: apps } = stepStatus;
+
+  const inboundTip = useModal();
+  const search = useModal();
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [tag, setTag] = useState('latest');
   const [port, setPort] = useState(8080);
+
+  const handleAddApp = (app: { name: string }) => {
+    const existingIndex = apps.findIndex((a) => a.name === app.name);
+
+    if (existingIndex !== -1) {
+      // 새로 추가한 앱
+      const existingApp = apps[existingIndex];
+      setSelectedIndex(existingIndex);
+      setTag(existingApp.tag);
+      setPort(existingApp.port);
+      return;
+    }
+
+    // 이미 있는 앱
+    const usedPorts = new Set(apps.map((a) => a.port));
+    let assignedPort = 8080;
+    while (usedPorts.has(assignedPort)) {
+      assignedPort += 1;
+    }
+
+    const newApp = {
+      name: app.name,
+      tag: 'latest',
+      port: assignedPort,
+    };
+
+    const updatedApps = [...apps, newApp];
+    setAppStatus(updatedApps);
+    setSelectedIndex(updatedApps.length - 1);
+    setTag(newApp.tag);
+    setPort(newApp.port);
+  };
 
   const handleSelectApp = (index: number) => {
     setSelectedIndex(index);
@@ -45,7 +84,10 @@ export default function AppInput() {
     const updated = [...apps];
     updated.splice(index, 1);
     setAppStatus(updated);
-    setSelectedIndex(null);
+
+    if (selectedIndex === index) {
+      setSelectedIndex(null);
+    }
   };
 
   const handleTagChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -69,72 +111,92 @@ export default function AppInput() {
     }
   };
 
+  if (mode === null) return null;
+
   return (
-    <Wrapper>
-      <Title>등록한 어플리케이션</Title>
-      <RegisteredList>
-        {apps.map((app, idx) => (
-          <Tag
-            key={app.name}
-            selected={idx === selectedIndex}
-            onClick={() => handleSelectApp(idx)}
-          >
-            <AppName>{app.name} :</AppName>
-            {app.tag === 'latest' ? 'LTS' : app.tag}
-            <CloseButton onClick={() => handleDeleteApp(idx)}>x</CloseButton>
-          </Tag>
-        ))}
-      </RegisteredList>
+    <>
+      <Wrapper>
+        <Title>등록한 어플리케이션</Title>
+        <RegisteredList>
+          {apps.map((app, idx) => (
+            <Tag
+              key={app.name}
+              selected={idx === selectedIndex}
+              onClick={() => handleSelectApp(idx)}
+            >
+              <AppName>{app.name} :</AppName>
+              {app.tag === 'latest' ? 'LTS' : app.tag}
+              <CloseButton onClick={() => handleDeleteApp(idx)}>x</CloseButton>
+            </Tag>
+          ))}
+        </RegisteredList>
 
-      <SearchWrapper>
-        <SearchInput placeholder="어플리케이션을 검색해주세요." readOnly />
-        <SearchIcon src={`/assets/icons/ic_search_${mode}.svg`} alt="search" />
-      </SearchWrapper>
+        <SearchWrapper>
+          <SearchInput placeholder="어플리케이션을 검색해주세요." readOnly />
+          <SearchIcon
+            onClick={search.toggle}
+            src={`/assets/icons/ic_search_${mode}.svg`}
+            alt="search"
+          />
+        </SearchWrapper>
 
-      {selectedIndex !== null && (
-        <>
-          <Row>
-            <Label>선택한 어플리케이션</Label>
-            <SelectedApp>
-              {apps[selectedIndex].name}
-              <IcIcon src="/assets/icons/ic_official.svg" alt="lock" />
-            </SelectedApp>
-          </Row>
+        {selectedIndex !== null && apps[selectedIndex] && (
+          <>
+            <Row>
+              <Label>선택한 어플리케이션</Label>
+              <SelectedApp>
+                {apps[selectedIndex].name}
+                <IcIcon src="/assets/icons/ic_official.svg" alt="lock" />
+              </SelectedApp>
+            </Row>
 
-          <Row>
-            <SelectWrapper>
-              <Label>Tag</Label>
-              <Select value={tag} onChange={handleTagChange}>
-                <option value="latest">latest</option>
-                <option value="stable">stable</option>
-              </Select>
-              <ArrowIcon
-                src={`/assets/icons/ic_arrow_down_${mode}.svg`}
-                alt="arrow"
-              />
-            </SelectWrapper>
+            <Row>
+              <SelectWrapper>
+                <Label>Tag</Label>
+                <Select value={tag} onChange={handleTagChange}>
+                  <option value="latest">latest</option>
+                  <option value="stable">stable</option>
+                </Select>
+                <ArrowIcon
+                  src={`/assets/icons/ic_arrow_down_${mode}.svg`}
+                  alt="arrow"
+                />
+              </SelectWrapper>
 
-            <div>
-              <Label>포트번호</Label>
-              <PortInput
-                type="number"
-                value={port}
-                onChange={handlePortChange}
-              />
-            </div>
-          </Row>
-        </>
-      )}
+              <div>
+                <Label>포트번호</Label>
+                <PortInput
+                  type="number"
+                  value={port}
+                  onChange={handlePortChange}
+                />
+              </div>
+            </Row>
+          </>
+        )}
 
-      <TipList>
-        <TipItem text="포트번호는 반드시 중복되지 않도록 설정해주세요" />
-        <TipItem
-          text="EC2에서 어플리케이션의 포트를 열어주세요"
-          important
-          help
+        <TipList>
+          <TipItem text="포트번호는 반드시 중복되지 않도록 설정해주세요" />
+          <TipItem
+            text="EC2에서 어플리케이션의 포트를 열어주세요"
+            important
+            help
+            openModal={inboundTip.toggle}
+          />
+        </TipList>
+      </Wrapper>
+      <ModalWrapper isShowing={inboundTip.isShowing || search.isShowing}>
+        <InformInboundBriefModal
+          isShowing={inboundTip.isShowing}
+          handleClose={inboundTip.toggle}
         />
-      </TipList>
-    </Wrapper>
+        <SearchDockerImageModal
+          isShowing={search.isShowing}
+          handleClose={search.toggle}
+          onSelect={handleAddApp}
+        />
+      </ModalWrapper>
+    </>
   );
 }
 

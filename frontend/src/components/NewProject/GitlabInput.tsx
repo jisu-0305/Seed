@@ -43,6 +43,8 @@ export default function GitlabInput() {
     });
   };
 
+  if (mode === null) return null;
+
   return (
     <Container>
       <Title>GitLab 레포지토리 주소를 입력해주세요</Title>

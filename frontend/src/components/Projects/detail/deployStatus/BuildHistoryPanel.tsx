@@ -12,6 +12,8 @@ export function BuildHistoryPanel() {
 
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   return (
     <Wrapper>
       <LeftPanel>

@@ -12,6 +12,8 @@ export default function SideBar() {
     router.push(url);
   };
 
+  if (mode === null) return null;
+
   return (
     <SideWrapper>
       <Logo>

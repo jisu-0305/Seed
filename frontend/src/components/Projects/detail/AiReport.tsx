@@ -31,7 +31,7 @@ export default function AiReport() {
             <ReportItem
               key={r.id}
               active={r.id === selectedId}
-              mode={mode}
+              mode={mode ?? 'light'}
               onClick={() => setSelectedId(r.id)}
             >
               <ItemHeader>
