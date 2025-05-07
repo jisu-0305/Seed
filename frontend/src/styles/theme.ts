@@ -290,7 +290,7 @@ export const lightColors = {
   DetailBorder2: palette.Black,
   DetailText: palette.Gray1,
 
-  BuildStroke: palette.LightGray1,
+  BuildSelected: palette.LightGray1,
   BuildHover: palette.Gray4,
 
   MenuBg: palette.Black,
