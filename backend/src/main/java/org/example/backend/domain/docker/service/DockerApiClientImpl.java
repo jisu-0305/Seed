@@ -1,5 +1,6 @@
 package org.example.backend.domain.docker.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.DockerUriBuilder;
 import org.example.backend.controller.response.docker.DemonContainerStateCountResponse;
@@ -8,7 +9,6 @@ import org.example.backend.domain.docker.dto.ContainerDto;
 import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -17,99 +17,78 @@ import java.util.List;
 
 @Component
 @Slf4j
-//@RequiredArgsConstructor
+@RequiredArgsConstructor
 public class DockerApiClientImpl implements DockerApiClient {
 
     private final WebClient dockerHubWebClient;
     private final WebClient dockerWebClient;
     private final DockerUriBuilder uriBuilder;
 
-    public DockerApiClientImpl(
-            @Qualifier("dockerHubWebClient") WebClient dockerHubWebClient,
-            @Qualifier("dockerWebClient")    WebClient dockerWebClient,
-            DockerUriBuilder                 uriBuilder
-    ) {
-        this.dockerHubWebClient = dockerHubWebClient;
-        this.dockerWebClient    = dockerWebClient;
-        this.uriBuilder         = uriBuilder;
-    }
-
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {
-        try {
-            return dockerHubWebClient.get()
-                    .uri(uriBuilder.searchRepositories(query, page, pageSize))
-                    .retrieve()
-                    .bodyToMono(ImageResponse.class)
-                    .block();
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.DOCKER_SEARCH_API_FAILED);
-        }
+        URI uri = uriBuilder.buildSearchRepositoriesUri(query, page, pageSize);
+        log.debug(">> Docker Hub 이미지 검색 URI: {}", uri);
+
+        return fetchMono(dockerHubWebClient, uri, ImageResponse.class, ErrorCode.DOCKER_SEARCH_API_FAILED);
     }
 
     @Override
     public DockerTag getTags(String namespace, String repo, int page, int pageSize) {
-        try {
-            return dockerHubWebClient.get()
-                    .uri(uriBuilder.listTags(namespace, repo, page, pageSize))
-                    .retrieve()
-                    .bodyToMono(DockerTag.class)
-                    .block();
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.DOCKER_TAGS_API_FAILED);
-        }
+        URI uri = uriBuilder.buildHubTagsUri(namespace, repo, page, pageSize);
+        log.debug(">> Docker Hub 태그 조회 URI: {}", uri);
+
+        return fetchMono(dockerHubWebClient, uri, DockerTag.class, ErrorCode.DOCKER_TAGS_API_FAILED);
     }
 
     @Override
     public DemonContainerStateCountResponse getInfo() {
-        try {
-            return dockerWebClient.get()
-                    .uri(uriBuilder.info())
-                    .retrieve()
-                    .bodyToMono(DemonContainerStateCountResponse.class)
-                    .block();
-        } catch (Exception e) {
-            log.error("Docker /info API 실패", e);
-            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
-        }
+        URI uri = uriBuilder.buildInfoUri();
+        log.debug(">> Docker 데몬 정보 조회 URI: {}", uri);
+
+        return fetchMono(dockerWebClient, uri, DemonContainerStateCountResponse.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
     }
 
     @Override
     public List<ContainerDto> getContainersByStatus(List<String> statuses) {
-        URI uri = uriBuilder.containersByStatus(statuses);
-        log.debug(">>>>>> 도커 uri(전체 상태) -> {}", uri);
+        URI uri = uriBuilder.buildContainersByStatusUri(statuses);
+        log.debug(">> 상태별 컨테이너 조회 URI: {}", uri);
 
-        try {
-            return dockerWebClient.get()
-                    .uri(uri)
-                    .retrieve()
-                    .bodyToFlux(ContainerDto.class)
-                    .collectList()
-                    .block();
-        } catch (Exception e) {
-            log.error("Docker Api client_ getContainersByStatus 실패함", e);
-            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
-        }
+        return fetchFlux(dockerWebClient, uri, ContainerDto.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
     }
-
-
 
     @Override
     public List<ContainerDto> getContainersByName(String nameFilter) {
-        URI uri = uriBuilder.containersByName(nameFilter);
-        log.debug(">>>>>> 도커 uri(이름으로 검색) -> {}", uri);
+        URI uri = uriBuilder.buildContainersByNameUri(nameFilter);
+        log.debug(">> 이름 기반 컨테이너 조회 URI: {}", uri);
 
+        return fetchFlux(dockerWebClient, uri, ContainerDto.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
+    }
+
+    /* 공통 로짘 */
+    private <T> T fetchMono(WebClient client, URI uri, Class<T> clazz, ErrorCode errorCode) {
         try {
-            return dockerWebClient.get()
+            return client.get()
                     .uri(uri)
                     .retrieve()
-                    .bodyToFlux(ContainerDto.class)
-                    .collectList()
+                    .bodyToMono(clazz)
                     .block();
         } catch (Exception e) {
-            log.error("Docker Api client_ getContainersByName 실패함 (by name)", e);
-            throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
+            log.error(">> fetchMono 실패 - URI: {}, Error: {}", uri, e.getMessage(), e);
+            throw new BusinessException(errorCode);
         }
     }
 
+    private <T> List<T> fetchFlux(WebClient client, URI uri, Class<T> clazz, ErrorCode errorCode) {
+        try {
+            return client.get()
+                    .uri(uri)
+                    .retrieve()
+                    .bodyToFlux(clazz)
+                    .collectList()
+                    .block();
+        } catch (Exception e) {
+            log.error(">> fetchFlux 실패 - URI: {}, Error: {}", uri, e.getMessage(), e);
+            throw new BusinessException(errorCode);
+        }
+    }
 }
