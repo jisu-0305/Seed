@@ -3,6 +3,7 @@ import React from 'react';
 
 import LoginModal from '@/components/Common/LoginModal';
 import { useModal } from '@/hooks/Common';
+import { useThemeStore } from '@/stores/themeStore';
 import { useUserStore } from '@/stores/userStore';
 
 interface HeaderProps {
@@ -15,6 +16,7 @@ export default function Header({ title }: HeaderProps) {
   const hasHydrated = useUserStore((s) => s.hasHydrated);
 
   const { isShowing, toggle } = useModal();
+  const { mode, toggleMode } = useThemeStore();
 
   if (!hasHydrated) {
     return (
@@ -28,11 +30,15 @@ export default function Header({ title }: HeaderProps) {
     <HeaderWrapper>
       <SubTitle>{title}</SubTitle>
       <MenuWrapper>
-        <LightMode src="/assets/icons/ic_light.svg" alt="light mode" />
-        <Alarm src="/assets/icons/ic_alarm.svg" alt="alarm" />
+        <LightMode
+          onClick={toggleMode}
+          src={`/assets/icons/ic_${mode}.svg`}
+          alt="light mode"
+        />
+        <Alarm src={`/assets/icons/ic_alarm_${mode}.svg`} alt="alarm" />
         <Profile onClick={toggle}>
           <ProfileImg
-            src={user?.avatarUrl || '/assets/user.png'}
+            src={user?.profileImageUrl || '/assets/user.png'}
             alt="profile"
           />
           {loading ? '...' : user?.userName || 'SSAFY'}
@@ -53,7 +59,7 @@ const HeaderWrapper = styled.div`
 
   padding: 0 2rem;
 
-  border-bottom: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border-bottom: 1px solid ${({ theme }) => theme.colors.BorderDefault};
 `;
 
 const SubTitle = styled.div`

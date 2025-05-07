@@ -30,7 +30,7 @@ const ProgressWrapper = styled.div`
   padding: 2rem 3rem;
   margin-bottom: 2rem;
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray1};
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
 `;
 
@@ -50,13 +50,13 @@ const StepLabel = styled.div`
 const ProgressBar = styled.div`
   height: 1rem;
 
-  background: ${({ theme }) => theme.colors.LightGray1};
+  background: ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 2rem;
 `;
 
 const Progress = styled.div`
   height: 100%;
 
-  background: ${({ theme }) => theme.colors.Black};
+  background: ${({ theme }) => theme.colors.Text};
   border-radius: 2rem;
 `;

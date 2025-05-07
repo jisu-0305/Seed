@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 interface AvatarListProps {
-  users: { id: number; avatarUrl: string; name: string }[];
+  users: { id: number; profileImageUrl: string; name: string }[];
   maxVisible?: number; // 한 줄에 보여줄 최대 아바타 개수
 }
 
@@ -13,7 +13,7 @@ export function AvatarList({ users, maxVisible = 2 }: AvatarListProps) {
     <List>
       {visible.map((u) => (
         <AvatarWrapper key={u.id}>
-          <Avatar src={u.avatarUrl} alt={u.name} title={u.name} />
+          <Avatar src={u.profileImageUrl} alt={u.name} title={u.name} />
         </AvatarWrapper>
       ))}
       {extraCount > 0 && <MoreCount>+{extraCount}</MoreCount>}
@@ -55,5 +55,5 @@ const MoreCount = styled.div`
   align-items: center;
   justify-content: center;
   font-size: 1rem;
-  color: ${({ theme }) => theme.colors.Gray2};
+  color: ${({ theme }) => theme.colors.Black1};
 `;

@@ -35,7 +35,7 @@ const CalendarWrapper = styled.div`
   }
 
   .rdp-button_next .rdp-chevron polygon {
-    fill: ${({ theme }) => theme.colors.DarkGray0};
+    fill: ${({ theme }) => theme.colors.CalenderDefault};
   }
 
   .rdp-caption_label {
@@ -61,7 +61,7 @@ const CalendarWrapper = styled.div`
     border-radius: 50%;
 
     ${({ theme }) => theme.fonts.EnBody1};
-    color: ${({ theme }) => theme.colors.DarkGray0};
+    color: ${({ theme }) => theme.colors.CalenderDefault};
   }
 
   .rdp-day_selected {
@@ -71,7 +71,7 @@ const CalendarWrapper = styled.div`
   }
 
   .rdp-day_today {
-    box-shadow: 0 0 0 1px ${({ theme }) => theme.colors.DarkGray2};
+    box-shadow: 0 0 0 1px ${({ theme }) => theme.colors.CalendarInactive};
     border-radius: 100%;
   }
 

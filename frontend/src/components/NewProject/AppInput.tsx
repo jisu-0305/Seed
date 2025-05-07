@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import { useState } from 'react';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 import TipItem from './TipItem';
 
@@ -24,6 +25,8 @@ const dummyApps = [
 ];
 
 export default function AppInput() {
+  const { mode } = useThemeStore();
+
   const { setAppStatus } = useProjectInfoStore();
   const apps = dummyApps;
   //   const { app } = stepStatus;
@@ -85,7 +88,7 @@ export default function AppInput() {
 
       <SearchWrapper>
         <SearchInput placeholder="어플리케이션을 검색해주세요." readOnly />
-        <SearchIcon src="/assets/icons/ic_search.svg" alt="search" />
+        <SearchIcon src={`/assets/icons/ic_search_${mode}.svg`} alt="search" />
       </SearchWrapper>
 
       {selectedIndex !== null && (
@@ -105,7 +108,10 @@ export default function AppInput() {
                 <option value="latest">latest</option>
                 <option value="stable">stable</option>
               </Select>
-              <ArrowIcon src="/assets/icons/ic_arrow_down.svg" alt="arrow" />
+              <ArrowIcon
+                src={`/assets/icons/ic_arrow_down_${mode}.svg`}
+                alt="arrow"
+              />
             </SelectWrapper>
 
             <div>
@@ -159,10 +165,10 @@ const Tag = styled.div<{ selected?: boolean }>`
 
   ${({ theme }) => theme.fonts.Body1};
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
   border: 1px solid
     ${({ selected, theme }) =>
-      selected ? theme.colors.Black : theme.colors.LightGray2};
+      selected ? theme.colors.Text : theme.colors.InputStroke};
   border-radius: 1rem;
 
   cursor: pointer;
@@ -192,8 +198,9 @@ const SearchInput = styled.input`
   padding: 1rem;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
 
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 
@@ -227,7 +234,7 @@ const SelectedApp = styled.div`
 
   ${({ theme }) => theme.fonts.Title5};
 
-  border: 1px solid ${({ theme }) => theme.colors.Black1};
+  border: 1px solid ${({ theme }) => theme.colors.Text};
   border-radius: 1rem;
 `;
 
@@ -246,10 +253,11 @@ const Select = styled.select`
   padding-right: 4rem;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
   text-align: center;
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 
   appearance: none;
@@ -257,6 +265,8 @@ const Select = styled.select`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  cursor: pointer;
 `;
 
 const ArrowIcon = styled.img`
@@ -273,10 +283,11 @@ const PortInput = styled.input`
   padding: 1rem;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
   text-align: center;
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 

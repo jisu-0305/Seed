@@ -1,3 +1,73 @@
+import type { DeployTabName } from '@/types/deploy';
+import type { Task } from '@/types/task';
+
+export const tasksByTab = {
+  '초기 세팅': [
+    {
+      no: 1,
+      description: 'EC2 배포를 위한 설정',
+      duration: '3hr 20min',
+      status: 'Complete',
+    },
+    {
+      no: 2,
+      description: '애플리케이션 환경 설정',
+      duration: '2hr 10min',
+      status: 'Complete',
+    },
+    {
+      no: 3,
+      description: 'docker-compose 설정',
+      duration: '1hr 45min',
+      status: 'Complete',
+    },
+    { no: 4, description: 'git clone', duration: '10min', status: 'Complete' },
+    {
+      no: 5,
+      description: '환경 변수 설정',
+      duration: '15min',
+      status: 'Complete',
+    },
+    { no: 6, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
+    { no: 7, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
+    { no: 8, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
+    { no: 9, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
+  ],
+  'Https 세팅': [
+    {
+      no: 1,
+      description: 'SSL 인증서 발급',
+      duration: '1hr 15min',
+      status: 'Complete',
+    },
+    {
+      no: 2,
+      description: 'nginx.conf 수정',
+      duration: '45min',
+      status: 'Complete',
+    },
+    {
+      no: 3,
+      description: '방화벽 포트 개방',
+      duration: '10min',
+      status: 'Complete',
+    },
+    {
+      no: 4,
+      description: '도메인 DNS 설정',
+      duration: '-',
+      status: 'In Progress',
+    },
+    {
+      no: 5,
+      description: 'HTTPS 리다이렉트 테스트',
+      duration: '-',
+      status: 'In Progress',
+    },
+  ],
+  '빌드 기록': [],
+} satisfies Record<DeployTabName, Task[]>;
+
 export const dummyBuilds = [
   {
     id: 119,

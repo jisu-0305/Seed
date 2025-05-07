@@ -1,5 +1,7 @@
 import styled from '@emotion/styled';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 interface TipItemProps {
   text: string;
   important?: boolean;
@@ -11,6 +13,8 @@ export default function TipItem({
   important = false,
   help = false,
 }: TipItemProps) {
+  const { mode } = useThemeStore();
+
   return (
     <StWrapper important={important}>
       <TipLabel important={important}>TIP</TipLabel>
@@ -21,7 +25,7 @@ export default function TipItem({
           src={
             important
               ? `/assets/icons/ic_help_important.svg`
-              : `/assets/icons/ic_help.svg`
+              : `/assets/icons/ic_help_${mode}.svg`
           }
           alt="help_icon"
         />
@@ -42,17 +46,17 @@ const StWrapper = styled.li<{ important?: boolean }>`
   ${({ theme }) => theme.fonts.Body3}
 
   color: ${({ important, theme }) =>
-    important ? theme.colors.Red1 : theme.colors.Black};
+    important ? theme.colors.Red1 : theme.colors.Text};
 `;
 
 const TipLabel = styled.span<{ important?: boolean }>`
   padding: 0.5rem 1rem;
 
-  color: ${({ theme }) => theme.colors.White};
+  color: ${({ theme }) => theme.colors.Background};
   ${({ theme }) => theme.fonts.Title6}
 
   background-color: ${({ important, theme }) =>
-    important ? theme.colors.Red1 : theme.colors.Black};
+    important ? theme.colors.Red1 : theme.colors.Text};
   border-radius: 1.5rem;
 `;
 

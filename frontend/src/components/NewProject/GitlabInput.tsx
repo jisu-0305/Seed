@@ -2,12 +2,15 @@ import styled from '@emotion/styled';
 import { ChangeEvent, useState } from 'react';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
+import { useThemeStore } from '@/stores/themeStore';
 
 export default function GitlabInput() {
   const [gitlabUrl, setGitlabUrl] = useState('');
 
   const { stepStatus, setGitlabStatus } = useProjectInfoStore();
   const { gitlab } = stepStatus;
+
+  const { mode } = useThemeStore();
 
   const handleRepoChange = (e: ChangeEvent<HTMLInputElement>) => {
     const fullUrl = e.target.value;
@@ -56,14 +59,20 @@ export default function GitlabInput() {
           onClick={() => handleStructureSelect('모노')}
         >
           <Label>모노</Label>
-          <IcIcon src="/assets/icons/ic_monoRepo.svg" alt="mono_type" />
+          <IcIcon
+            src={`/assets/icons/ic_monoRepo_${mode}.svg`}
+            alt="mono_type"
+          />
         </OptionBox>
         <OptionBox
           selected={gitlab.structure === '멀티'}
           onClick={() => handleStructureSelect('멀티')}
         >
           <Label>멀티</Label>
-          <IcIcon src="/assets/icons/ic_multiRepo.svg" alt="multi_type" />
+          <IcIcon
+            src={`/assets/icons/ic_multiRepo_${mode}.svg`}
+            alt="multi_type"
+          />
         </OptionBox>
       </OptionWrapper>
 
@@ -80,8 +89,8 @@ export default function GitlabInput() {
             <IcIcon
               src={
                 gitlab.structure === '모노'
-                  ? '/assets/icons/ic_folder.svg'
-                  : '/assets/icons/ic_branch.svg'
+                  ? `/assets/icons/ic_folder_${mode}.svg`
+                  : `/assets/icons/ic_branch_${mode}.svg`
               }
               alt="repo structure"
             />
@@ -98,8 +107,8 @@ export default function GitlabInput() {
             <IcIcon
               src={
                 gitlab.structure === '모노'
-                  ? '/assets/icons/ic_folder.svg'
-                  : '/assets/icons/ic_branch.svg'
+                  ? `/assets/icons/ic_folder_${mode}.svg`
+                  : `/assets/icons/ic_branch_${mode}.svg`
               }
               alt="repo structure"
             />
@@ -137,9 +146,10 @@ const Input = styled.input`
   padding: 1rem 1.5rem;
 
   ${({ theme }) => theme.fonts.Body3};
+  color: ${({ theme }) => theme.colors.Text};
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 
@@ -166,7 +176,7 @@ const OptionBox = styled.div<{ selected: boolean }>`
 
   border: 2px solid
     ${({ selected, theme }) =>
-      selected ? theme.colors.Black : theme.colors.LightGray1};
+      selected ? theme.colors.Text : theme.colors.InputStroke};
   border-radius: 1rem;
 
   cursor: pointer;
@@ -206,13 +216,14 @@ const InputWrapper = styled.div`
 
   padding: 1.2rem 1.5rem;
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 
 const StyledInput = styled.input`
   width: 100%;
+  height: 2.5rem;
 
   ${({ theme }) => theme.fonts.Body1};
   color: ${({ theme }) => theme.colors.Black1};

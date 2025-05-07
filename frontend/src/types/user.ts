@@ -4,12 +4,12 @@ export interface MeResponse {
   data: {
     userIdentifyId: string; // 실제 이메일
     userName: string; // 깃랩 유저네임
-    avatarUrl: string;
+    profileImageUrl: string;
   };
 }
 
 export interface User {
   id: number;
   name: string;
-  avatarUrl: string;
+  profileImageUrl: string;
 }

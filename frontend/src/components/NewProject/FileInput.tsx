@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import { ChangeEvent, useState } from 'react';
 
+import { useThemeStore } from '@/stores/themeStore';
+
 interface FileInputProps {
   handleFileChange: (file: File) => void;
   accept?: string;
@@ -12,6 +14,7 @@ export default function FileInput({
   accept,
   placeholder,
 }: FileInputProps) {
+  const { mode } = useThemeStore();
   const [file, setFile] = useState<File | null>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -31,7 +34,7 @@ export default function FileInput({
         placeholder={placeholder || ''}
       />
       <UploadLabel htmlFor="upload">
-        <UploadIcon src="/assets/icons/ic_upload.svg" alt="upload" />
+        <UploadIcon src={`/assets/icons/ic_upload_${mode}.svg`} alt="upload" />
       </UploadLabel>
       <HiddenInput
         type="file"
@@ -50,8 +53,8 @@ const PemInputWrapper = styled.div`
   max-width: 25rem;
   padding: 1rem 2rem;
 
-  background-color: ${({ theme }) => theme.colors.LightGray3};
-  border: 1px solid ${({ theme }) => theme.colors.LightGray2};
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
 `;
 
@@ -60,6 +63,7 @@ const PemInput = styled.input`
   flex: 1;
 
   ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
 
   cursor: default;
 `;
