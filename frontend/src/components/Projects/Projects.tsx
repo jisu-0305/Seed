@@ -53,6 +53,7 @@ const SectionWrapper = styled.section`
   align-items: center;
   width: 100%;
   padding-top: 10rem;
+  padding-bottom: 10rem;
   background-color: ${({ theme }) => theme.colors.White};
   border-radius: 1.5rem;
 `;

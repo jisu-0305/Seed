@@ -29,6 +29,9 @@ export const tasksByTab = {
       status: 'Complete',
     },
     { no: 6, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
+    { no: 7, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
+    { no: 8, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
+    { no: 9, description: 'Nginx, HTTP 설정', duration: '-', status: 'Fail' },
   ],
   'Https 세팅': [
     {

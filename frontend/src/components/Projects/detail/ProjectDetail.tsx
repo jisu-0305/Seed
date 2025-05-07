@@ -85,7 +85,8 @@ const SectionWrapper = styled.section`
   justify-content: flex-start;
   align-items: center;
   width: 100%;
-  padding-top: 7rem;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
   background-color: ${({ theme }) => theme.colors.White};
   border-radius: 1.5rem;
 `;
