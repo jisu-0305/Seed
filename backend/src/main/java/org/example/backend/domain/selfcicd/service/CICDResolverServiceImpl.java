@@ -6,6 +6,7 @@ import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.log.DockerLogResponse;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
+import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.service.JenkinsService;
 import org.example.backend.domain.project.entity.Application;
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.example.backend.domain.project.enums.ProjectStructure.MONO;
 
@@ -152,14 +154,16 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 내용: File 수정해서 커밋 남길수있는 gitlabService 메서드 필요, 이전에 관련된 API 들었던걸로 기억
          * 담당자: 박유진
          * */
-//        for (PatchedFile patch : patchedFiles) {
-//            gitlabService.commitFileUpdate(
+
+//        if (!patchedFiles.isEmpty()) {
+//            String commitMessage = "Fix: AI auto fix by SEED";
+//
+//            gitlabService.commitPatchedFiles(
 //                    accessToken,
 //                    project.getId(),
 //                    newBranch,
-//                    patch.getPath(),
-//                    patch.getPatchedCode(),
-//                    "AI 자동 수정: " + patch.getPath()
+//                    commitMessage,
+//                    patchedFiles
 //            );
 //        }
 

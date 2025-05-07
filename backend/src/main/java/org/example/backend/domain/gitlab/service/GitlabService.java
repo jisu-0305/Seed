@@ -36,4 +36,6 @@ public interface GitlabService {
 
     String getRawFileContent(String accessToken, Long projectId, String path, String ref);
 
+    void commitPatchedFiles(String accessToken, Long projectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
+
 }
