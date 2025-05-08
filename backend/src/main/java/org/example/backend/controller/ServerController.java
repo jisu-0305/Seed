@@ -1,22 +1,17 @@
 package org.example.backend.controller;
 
-import com.jcraft.jsch.Session;
 import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.common.util.ConvertHttpsUtil;
-import org.example.backend.common.util.SshUtil;
 import org.example.backend.controller.request.server.*;
 import org.example.backend.domain.project.service.ProjectService;
 import org.example.backend.domain.server.service.ServerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
 
 @RestController
 @RequiredArgsConstructor
