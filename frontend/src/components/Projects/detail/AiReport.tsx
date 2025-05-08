@@ -1,5 +1,4 @@
 /* eslint-disable no-nested-ternary */
-// src/components/AiReportPanel.tsx
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
@@ -7,6 +6,19 @@ import React, { useState } from 'react';
 import { dummyReports } from '@/assets/dummy/aiReports';
 import { useThemeStore } from '@/stores/themeStore';
 import type { AiReport } from '@/types/aiReport';
+
+const getIconName = (status: AiReport['status']) => {
+  switch (status) {
+    case 'In Progress':
+      return 'progress';
+    case 'Merged':
+      return 'merged';
+    case 'Rejected':
+      return 'rejected';
+    default:
+      return 'carrot';
+  }
+};
 
 export default function AiReport() {
   const router = useRouter();
@@ -39,7 +51,10 @@ export default function AiReport() {
                 <Id>#{r.id}</Id>
               </ItemHeader>
               <Meta>
-                <Icon src="/assets/icons/ic_ai_report.svg" alt="AI" />
+                <Icon
+                  src={`/assets/icons/ic_ai_report_${getIconName(r.status)}_${mode}.svg`}
+                  alt={r.status}
+                />
                 <Title>{r.title}</Title>
               </Meta>
               <Status status={r.status}>{r.status}</Status>
@@ -126,11 +141,6 @@ const LeftPanel = styled.div`
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none; /* IE 10+ */
   }
-  /* &:hover {
-    scrollbar-width: thin;
-    scrollbar-color: ${({ theme }) =>
-    `${theme.colors.BorderDefault} transparent`};
-  } */
 `;
 
 const ReportItem = styled.div<{ active: boolean; mode: string }>`
