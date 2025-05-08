@@ -32,7 +32,13 @@ public interface GitlabService {
 
     Mono<GitlabCompareResponse> compareCommits(String accessToken, Long projectId, String from, String to);
 
-    List<GitlabTree> getRepositoryTree(String accessToken, Long projectId, String path, boolean recursive);
+    List<GitlabTree> getRepositoryTree(
+            String accessToken,
+            Long projectId,
+            String path,
+            boolean recursive,
+            String branchName
+    );
 
     String getRawFileContent(String accessToken, Long projectId, String path, String ref);
 

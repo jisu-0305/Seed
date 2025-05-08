@@ -166,7 +166,14 @@ public class GitlabController {
             @ParameterObject @ModelAttribute TreeRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        List<GitlabTree> tree = gitlabService.getRepositoryTree(accessToken, projectId, request.path(), request.recursive());
+        List<GitlabTree> tree = gitlabService.getRepositoryTree(
+                accessToken,
+                projectId,
+                request.path(),
+                request.recursive(),
+                request.branchName()
+        );
+
         return ResponseEntity.ok(ApiResponse.success(tree));
 
     }
