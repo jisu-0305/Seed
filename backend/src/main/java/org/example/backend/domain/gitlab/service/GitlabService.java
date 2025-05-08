@@ -9,39 +9,39 @@ import java.util.List;
 
 public interface GitlabService {
 
-    void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter);
+    void createPushWebhook(String gitlabPersonalAccessToken, Long projectId, String hookUrl, String branchFilter);
 
-    void triggerPushEvent(String accessToken, Long projectId, String branch);
+    void triggerPushEvent(String gitlabPersonalAccessToken, Long projectId, String branch);
 
-    MergeRequestCreateResponse createMergeRequest(String accessToken,
+    MergeRequestCreateResponse createMergeRequest(String gitlabPersonalAccessToken,
                                                   Long projectId,
                                                   String sourceBranch,
                                                   String targetBranch,
                                                   String title,
                                                   String description);
 
-    GitlabBranch createBranch(String accessToken, Long projectId, String branch, String ref);
+    GitlabBranch createBranch(String gitlabPersonalAccessToken, Long projectId, String branch, String ref);
 
-    void deleteBranch(String accessToken, Long projectId, String branch);
+    void deleteBranch(String gitlabPersonalAccessToken, Long projectId, String branch);
 
-    List<GitlabProject> getProjects(String accessToken);
+    List<GitlabProject> getProjects(String gitlabPersonalAccessToken);
 
-    GitlabProject getProjectByUrl(String accessToken, String request);
+    GitlabProject getProjectByUrl(String gitlabPersonalAccessToken, String request);
 
-    Mono<GitlabCompareResponse> fetchLatestMrDiff(String accessToken, Long projectId);
+    Mono<GitlabCompareResponse> fetchLatestMrDiff(String gitlabPersonalAccessToken, Long projectId);
 
-    Mono<GitlabCompareResponse> compareCommits(String accessToken, Long projectId, String from, String to);
+    Mono<GitlabCompareResponse> compareCommits(String gitlabPersonalAccessToken, Long projectId, String from, String to);
 
     List<GitlabTree> getRepositoryTree(
-            String accessToken,
+            String gitlabPersonalAccessToken,
             Long projectId,
             String path,
             boolean recursive,
             String branchName
     );
 
-    String getRawFileContent(String accessToken, Long projectId, String path, String ref);
+    String getRawFileContent(String gitlabPersonalAccessToken, Long projectId, String path, String ref);
 
-    void commitPatchedFiles(String accessToken, Long projectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
+    void commitPatchedFiles(String gitlabPersonalAccessToken, Long projectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
 
 }

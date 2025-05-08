@@ -16,7 +16,6 @@ import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.global.response.ApiResponse;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -36,40 +35,40 @@ public class GitlabController {
 
     /* 1. Push _ webhook 생성 */
     @PostMapping("/projects/{projectId}/hooks")
-    @Operation(summary = "깃랩 웹훅_push", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "깃랩 웹훅_push")
     public ResponseEntity<ApiResponse<Void>> createPushWebhook(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @Validated @RequestBody ProjectHookRequest request,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        gitlabService.createPushWebhook(accessToken, projectId, request.url(), request.wildcard());
+        gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, request.url(), request.wildcard());
         return ResponseEntity.ok(ApiResponse.success());
 
     }
 
     /* 2. Push 트리거 */
     @PostMapping("/projects/{projectId}/triggers/push")
-    @Operation(summary = "push 트리거", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "push 트리거")
     public ResponseEntity<ApiResponse<Void>> triggerPushEvent(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @RequestParam String branch,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        gitlabService.triggerPushEvent(accessToken, projectId, branch);
+        gitlabService.triggerPushEvent(gitlabPersonalAccessToken, projectId, branch);
         return ResponseEntity.ok(ApiResponse.success());
 
     }
 
     /* 3. MR생성 */
     @PostMapping("/projects/{projectId}/merge-requests")
-    @Operation(summary = "MR 생성", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "MR 생성")
     public ResponseEntity<ApiResponse<MergeRequestCreateResponse>> createMergeRequest(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @Valid @RequestBody CreateMrRequest request,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
         MergeRequestCreateResponse created = gitlabService.createMergeRequest(
-                accessToken,
+                gitlabPersonalAccessToken,
                 projectId,
                 request.sourceBranch(),
                 request.targetBranch(),
@@ -84,49 +83,47 @@ public class GitlabController {
 
     /*4. 브랜치 생성*/
     @PostMapping("/projects/{projectId}/branches")
-    @Operation(summary = "새 브랜치 생성", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "새 브랜치 생성")
     public ResponseEntity<ApiResponse<GitlabBranch>> createBranch(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @Valid @RequestBody CreateBranchRequest request,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        GitlabBranch created = gitlabService.createBranch(accessToken, projectId, request.branch(), request.baseBranch());
+        GitlabBranch created = gitlabService.createBranch(gitlabPersonalAccessToken, projectId, request.branch(), request.baseBranch());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
 
     }
 
     /* 5. 브랜치 삭제 */
     @DeleteMapping("/projects/{projectId}/branches")
-    @Operation(summary = "브랜치 삭제", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "브랜치 삭제")
     public ResponseEntity<ApiResponse<String>> deleteBranch(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @RequestParam("branch") String branch,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        gitlabService.deleteBranch(accessToken, projectId, branch);
+        gitlabService.deleteBranch(gitlabPersonalAccessToken, projectId, branch);
         return ResponseEntity.ok(ApiResponse.success(branch));
 
     }
 
     /* 6. 레포지토리 목록 조회 */
     @GetMapping("/projects")
-    @Operation(summary = "레포지토리 조회", security = @SecurityRequirement(name = "JWT"))
-    public ResponseEntity<ApiResponse<List<GitlabProject>>> getProjects(
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
-
-        List<GitlabProject> projects = gitlabService.getProjects(accessToken);
+    @Operation(summary = "레포지토리 조회")
+    public ResponseEntity<ApiResponse<List<GitlabProject>>> getProjects(String gitlabPersonalAccessToken) {
+        List<GitlabProject> projects = gitlabService.getProjects(gitlabPersonalAccessToken);
         return ResponseEntity.ok(ApiResponse.success(projects));
 
     }
 
     /* 7. 레포지토리 단건 조회 (URL) */
     @GetMapping(value = "/projects", params = "repoUrl")
-    @Operation(summary = "레포지토리 조회",security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "레포지토리 조회")
     public ResponseEntity<ApiResponse<GitlabProject>> getProjectByUrl(
             @Parameter(description = "조회할 레포지토리 URL") @RequestParam(name = "repoUrl", required = false) String repoUrl,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        GitlabProject projectInfo = gitlabService.getProjectByUrl(accessToken, repoUrl);
+        GitlabProject projectInfo = gitlabService.getProjectByUrl(gitlabPersonalAccessToken, repoUrl);
         return ResponseEntity.ok(ApiResponse.success(projectInfo));
 
     }
@@ -138,9 +135,9 @@ public class GitlabController {
             security = @SecurityRequirement(name = "JWT"))
     public Mono<ResponseEntity<ApiResponse<GitlabCompareResponse>>> fetchLatestMrDiff(
             @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        return gitlabService.fetchLatestMrDiff(accessToken, projectId)
+        return gitlabService.fetchLatestMrDiff(gitlabPersonalAccessToken, projectId)
                 .map(ApiResponse::success)
                 .map(ResponseEntity::ok);
     }
@@ -151,9 +148,9 @@ public class GitlabController {
     public Mono<ResponseEntity<ApiResponse<GitlabCompareResponse>>> compareCommits(
             @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
             @ParameterObject @Valid @ModelAttribute DiffCommitRequest request,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        return gitlabService.compareCommits(accessToken, projectId, request.from(), request.to())
+        return gitlabService.compareCommits(gitlabPersonalAccessToken, projectId, request.from(), request.to())
                 .map(ApiResponse::success)
                 .map(ResponseEntity::ok);
     }
@@ -164,10 +161,10 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<List<GitlabTree>>> getRepositoryTree(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @ParameterObject @ModelAttribute TreeRequest request,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
         List<GitlabTree> tree = gitlabService.getRepositoryTree(
-                accessToken,
+                gitlabPersonalAccessToken,
                 projectId,
                 request.path(),
                 request.recursive(),
@@ -184,9 +181,9 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<String>> getRawFileContent(
             @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
             @ParameterObject @Validated @ModelAttribute ReadFileRequest request,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        String content = gitlabService.getRawFileContent(accessToken, projectId, request.filePath(), request.branch());
+        String content = gitlabService.getRawFileContent(gitlabPersonalAccessToken, projectId, request.filePath(), request.branch());
         return ResponseEntity.ok(ApiResponse.success(content));
 
     }
@@ -202,9 +199,9 @@ public class GitlabController {
             @Parameter(description = "프로젝트 ID", required = true, example = "998708")
             @PathVariable Long projectId,
             @RequestBody CommitPatchedFilesRequest request,
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+            String gitlabPersonalAccessToken) {
 
-        gitlabService.commitPatchedFiles(accessToken, projectId, request.branch(), request.commitMessage(), request.patchedFiles());
+        gitlabService.commitPatchedFiles(gitlabPersonalAccessToken, projectId, request.branch(), request.commitMessage(), request.patchedFiles());
         return ResponseEntity.ok(ApiResponse.success());
 
     }
