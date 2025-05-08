@@ -95,7 +95,7 @@ export default function InfoCheck() {
             <AppInfo>.env</AppInfo>
             <Icon
               src={
-                status.env.env
+                status.env.frontEnv && status.env.backEnv
                   ? `/assets/icons/ic_checked_${mode}_true.svg`
                   : `/assets/icons/ic_checked_${mode}_false.svg`
               }

@@ -13,6 +13,9 @@ interface ProjectInfoStore {
   // 다음 단계 유효성 검사
   onNextValidate: () => boolean;
   setOnNextValidate: (fn: () => boolean) => void;
+  // 다음 성공시 콜백함수
+  onNextSuccess?: () => void;
+  setOnNextSuccess: (fn: () => void) => void;
 }
 
 const initialStatus: ProjectInfo = {
@@ -30,8 +33,9 @@ const initialStatus: ProjectInfo = {
   },
   app: [],
   env: {
-    env: false,
-    node: '',
+    frontEnv: false,
+    backEnv: false,
+    node: 'v22.14.0',
     jdk: 17,
     buildTool: 'Gradle',
   },
@@ -65,9 +69,11 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
       resetProjectStatus: () => set({ stepStatus: initialStatus }),
 
       onNextValidate: () => true,
-
       // 콜백 등록
       setOnNextValidate: (fn) => set(() => ({ onNextValidate: fn })),
+
+      onNextSuccess: undefined,
+      setOnNextSuccess: (fn) => set({ onNextSuccess: fn }),
     }),
     {
       name: 'projectInfo',

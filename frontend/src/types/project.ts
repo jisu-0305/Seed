@@ -19,7 +19,8 @@ export interface ProjectInfo {
     port: number;
   }[];
   env: {
-    env: boolean;
+    frontEnv: boolean;
+    backEnv: boolean;
     node: string;
     jdk: number;
     buildTool: string;

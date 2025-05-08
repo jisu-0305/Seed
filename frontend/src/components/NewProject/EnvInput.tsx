@@ -23,11 +23,11 @@ export default function EnvInput() {
   };
 
   const handleClientEnvChange = (file: File) => {
-    setEnvStatus({ ...env, env: !!file });
+    setEnvStatus({ ...env, frontEnv: !!file });
   };
 
   const handleServerEnvChange = (file: File) => {
-    setEnvStatus({ ...env, env: !!file });
+    setEnvStatus({ ...env, backEnv: !!file });
   };
   return (
     <Container>
@@ -45,6 +45,7 @@ export default function EnvInput() {
         <Row>
           <Label>환경변수</Label>
           <FileInput
+            id="front"
             handleFileChange={handleClientEnvChange}
             accept=".env"
             placeholder="frontend.env"
@@ -78,6 +79,7 @@ export default function EnvInput() {
         <Row>
           <Label>환경변수</Label>
           <FileInput
+            id="back"
             handleFileChange={handleServerEnvChange}
             accept=".env"
             placeholder="backend.env"
