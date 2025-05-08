@@ -68,7 +68,14 @@ public enum ErrorCode {
     JENKINS_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6005, "젠킨스 응답 파싱에 실패했습니다."),
     COMMAND_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6006, "서버 명령어 실행에 실패했습니다."),
     CERTBOT_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6007, "SSL 인증서 발급에 실패했습니다."),
-    NGINX_RELOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6008, "Nginx reload에 실패했습니다.");
+    NGINX_RELOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6008, "Nginx reload에 실패했습니다."),
+    JENKINS_TOKEN_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6009, "Jenkins API 토큰 발급에 실패했습니다."),
+    JENKINS_TOKEN_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6010, "Jenkins API 토큰 저장에 실패했습니다."),
+    JENKINS_CRUMB_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6011, "Jenkins Crumb 요청 실패"),
+    JENKINS_TOKEN_RESPONSE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR,6012, "Jenkins Token 응답이 JSON이 아님"),
+    JENKINS_TOKEN_PARSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6013, "Jenkins Token 파싱 실패"),
+    JENKINS_TOKEN_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6014, "Jenkins Token 요청 실패"),
+    JENKINS_INFO_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6015, "해당 프로젝트의 Jenkins 정보가 존재하지 않습니다.");
 
 
     private final HttpStatus status;

@@ -1,25 +1,40 @@
 import styled from '@emotion/styled';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
+import { getUserRepos } from '@/apis/gitlab';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
-export default function GitlabInput() {
-  const [gitlabUrl, setGitlabUrl] = useState('');
+interface Repo {
+  id: number;
+  name: string;
+  path_with_namespace: string;
+  http_url_to_repo: string;
+}
 
-  const { stepStatus, setGitlabStatus } = useProjectInfoStore();
+export default function GitlabInput() {
+  const [repoList, setRepoList] = useState<Repo[]>([]);
+
+  const { stepStatus, setGitlabStatus, setOnNextValidate } =
+    useProjectInfoStore();
   const { gitlab } = stepStatus;
 
   const { mode } = useThemeStore();
 
-  const handleRepoChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const fullUrl = e.target.value;
-    setGitlabUrl(fullUrl);
+  // repo 조회
+  useEffect(() => {
+    fetchUserRepos();
+  }, []);
 
-    const segments = fullUrl.split('/');
-    const repoName = segments[segments.length - 1].replace(/\.git$/, '');
+  const fetchUserRepos = async () => {
+    const { data } = await getUserRepos();
+    console.log(data);
+    setRepoList(data);
+  };
 
-    setGitlabStatus({ ...gitlab, repo: repoName });
+  // input 핸들러
+  const handleRepoChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    setGitlabStatus({ ...gitlab, repo: e.target.value });
   };
 
   const handleStructureSelect = (value: '모노' | '멀티') => {
@@ -43,17 +58,47 @@ export default function GitlabInput() {
     });
   };
 
+  // 유효성 검사
+  const isFormValid = () => {
+    return (
+      !!gitlab.repo &&
+      !!gitlab.structure &&
+      !!gitlab.directory.client &&
+      !!gitlab.directory.server
+    );
+  };
+
+  // next 버튼 핸들러
+  useEffect(() => {
+    setOnNextValidate(isFormValid);
+  }, [gitlab]);
+
   if (mode === null) return null;
 
   return (
     <Container>
       <Title>GitLab 레포지토리 주소를 입력해주세요</Title>
-      <Input
+      {/* <Input
         placeholder="https://lab.ssafy.com/s12-final/S12P31A206.git"
         value={gitlabUrl || gitlab.repo}
-        onChange={handleRepoChange}
-      />
+      /> */}
 
+      <StSelectWrapper>
+        <Select onChange={handleRepoChange} value={gitlab.repo}>
+          <option value="" disabled>
+            레포지토리를 선택하세요
+          </option>
+          {repoList.map((repo) => (
+            <option key={repo.id} value={repo.name}>
+              {repo.name}
+            </option>
+          ))}
+        </Select>
+        <ArrowIcon
+          src={`/assets/icons/ic_arrow_down_${mode}.svg`}
+          alt="arrow"
+        />
+      </StSelectWrapper>
       <Title>프로젝트 폴더 구조는 무엇인가요?</Title>
       <OptionWrapper>
         <OptionBox
@@ -142,9 +187,13 @@ const Title = styled.h2`
   ${({ theme }) => theme.fonts.Head4};
 `;
 
-const Input = styled.input`
-  width: 90%;
-  max-width: 47rem;
+const StSelectWrapper = styled.div`
+  width: 100%;
+  position: relative;
+`;
+
+const Select = styled.select`
+  width: 100%;
   padding: 1rem 1.5rem;
 
   ${({ theme }) => theme.fonts.Body3};
@@ -153,6 +202,28 @@ const Input = styled.input`
   background-color: ${({ theme }) => theme.colors.InputBackground};
   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
+
+  appearance: none;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  cursor: pointer;
+
+  option {
+    ${({ theme }) => theme.fonts.Body3};
+    color: ${({ theme }) => theme.colors.Text};
+  }
+`;
+
+const ArrowIcon = styled.img`
+  position: absolute;
+  right: 5%;
+  top: 55%;
+  transform: translateY(-50%);
+
+  pointer-events: none;
 `;
 
 const OptionWrapper = styled.div`
@@ -228,5 +299,5 @@ const StyledInput = styled.input`
   height: 2.5rem;
 
   ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Black1};
+  color: ${({ theme }) => theme.colors.Text};
 `;
