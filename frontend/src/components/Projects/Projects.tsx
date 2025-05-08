@@ -13,35 +13,37 @@ export default function Projects() {
       <SectionTitle>
         <Title>Projects</Title>
       </SectionTitle>
-      <CardsList>
-        {projects.map((p, idx) => {
-          const time = p.lastBuildAt
-            ? formatDateTime(p.lastBuildAt)
-            : '빌드 이력 없음';
+      <Section>
+        <CardsList>
+          {projects.map((p, idx) => {
+            const time = p.lastBuildAt
+              ? formatDateTime(p.lastBuildAt)
+              : '빌드 이력 없음';
 
-          let emoji: 'default' | 'success' | 'fail';
-          if (idx === 0) {
-            emoji = 'default';
-          } else if (p.lastBuildStatus === 'SUCCESS') {
-            emoji = 'success';
-          } else {
-            emoji = 'fail';
-          }
+            let emoji: 'default' | 'success' | 'fail';
+            if (idx === 0) {
+              emoji = 'default';
+            } else if (p.lastBuildStatus === 'SUCCESS') {
+              emoji = 'success';
+            } else {
+              emoji = 'fail';
+            }
 
-          return (
-            <ProjectCard
-              key={p.id}
-              id={p.id}
-              emoji={emoji}
-              title={p.projectName}
-              time={time}
-              https={p.httpsEnabled}
-              status={p.lastBuildStatus ?? ''}
-              users={p.users}
-            />
-          );
-        })}
-      </CardsList>
+            return (
+              <ProjectCard
+                key={p.id}
+                id={p.id}
+                emoji={emoji}
+                title={p.projectName}
+                time={time}
+                https={p.httpsEnabled}
+                status={p.lastBuildStatus ?? ''}
+                users={p.users}
+              />
+            );
+          })}
+        </CardsList>
+      </Section>
     </SectionWrapper>
   );
 }
@@ -52,8 +54,20 @@ const SectionWrapper = styled.section`
   justify-content: flex-start;
   align-items: center;
   width: 100%;
-  padding: 10rem 2rem;
+  padding: 7rem 2rem;
   border-radius: 1.5rem;
+`;
+
+const Section = styled.div`
+  max-height: 61rem;
+  padding: 1rem;
+  overflow-y: auto;
+
+  & {
+    scrollbar-width: thin;
+    scrollbar-color: ${({ theme }) =>
+      `${theme.colors.BorderDefault} transparent`};
+  }
 `;
 
 const SectionTitle = styled.h2`
