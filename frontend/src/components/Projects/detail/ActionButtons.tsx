@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useThemeStore } from '@/stores/themeStore';
 
 interface ActionButtonsProps {
-  projectId: string | undefined;
+  projectId: string | null;
 }
 
 export function ActionButtons({ projectId }: ActionButtonsProps) {

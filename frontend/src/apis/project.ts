@@ -1,6 +1,10 @@
 // apis/project.ts
 
-import { ProjectSummary } from '@/types/project';
+import {
+  ProjectDetailData,
+  ProjectDetailResponse,
+  ProjectSummary,
+} from '@/types/project';
 
 import { client } from './axios';
 
@@ -18,6 +22,21 @@ export async function fetchProjects(): Promise<ProjectSummary[]> {
 
   if (!res.data.success) {
     throw new Error(res.data.message || '프로젝트 목록 조회에 실패했습니다.');
+  }
+  return res.data.data;
+}
+
+/**
+ * 특정 프로젝트의 상세 정보를 조회합니다.
+ */
+export async function fetchProjectDetail(
+  projectId: number,
+): Promise<ProjectDetailData> {
+  const res = await client.get<ProjectDetailResponse>(
+    `/projects/${projectId}/detail`,
+  );
+  if (!res.data.success) {
+    throw new Error(res.data.message || '프로젝트 상세 조회에 실패했습니다.');
   }
   return res.data.data;
 }

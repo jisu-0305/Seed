@@ -34,7 +34,7 @@ export interface ProjectSummary {
   autoDeploymentEnabled: boolean;
   httpsEnabled: boolean;
   buildStatus: BuildStatus;
-  lastBuildAt: string;
+  lastBuildAt: string | null;
 }
 
 export interface ProjectMember {
@@ -42,4 +42,38 @@ export interface ProjectMember {
   userName: string;
   userIdentifyId: string;
   profileImageUrl: string;
+}
+
+export interface Application {
+  imageName: string;
+  tag: string;
+  port: number;
+}
+
+export interface ProjectDetailData {
+  id: number;
+  ownerId: number;
+  projectName: string;
+  createdAt: string;
+  serverIP: string;
+  repositoryUrl: string;
+  structure: 'MONO' | string;
+  frontendDirectoryName: string;
+  backendDirectoryName: string;
+  frontendBranchName: string;
+  backendBranchName: string;
+  frontendFramework: string;
+  frontendEnvFilePath: string;
+  nodejsVersion: string;
+  jdkVersion: string;
+  jdkBuildTool: string;
+  backendEnvFilePath: string;
+  applicationList: Application[];
+  pemFilePath: string;
+}
+
+export interface ProjectDetailResponse {
+  success: boolean;
+  message: string;
+  data: ProjectDetailData;
 }

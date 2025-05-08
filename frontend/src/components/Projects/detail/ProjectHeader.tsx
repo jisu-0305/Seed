@@ -5,15 +5,15 @@ import { useThemeStore } from '@/stores/themeStore';
 interface ProjectHeaderProps {
   emojiSrc: string;
   https: boolean;
-  lastBuildStatus: 'SUCCESS' | 'FAILURE' | null;
-  lastBuildTime: string;
+  buildStatus: 'SUCCESS' | 'FAILURE' | null;
+  lastBuildAt: string;
 }
 
 export function ProjectHeader({
   emojiSrc,
   https,
-  lastBuildStatus,
-  lastBuildTime,
+  buildStatus,
+  lastBuildAt,
 }: ProjectHeaderProps) {
   const { mode } = useThemeStore();
 
@@ -28,12 +28,12 @@ export function ProjectHeader({
             <Label>최근 빌드</Label>
             <Icon
               src={`/assets/icons/ic_${
-                lastBuildStatus === 'SUCCESS' ? 'build_success' : 'build_fail'
+                buildStatus === 'SUCCESS' ? 'build_success' : 'build_fail'
               }.svg`}
               alt="build_status"
             />
           </StatusItem>
-          <Time>{lastBuildTime}</Time>
+          <Time>{lastBuildAt}</Time>
         </StatusGroup>
 
         <StatusGroup>
