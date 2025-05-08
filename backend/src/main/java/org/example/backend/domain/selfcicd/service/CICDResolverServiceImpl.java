@@ -16,6 +16,8 @@ import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.fastai.FastAIClient;
+import org.example.backend.util.fastai.dto.InferAppRequest;
+import org.example.backend.util.fastai.dto.SuspectFileRequest;
 import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
 
@@ -80,13 +82,13 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 파라미터: jenkins log, appNames, gitDiff
          * 담당자: 공예슬, 김지수
          * */
-//        SuspectFileRequest suspectRequest = SuspectFileRequest.builder()
+//        InferAppRequest inferAppRequest = InferAppRequest.builder()
 //                .gitDiff(gitlabCompareResponse.getDiffs())
 //                .jenkinsLog(jenkinsErrorLog)
 //                .applicationNames(appNames)
 //                .build();
 //
-//        List<String> suspectedApplications = fastAIClient.getSuspectedApplications(suspectRequest);
+//        List<String> suspectedApps= fastAIClient.requestInferApplications(inferAppRequest);
 
         /**
          * 2-1. 해당 어플리케이션들의 트리 구조 가져오기
@@ -97,7 +99,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 문제점2: 폴더 트리 구조 다 가져오면 너무 내용이 많음, 서버면 트리구조의 depth 제한 가능 하지만 api는 불가능
          * 담당자: 박유진, 김지수, (Ai엮이면 공예슬 추가)
          * */
-//        for (String appFolderName : suspectedApplications) {
+//        for (String appFolderName : suspectedApps) {
 //            String appPath = appFolderName+"/";
 //            List<GitlabTree> appTree = gitlabService.getTree(accessToken, project.getId(), appPath, true);
 //            // 필요한 경우 → 트리 구조로 가공
@@ -109,7 +111,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 담당자: 박유진, 김지수
          * */
 //        Map<String, String> appLogs = new HashMap<>();
-//        for (String appName : suspectedApplications) {
+//        for (String appName : suspectedApps) {
 //            String logs = dockerService.getRecentLog(project, appName);
 //            appLogs.put(appName, logs);
 //        }

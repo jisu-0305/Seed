@@ -3,13 +3,12 @@ package org.example.backend.util.backoffice;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.util.fastai.FastAIClientImpl;
-import org.example.backend.util.fastai.dto.FilepathRequest;
-import org.example.backend.util.fastai.dto.PatchFileRequest;
-import org.example.backend.util.fastai.dto.PatchTextRequest;
-import org.example.backend.util.fastai.dto.ResolveRequest;
+import org.example.backend.util.fastai.dto.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("api/test/fastai")
@@ -18,6 +17,13 @@ import org.springframework.web.bind.annotation.*;
 public class FastAITestController {
 
     private final FastAIClientImpl fastAIClientImpl;
+
+    @PostMapping("/infer")
+    public ResponseEntity<List<String>> testInferAppRequest(@RequestBody InferAppRequest request) {
+        List<String> response = fastAIClientImpl.requestInferApplications(request);
+        return ResponseEntity.ok(response);
+    }
+
 
     @PostMapping("/filepath")
     public ResponseEntity<String> testFilepathRequest(@ModelAttribute FilepathRequest filepathRequest) {
