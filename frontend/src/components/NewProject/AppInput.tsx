@@ -6,9 +6,9 @@ import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 import ModalWrapper from '../Common/Modal/ModalWrapper';
+import TipItem from '../Common/TipItem';
 import InformInboundBriefModal from './Modal/InformInboundBriefModal';
 import SearchDockerImageModal from './Modal/SearchDockerImageModal';
-import TipItem from '../Common/TipItem';
 
 // const dummyApps = [
 //   {
