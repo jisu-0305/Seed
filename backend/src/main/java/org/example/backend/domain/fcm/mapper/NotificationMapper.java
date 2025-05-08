@@ -8,11 +8,12 @@ import java.util.List;
 
 public class NotificationMapper {
 
-    public static NotificationDto toDto(Notification notification) {
+    private static NotificationDto toDto(Notification notification) {
         return NotificationDto.builder()
                 .id(notification.getId())
-                .notificationTitle(notification.getNotificationTile())
+                .notificationTitle(notification.getNotificationTitle())
                 .notificationContent(notification.getNotificationContent())
+                .notificationType(notification.getNotificationType())
                 .isRead(notification.isRead())
                 .createdAt(notification.getCreatedAt())
                 .build();
