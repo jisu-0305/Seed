@@ -1,5 +1,3 @@
-// src/components/LoginModal.tsx
-
 'use client';
 
 import styled from '@emotion/styled';
@@ -82,10 +80,10 @@ const Backdrop = styled.div`
 
 const Modal = styled.div`
   position: absolute;
-  top: 5.1rem;
-  right: 1rem;
+  top: 7.1rem;
+  right: 0.5rem;
   width: 17rem;
-  background: ${({ theme }) => theme.colors.Background};
+  background: ${({ theme }) => theme.colors.ModalBg};
   border-radius: 1rem;
   padding: 1.5rem 3rem;
   box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);
