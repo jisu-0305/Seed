@@ -26,7 +26,7 @@ public interface GitlabApiClient {
 
     List<GitlabProject> requestProjectList(String gitlabAccessToken, int page, int perPage);
 
-    GitlabProject requestProjectInfo(String gitlabAccessToken, String projectUrl);
+    GitlabProject requestProjectInfo(String gitlabPersonalAccessToken, String projectUrl);
 
     Mono<List<GitlabMergeRequest>> requestMergedMrs(String accessToken, Long projectId, int page, int perPage);
 

@@ -22,6 +22,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     private ProviderType providerType;
 
+    private String gitlabPersonalAccessToken;
+
     private String gitlabAccessToken;
 
     private String gitlabRefreshToken;
