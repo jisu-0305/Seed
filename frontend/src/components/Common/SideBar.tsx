@@ -1,12 +1,17 @@
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
 
+import { projects } from '@/assets/dummy/projects';
 import { useThemeStore } from '@/stores/themeStore';
 
 export default function SideBar() {
   const router = useRouter();
   const pathname = usePathname();
   const { mode } = useThemeStore();
+
+  const isProjectsActive = pathname.startsWith('/projects');
+  const match = pathname.match(/^\/projects\/(\d+)$/);
+  const currentProjectId = match ? Number(match[1]) : null;
 
   const handleMovePage = (url: string) => {
     router.push(url);
@@ -60,12 +65,12 @@ export default function SideBar() {
         </MenuItem>
 
         <MenuItem
-          active={pathname.startsWith('/projects')}
+          active={isProjectsActive}
           onClick={() => handleMovePage('/projects')}
         >
           <IcProject
             src={
-              pathname.startsWith('/projects')
+              isProjectsActive
                 ? `/assets/icons/ic_project_${mode}_true.svg`
                 : `/assets/icons/ic_project_${mode}_false.svg`
             }
@@ -74,6 +79,19 @@ export default function SideBar() {
           프로젝트 관리
           <IcArrow src="/assets/icons/ic_arrow_right.svg" alt="화살표" />
         </MenuItem>
+        {isProjectsActive && (
+          <SubMenu>
+            {projects.map((p) => (
+              <SubMenuItem
+                key={p.id}
+                active={p.id === currentProjectId}
+                onClick={() => handleMovePage(`/projects/${p.id}`)}
+              >
+                {p.projectName}
+              </SubMenuItem>
+            ))}
+          </SubMenu>
+        )}
       </Menu>
     </SideWrapper>
   );
@@ -140,6 +158,29 @@ const MenuItem = styled.li<{ active?: boolean }>`
   }
 
   cursor: pointer;
+`;
+
+const SubMenu = styled.ul`
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2rem;
+`;
+
+const SubMenuItem = styled.li<{ active?: boolean }>`
+  list-style: none;
+  cursor: pointer;
+  ${({ theme, active }) => (active ? theme.fonts.Title6 : theme.fonts.Body4)};
+  color: ${({ theme, active }) =>
+    active ? theme.colors.Main_Carrot : theme.colors.Text};
+
+  &:hover {
+    ${({ theme }) => theme.fonts.Title6};
+  }
 `;
 
 const IcDashBoard = styled.img`
