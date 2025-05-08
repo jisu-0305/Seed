@@ -7,11 +7,15 @@ public record TreeRequest(
         @Schema(description = "조회할 경로 (빈 문자열이면 루트)")
         String path,
 
-        @Schema(description = "하위 디렉토리까지 재귀적으로 조회할지 여부", example = "true", defaultValue= "true")
-        Boolean recursive
+        @Schema(description = "하위 디렉토리까지 재귀적으로 조회할지 여부", example = "true")
+        Boolean recursive,
+
+        @Schema(description = "조회할 브랜치 이름", example = "dev")
+        String branchName
 ) {
     public TreeRequest {
         if (path == null) path = "";
         if (recursive == null) recursive = true;
+        if (branchName == null) branchName = "master";
     }
 }
