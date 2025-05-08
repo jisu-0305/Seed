@@ -48,8 +48,9 @@ public class JenkinsController {
     @Operation(summary = "빌드 콘솔 로그 조회", description = "특정 빌드 번호의 콘솔 로그를 조회합니다.")
     @GetMapping("/{projectId}/builds/{buildNumber}/log")
     public String getBuildLog(@PathVariable Long projectId,
-                              @PathVariable int buildNumber) {
-        return jenkinsService.getBuildLog(buildNumber, projectId);
+                              @PathVariable int buildNumber,
+                              @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+        return jenkinsService.getBuildLog(buildNumber, projectId, accessToken);
     }
 
     @Operation(summary = "빌드 상태 조회", description = "특정 빌드 번호의 SUCCESS/FAILURE 상태를 조회합니다.")

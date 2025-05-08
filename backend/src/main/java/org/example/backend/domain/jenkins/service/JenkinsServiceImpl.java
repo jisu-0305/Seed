@@ -98,7 +98,8 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public String getBuildLog(int buildNumber, Long projectId) {
+    public String getBuildLog(int buildNumber, Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
         return jenkinsClient.fetchBuildLog(getJenkinsInfo(projectId), buildNumber);
     }
 
