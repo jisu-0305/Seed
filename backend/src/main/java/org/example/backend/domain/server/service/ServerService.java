@@ -5,7 +5,7 @@ import org.example.backend.controller.request.server.InitServerRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 public interface ServerService {
-    void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile envFile, String accessToken);
+    void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile frontEnvFile, MultipartFile backEnvFile, String accessToken);
 
     void resetServer(InitServerRequest request, MultipartFile pemFile);
 }
