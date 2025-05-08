@@ -1,5 +1,3 @@
-/* eslint-disable no-nested-ternary */
-// src/components/AiReportPanel.tsx
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';

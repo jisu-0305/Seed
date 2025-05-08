@@ -1,4 +1,3 @@
-/* eslint-disable no-nested-ternary */
 import styled from '@emotion/styled';
 import { useState } from 'react';
 
