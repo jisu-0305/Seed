@@ -1,13 +1,26 @@
 'use client';
 
 import styled from '@emotion/styled';
+import { useEffect, useState } from 'react';
 
-import { projects } from '@/assets/dummy/projects';
+import { projects as dummyProjects } from '@/assets/dummy/projects';
+import { ProjectSummary } from '@/types/project';
 import { formatDateTime } from '@/utils/getFormattedTime';
 
 import { ProjectCard } from './ProjectCard';
 
 export default function Projects() {
+  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+
+  useEffect(() => {
+    // 실제 API 호출 시 이 부분만 교체하세요.
+    const timer = setTimeout(() => {
+      setProjects(dummyProjects);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <SectionWrapper>
       <SectionTitle>

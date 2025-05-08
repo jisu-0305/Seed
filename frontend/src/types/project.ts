@@ -1,3 +1,5 @@
+import { User } from './user';
+
 export interface ProjectInfo {
   gitlab: {
     repo: string;
@@ -22,4 +24,16 @@ export interface ProjectInfo {
     jdk: number;
     buildTool: string;
   };
+}
+
+export type BuildStatus = 'SUCCESS' | 'FAILURE' | null;
+
+export interface ProjectSummary {
+  id: number;
+  projectName: string;
+  httpsEnabled: boolean;
+  autoDeployEnabled: boolean;
+  lastBuildStatus: BuildStatus;
+  lastBuildAt: string | null;
+  users: User[];
 }
