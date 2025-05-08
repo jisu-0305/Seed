@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-import { ProjectInfo } from '@/types/project';
+import { fetchProjects } from '@/apis/project';
+import { ProjectInfo, ProjectSummary } from '@/types/project';
 
 interface ProjectInfoStore {
   stepStatus: ProjectInfo;
@@ -66,3 +67,35 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
     },
   ),
 );
+
+interface ProjectStore {
+  projects: ProjectSummary[];
+  loading: boolean;
+  error: string | null;
+  loadProjects: () => Promise<void>;
+}
+
+export const useProjectStore = create<ProjectStore>((set, get) => ({
+  projects: [],
+  loading: false,
+  error: null,
+
+  loadProjects: async () => {
+    const { projects } = get();
+    if (projects.length > 0) {
+      return;
+    }
+
+    set({ loading: true, error: null });
+    try {
+      const data = await fetchProjects();
+
+      set({ projects: data });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      set({ error: '프로젝트를 불러오는 데 실패했습니다.' });
+    } finally {
+      set({ loading: false });
+    }
+  },
+}));

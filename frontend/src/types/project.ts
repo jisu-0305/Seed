@@ -1,5 +1,3 @@
-import { User } from './user';
-
 export interface ProjectInfo {
   gitlab: {
     repo: string;
@@ -31,9 +29,17 @@ export type BuildStatus = 'SUCCESS' | 'FAILURE' | null;
 export interface ProjectSummary {
   id: number;
   projectName: string;
+  createdAt: string;
+  memberList: ProjectMember[];
+  autoDeploymentEnabled: boolean;
   httpsEnabled: boolean;
-  autoDeployEnabled: boolean;
-  lastBuildStatus: BuildStatus;
-  lastBuildAt: string | null;
-  users: User[];
+  buildStatus: BuildStatus;
+  lastBuildAt: string;
+}
+
+export interface ProjectMember {
+  userId: number;
+  userName: string;
+  userIdentifyId: string;
+  profileImageUrl: string;
 }

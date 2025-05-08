@@ -1,25 +1,22 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
-import { projects as dummyProjects } from '@/assets/dummy/projects';
-import { ProjectSummary } from '@/types/project';
+import { useProjectStore } from '@/stores/projectStore';
 import { formatDateTime } from '@/utils/getFormattedTime';
 
 import { ProjectCard } from './ProjectCard';
 
 export default function Projects() {
-  const [projects, setProjects] = useState<ProjectSummary[]>([]);
+  const { projects, loading, error, loadProjects } = useProjectStore();
 
   useEffect(() => {
-    // 실제 API 호출 시 이 부분만 교체하세요.
-    const timer = setTimeout(() => {
-      setProjects(dummyProjects);
-    }, 500);
+    loadProjects();
+  }, [loadProjects]);
 
-    return () => clearTimeout(timer);
-  }, []);
+  if (loading) return <p>로딩 중…</p>;
+  if (error) return <p>{error}</p>;
 
   return (
     <SectionWrapper>
@@ -36,7 +33,7 @@ export default function Projects() {
             let emoji: 'default' | 'success' | 'fail';
             if (idx === 0) {
               emoji = 'default';
-            } else if (p.lastBuildStatus === 'SUCCESS') {
+            } else if (p.buildStatus === 'SUCCESS') {
               emoji = 'success';
             } else {
               emoji = 'fail';
@@ -50,8 +47,8 @@ export default function Projects() {
                 title={p.projectName}
                 time={time}
                 https={p.httpsEnabled}
-                status={p.lastBuildStatus ?? ''}
-                users={p.users}
+                status={p.buildStatus ?? ''}
+                users={p.memberList}
               />
             );
           })}
