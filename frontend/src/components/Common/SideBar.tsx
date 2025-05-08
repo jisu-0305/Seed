@@ -10,7 +10,8 @@ export default function SideBar() {
   const { mode } = useThemeStore();
 
   const isProjectsActive = pathname.startsWith('/projects');
-  const match = pathname.match(/^\/projects\/(\d+)$/);
+
+  const match = pathname.match(/^\/projects\/(\d+)(\/|$)/);
   const currentProjectId = match ? Number(match[1]) : null;
 
   const handleMovePage = (url: string) => {
