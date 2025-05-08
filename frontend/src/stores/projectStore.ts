@@ -11,6 +11,9 @@ interface ProjectInfoStore {
   setAppStatus: (app: ProjectInfo['app']) => void;
   setEnvStatus: (env: ProjectInfo['env']) => void;
   resetProjectStatus: () => void;
+  // 다음 단계 유효성 검사
+  onNextValidate: () => boolean;
+  setOnNextValidate: (fn: () => boolean) => void;
 }
 
 const initialStatus: ProjectInfo = {
@@ -61,6 +64,11 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
         })),
 
       resetProjectStatus: () => set({ stepStatus: initialStatus }),
+
+      onNextValidate: () => true,
+
+      // 콜백 등록
+      setOnNextValidate: (fn) => set(() => ({ onNextValidate: fn })),
     }),
     {
       name: 'projectInfo',

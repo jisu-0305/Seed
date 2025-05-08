@@ -260,9 +260,17 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 레포지토리 tree 구조 조회  */
     @Override
-    public List<GitlabTree> requestRepositoryTree(String gitlabAccessToken, Long projectId, String path, boolean recursive, int page, int perPage ) {
+    public List<GitlabTree> requestRepositoryTree(
+            String gitlabAccessToken,
+            Long projectId,
+            String path,
+            boolean recursive,
+            int page,
+            int perPage,
+            String branchName
+    ) {
 
-        URI uri = uriBuilder.buildRepositoryTreeUri(projectId, path, recursive, page, perPage);
+        URI uri = uriBuilder.buildRepositoryTreeUri(projectId, path, recursive, page, perPage, branchName);
 
         try {
             return gitlabWebClient.get()

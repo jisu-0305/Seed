@@ -1,7 +1,11 @@
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 
+import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
+import { useModal } from '@/hooks/Common';
 import { useThemeStore } from '@/stores/themeStore';
+
+import ManageMemberModal from '../Modal/ManageMemberModal';
 
 interface ActionButtonsProps {
   projectId: string | null;
@@ -9,6 +13,7 @@ interface ActionButtonsProps {
 
 export function ActionButtons({ projectId }: ActionButtonsProps) {
   const { mode } = useThemeStore();
+  const team = useModal();
 
   const router = useRouter();
 
@@ -37,36 +42,47 @@ export function ActionButtons({ projectId }: ActionButtonsProps) {
   if (mode === null) return null;
 
   return (
-    <Wrapper>
-      <MainActions>
-        <Button variant="ai" onClick={goToReport}>
-          <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
-          AI 보고서
-        </Button>
-        <Button variant="build" onClick={runBuild}>
-          <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
-          지금 빌드
-        </Button>
-        <Button variant="https" onClick={runHttps}>
-          <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
-          Https 설정
-        </Button>
-      </MainActions>
-      <SubActions>
-        <SmallButton onClick={goToGitLab}>
-          <SmallIcon src={`/assets/icons/ic_gitlab_${mode}.svg`} alt="gitlab" />{' '}
-          GitLab
-        </SmallButton>
-        <SmallButton onClick={goToEdit}>
-          <SmallIcon src={`/assets/icons/ic_edit_${mode}.svg`} alt="edit" />{' '}
-          정보수정
-        </SmallButton>
-        <SmallButton>
-          <SmallIcon src={`/assets/icons/ic_team_${mode}.svg`} alt="team" />{' '}
-          팀원 관리
-        </SmallButton>
-      </SubActions>
-    </Wrapper>
+    <>
+      <Wrapper>
+        <MainActions>
+          <Button variant="ai" onClick={goToReport}>
+            <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
+            AI 보고서
+          </Button>
+          <Button variant="build" onClick={runBuild}>
+            <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
+            지금 빌드
+          </Button>
+          <Button variant="https" onClick={runHttps}>
+            <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
+            Https 설정
+          </Button>
+        </MainActions>
+        <SubActions>
+          <SmallButton onClick={goToGitLab}>
+            <SmallIcon
+              src={`/assets/icons/ic_gitlab_${mode}.svg`}
+              alt="gitlab"
+            />{' '}
+            GitLab
+          </SmallButton>
+          <SmallButton onClick={goToEdit}>
+            <SmallIcon src={`/assets/icons/ic_edit_${mode}.svg`} alt="edit" />{' '}
+            정보수정
+          </SmallButton>
+          <SmallButton onClick={team.toggle}>
+            <SmallIcon src={`/assets/icons/ic_team_${mode}.svg`} alt="team" />{' '}
+            팀원 관리
+          </SmallButton>
+        </SubActions>
+      </Wrapper>
+      <ModalWrapper isShowing={team.isShowing}>
+        <ManageMemberModal
+          isShowing={team.isShowing}
+          handleClose={team.toggle}
+        />
+      </ModalWrapper>
+    </>
   );
 }
 
