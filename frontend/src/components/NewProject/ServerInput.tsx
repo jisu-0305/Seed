@@ -1,5 +1,6 @@
 /* eslint-disable react/no-array-index-key */
 import styled from '@emotion/styled';
+import { useEffect } from 'react';
 
 import { useModal } from '@/hooks/Common';
 import { useProjectInfoStore } from '@/stores/projectStore';
@@ -12,7 +13,8 @@ import InformIpModal from './Modal/InformIpModal';
 import InformPemKeyModal from './Modal/InformPemKeyModal';
 
 export default function ServerInput() {
-  const { stepStatus, setServerStatus } = useProjectInfoStore();
+  const { stepStatus, setServerStatus, setOnNextValidate, setOnNextSuccess } =
+    useProjectInfoStore();
   const { server } = stepStatus;
 
   const pemTip = useModal();
@@ -38,6 +40,24 @@ export default function ServerInput() {
       setServerStatus({ ip: server.ip, pem: !!file });
     }
   };
+
+  // 유효성 검사
+  const isFormValid = () => {
+    const ipParts = server.ip.split('.');
+    const isValidIp =
+      ipParts.length === 4 && ipParts.every((part) => part !== '');
+
+    return isValidIp && !!server.pem;
+  };
+
+  // next 버튼 핸들러
+  useEffect(() => {
+    setOnNextValidate(isFormValid);
+
+    setOnNextSuccess(() => {
+      inboundTip.toggle();
+    });
+  }, [server]);
 
   const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
 
