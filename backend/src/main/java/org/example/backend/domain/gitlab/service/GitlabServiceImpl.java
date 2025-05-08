@@ -166,12 +166,20 @@ public class GitlabServiceImpl implements GitlabService {
 
     /* 레포지토리 tree 구조 조회  */
     @Override
-    public List<GitlabTree> getRepositoryTree(String accessToken, Long projectId, String path, boolean recursive) {
+    public List<GitlabTree> getRepositoryTree(String accessToken, Long projectId, String path, boolean recursive, String branchName) {
         String gitlabAccessToken = tokenValidCheck(accessToken);
         int page = 1;
         int perPage = 100;
 
-        return gitlabApiClient.requestRepositoryTree(gitlabAccessToken, projectId, path, recursive, page, perPage);
+        return gitlabApiClient.requestRepositoryTree(
+                gitlabAccessToken,
+                projectId,
+                path,
+                recursive,
+                page,
+                perPage,
+                branchName
+        );
     }
 
     /* 파일 원본 조회  */

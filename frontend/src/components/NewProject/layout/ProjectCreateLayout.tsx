@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 
 import SmallButton from '@/components/Common/button/SmallButton';
 import Header from '@/components/Common/Header';
+import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { getIdFromUrl, getUrlFromId } from '@/utils/getProjectStep';
 
@@ -21,6 +22,16 @@ export default function ProjectCreateLayout({
   const key = pathName.split('/').pop() || '';
   const currentStep = getIdFromUrl(key);
   const { mode } = useThemeStore();
+
+  const { onNextValidate } = useProjectInfoStore();
+
+  const handleNext = () => {
+    if (onNextValidate()) {
+      router.push(`${getUrlFromId(currentStep + 1)}`);
+    } else {
+      alert('모든 항목을 입력해주세요.');
+    }
+  };
 
   if (mode === null) return null;
 
@@ -50,12 +61,7 @@ export default function ProjectCreateLayout({
                   />
                   이전
                 </SmallButton>
-                <SmallButton
-                  variant="next"
-                  onClick={() => {
-                    router.push(`${getUrlFromId(currentStep + 1)}`);
-                  }}
-                >
+                <SmallButton variant="next" onClick={handleNext}>
                   다음
                   <Icon
                     src={`/assets/icons/ic_button_arrow_right_${mode}.svg`}
