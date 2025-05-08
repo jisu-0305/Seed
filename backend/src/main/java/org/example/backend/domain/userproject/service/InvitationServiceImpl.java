@@ -19,6 +19,7 @@
     import org.example.backend.global.exception.ErrorCode;
     import org.springframework.stereotype.Service;
     import org.springframework.transaction.annotation.Transactional;
+    import org.example.backend.domain.fcm.enums.NotificationType;
 
     import java.time.LocalDateTime;
     import java.util.List;
@@ -65,7 +66,7 @@
                                 projectName
                         );
 
-                        return toResponse(saved);
+                        return toResponse(saved, NotificationType.INVITATION_CREATED_TYPE);
                     })
                     .toList();
         }
@@ -124,7 +125,10 @@
             return invitationRepository
                     .findByReceiverIdAndExpiresAtAfter(receiverId, LocalDateTime.now())
                     .stream()
-                    .map(InvitationMapper::toResponse)
+                    .map(invitation -> InvitationMapper.toResponse(
+                            invitation,
+                            NotificationType.INVITATION_CREATED_TYPE
+                    ))
                     .toList();
         }
 
