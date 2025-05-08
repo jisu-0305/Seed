@@ -31,10 +31,11 @@ public class ServerController {
     public ResponseEntity<String> registerDeployment(
             @RequestPart("request") DeploymentRegistrationRequest request,
             @RequestPart("pemFile") MultipartFile pemFile,
-            @RequestPart("envFile") MultipartFile envFile,
+            @RequestPart("frontEnvFile") MultipartFile frontEnvFile,
+            @RequestPart("backEnvFile") MultipartFile backEnvFile,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.registerDeployment(request, pemFile, envFile, accessToken);
+        serverService.registerDeployment(request, pemFile, frontEnvFile, backEnvFile, accessToken);
 
         return ResponseEntity.ok("서버 자동 배포 설정 완료");
     }
