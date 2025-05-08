@@ -34,7 +34,6 @@ const Button = styled.button<{ variant: 'cancel' | 'next' | 'complete' }>`
 
   ${({ theme }) => theme.fonts.Title5}
   color: ${({ variant, theme }) =>
-    // eslint-disable-next-line no-nested-ternary
     variant === 'next'
       ? theme.colors.BtnNextText
       : variant === 'cancel'
@@ -42,7 +41,6 @@ const Button = styled.button<{ variant: 'cancel' | 'next' | 'complete' }>`
         : theme.colors.White};
 
   background-color: ${({ variant, theme }) =>
-    // eslint-disable-next-line no-nested-ternary
     variant === 'next'
       ? theme.colors.BtnNextBg
       : variant === 'cancel'

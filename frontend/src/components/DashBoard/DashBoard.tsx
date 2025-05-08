@@ -10,6 +10,16 @@ import { ActivityCard } from './ActivityCard';
 import { Calender } from './Calender';
 import { ProjectCard } from './ProjectCard';
 
+const activityDates = [
+  new Date(2025, 4, 4),
+  new Date(2025, 4, 6),
+  new Date(2025, 4, 12),
+  new Date(2025, 4, 14),
+  new Date(2025, 4, 24),
+];
+
+const createdDates = [new Date(2025, 4, 6), new Date(2025, 4, 22)];
+
 export default function HomePage() {
   const verticalDragRef = useVerticalDragScroll<HTMLDivElement>();
 
@@ -20,28 +30,10 @@ export default function HomePage() {
       <WorkspaceSection>
         <SectionTitle>Workspace</SectionTitle>
         <Swiper
-          spaceBetween={16}
-          slidesPerView="auto"
+          spaceBetween={28}
+          slidesPerView={4}
           grabCursor
           style={{ paddingBottom: '1rem' }}
-          breakpoints={{
-            320: {
-              slidesPerView: 1.3,
-              spaceBetween: 10,
-            },
-            640: {
-              slidesPerView: 2,
-              spaceBetween: 16,
-            },
-            768: {
-              slidesPerView: 3,
-              spaceBetween: 20,
-            },
-            1024: {
-              slidesPerView: 4,
-              spaceBetween: 24,
-            },
-          }}
         >
           <SwiperSlide>
             <ProjectCard
@@ -97,6 +89,8 @@ export default function HomePage() {
           <Calender
             selected={selectedDate}
             onSelect={(d) => d && setSelectedDate(d)}
+            activityDates={activityDates}
+            createdDates={createdDates}
           />
         </CalendarBox>
 

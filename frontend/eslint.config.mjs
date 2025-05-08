@@ -55,6 +55,7 @@ const eslintConfig = [
       'simple-import-sort': simpleImportSort,
     },
     rules: {
+      'no-nested-ternary': 'off',
       'import/no-extraneous-dependencies': 'off',
       '@typescript-eslint/no-use-before-define': 'off',
       'import/prefer-default-export': 'off',

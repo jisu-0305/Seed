@@ -10,6 +10,7 @@ import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
 import org.example.backend.controller.request.server.InitServerRequest;
+import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
@@ -21,6 +22,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -36,7 +38,9 @@ public class ServerServiceImpl implements ServerService {
     private final GitlabService gitlabService;
 
     @Override
-    public void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile envFile, String accessToken) {
+    public void registerDeployment(
+            DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile frontEnvFile, MultipartFile backEnvFile, String accessToken) {
+
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
@@ -54,7 +58,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(request.getServerIp(), user.getGitlabAccessToken(), "https://lab.ssafy.com/galilee155/drummer_test.git")) {
+            for (String cmd : serverInitializeCommands(request, frontEnvFile, backEnvFile, user, accessToken)) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
@@ -77,123 +81,30 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    @Override
-    public void resetServer(InitServerRequest request, MultipartFile pemFile) {
-        String host = request.getServerIp();
-        Session session = null;
-
-        try {
-            // 1) 원격 서버 세션 등록
-            log.info("세션 생성 시작");
-            session = createSessionWithPem(pemFile, host);
-            log.info("세션 생성 성공");
-
-            // 2) 명령어 실행
-            log.info("초기화 명령 실행 시작");
-            for (String cmd : serverResetCommands()) {
-                log.info("명령 수행:\n{}", cmd);
-                String output = execCommand(session, cmd);
-                log.info("명령 결과:\n{}", output);
-            }
-
-            // 3) 성공 로그
-            log.info("모든 인프라 설정 세팅을 초기화했습니다.");
-
-        } catch (JSchException e) {
-            log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
-        } catch (IOException e) {
-            log.error("PEM 파일 로드 실패: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
-
-        } finally {
-            if (session != null && !session.isConnected()) {
-                session.disconnect();
-            }
-        }
-    }
-
-    private Session createSessionWithPem(MultipartFile pemFile, String host) throws JSchException, IOException {
-        byte[] keyBytes = pemFile.getBytes();
-
-        JSch jsch = new JSch();
-        jsch.addIdentity("ec2-key", keyBytes, null, null);
-
-        Session session = jsch.getSession("ubuntu", host, 22);
-        Properties cfg = new Properties();
-        cfg.put("StrictHostKeyChecking", "no");
-        session.setConfig(cfg);
-        session.connect(10000);
-        log.info("SSH 연결 성공: {}", host);
-
-        return session;
-    }
-
-    private String execCommand(Session session, String command) throws JSchException, IOException {
-        ChannelExec channel = null;
-        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
-        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-
-        try {
-            // 1) 채널 오픈 & 명령 설정
-            channel = (ChannelExec) session.openChannel("exec");
-            channel.setCommand(command);
-            channel.setInputStream(null);
-            channel.setOutputStream(stdout);
-            channel.setErrStream(stderr);
-
-            // 2) 채널 연결 타임아웃 (예: 20초)
-            channel.connect(20000);
-
-            // 3) 명령 실행 대기 (예: 1분)
-            long start = System.currentTimeMillis();
-            long maxWait = 10 * 60_000;
-            while (!channel.isClosed()) {
-                if (System.currentTimeMillis() - start > maxWait) {
-                    channel.disconnect();
-                    throw new IOException("명령 실행 타임아웃: " + command);
-                }
-                Thread.sleep(200);
-            }
-
-            // 4) 종료 코드 확인
-            int code = channel.getExitStatus();
-            if (code != 0) {
-                throw new IOException(
-                        String.format("명령 실패(exit=%d): %s", code, stderr.toString(StandardCharsets.UTF_8))
-                );
-            }
-
-            // 5) 정상 출력 반환
-            return stdout.toString(StandardCharsets.UTF_8);
-
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException("명령 대기 중 인터럽트", e);
-        } finally {
-            if (channel != null && channel.isConnected()) {
-                channel.disconnect();
-            }
-        }
-    }
-
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(String serverIp, String gitlabAccessToken, String GitProjectUrl) {
+    private List<String> serverInitializeCommands(DeploymentRegistrationRequest request, MultipartFile frontEnvFile, MultipartFile backEnvFile, User user, String accessToken) {
+        String serverIp = request.getServerIp();
+        String gitlabProjectUrl = "https://lab.ssafy.com/galilee155/drummer_test.git";
+        String projectId = "998708";
+
+        accessToken = "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJwcm92aWRlciI6IkdJVExBQiIsIm9hdXRoVXNlcklkIjoiMjIyMjkiLCJpYXQiOjE3NDY2MDM2MTcsImV4cCI6MTc0NjY5MDAxN30._nmaIvMx4Ef3bOXY68EdjCKP5lOQprCl6hJED1B7r8ucJEuesuT2oYaLT0R1o5OLyVFS-arlxwZwF9uiVFuMdg";
+
+        // gitlab repository 정보
+        //GitlabProject gitlabProject = gitlabService.getProjectByUrl(accessToken, gitlabProjectUrl);
+
         return Stream.of(
-                //setFirewall(),
-//                updatePackageManager(),
-//                setSwapMemory(),
-//                setJDK(),
-//                setNodejs(),
-//                setDocker(),
-//                setNginx(serverIp),
-//                setJenkins(),
-//                setJenkinsConfigure(),
-//                setJenkinsGitlabConfiguration(gitlabAccessToken),
-                makeJenkinsJob("dummy-job", GitProjectUrl, "gitlab-token" ),
-//                setJenkinsConfiguration(),
-                makeGitlabWebhook("Bearer Tokenname", (long)123456, "dummy-job", "1.11.111.1"),
-                makeDockerComposeYml()
+                updatePackageManager(),
+                setSwapMemory(),
+                setJDK(),
+                setNodejs(),
+                setDocker(),
+                setNginx(serverIp),
+                setJenkins(),
+                setJenkinsConfigure(),
+                makeJenkinsJob("auto-created-deployment-job", gitlabProjectUrl, "gitlab-token"),
+                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabAccessToken(), frontEnvFile, backEnvFile),
+                makeJenkinsFile(user.getUserIdentifyId(), user.getGitlabAccessToken(), "")
+                //makeGitlabWebhook(accessToken, gitlabProject.getId(), "dummy-job", serverIp)
         ).flatMap(Collection::stream).toList();
     }
 
@@ -355,7 +266,7 @@ public class ServerServiceImpl implements ServerService {
                 "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null",
                 "echo 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/' | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
                 "sudo apt update",
-                "sudo apt install -y jenkins=2.508"
+                "sudo apt install -y --allow-downgrades jenkins=2.508"
         );
     }
 
@@ -367,7 +278,7 @@ public class ServerServiceImpl implements ServerService {
                 // Setup Wizard 비활성화 및 포트 변경
                 "sudo sed -i '/ExecStart/ c\\ExecStart=/usr/bin/java -Djava.awt.headless=true -Djenkins.install.runSetupWizard=false -jar /usr/share/java/jenkins.war --httpPort=9090 --argumentsRealm.passwd.admin=pwd123 --argumentsRealm.roles.admin=admin' /lib/systemd/system/jenkins.service",
                 "sudo systemctl daemon-reload",
-                "sudo systemctl restart jenkins",
+                "sudo systemctl start jenkins",
 
                 // admin 사용자 등록
                 "sudo mkdir -p /var/lib/jenkins/users/admin",
@@ -382,6 +293,7 @@ public class ServerServiceImpl implements ServerService {
                         "  </properties>\n" +
                         "</user>\n" +
                         "EOF" ,
+
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/users",
                 "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o ~/jenkins-plugin-cli.jar",
                 "sudo systemctl stop jenkins",
@@ -408,44 +320,53 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins credentials 생성
-    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, String frontendEnvFileName, String backendEnvFileName) {
-        return List.of(
-                // CLI 다운로드
-                "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
+    // 환경변수 자동 등록하기
+    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, MultipartFile frontEnvFile, MultipartFile backEnvFile) {
+        try {
+            String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile.getBytes());
+            String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile.getBytes());
 
-                // GitLab Personal Access Token 등록
-                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
-                        "<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
-                        "  <scope>GLOBAL</scope>\n" +
-                        "  <id>gitlab-token</id>\n" +
-                        "  <description>GitLab token</description>\n" +
-                        "  <username>" + gitlabUsername + "</username>\n" +
-                        "  <password>" + gitlabToken + "</password>\n" +
-                        "</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
-                        "EOF",
+            return List.of(
+                    // CLI 다운로드
+                    "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
 
-                // 백엔드 환경변수 등록 (파일 기반)
-                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
-                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                        "  <scope>GLOBAL</scope>\n" +
-                        "  <id>spring-secrets</id>\n" +
-                        "  <description>Spring .env</description>\n" +
-                        "  <fileName>.env</fileName>\n" +
-                        "  <secretBytes>" + backendEnvFileName + "</secretBytes>\n" +
-                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                        "EOF",
+                    // GitLab Personal Access Token 등록
+                    "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                            "<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
+                            "  <scope>GLOBAL</scope>\n" +
+                            "  <id>gitlab-token</id>\n" +
+                            "  <description>GitLab token</description>\n" +
+                            "  <username>" + gitlabUsername + "</username>\n" +
+                            "  <password>" + gitlabToken + "</password>\n" +
+                            "</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
+                            "EOF",
 
-                // 프론트엔드 환경변수 등록 (파일 기반)
-                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
-                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                        "  <scope>GLOBAL</scope>\n" +
-                        "  <id>env-frontend</id>\n" +
-                        "  <description>Frontend .env.local</description>\n" +
-                        "  <fileName>.env.local</fileName>\n" +
-                        "  <secretBytes>" + frontendEnvFileName + "</secretBytes>\n" +
-                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                        "EOF"
-        );
+                    // 백엔드 환경변수 등록 (파일 기반)
+                    "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                            "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                            "  <scope>GLOBAL</scope>\n" +
+                            "  <id>backEnvFile</id>\n" +
+                            "  <description></description>\n" +
+                            "  <fileName>.env</fileName>\n" +
+                            "  <secretBytes>" + backEnvFileStr + "</secretBytes>\n" +
+                            "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                            "EOF",
+
+                    // 프론트엔드 환경변수 등록 (파일 기반)
+                    "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                            "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                            "  <scope>GLOBAL</scope>\n" +
+                            "  <id>frontEnvFile</id>\n" +
+                            "  <description></description>\n" +
+                            "  <fileName>.env</fileName>\n" +
+                            "  <secretBytes>" + frontEnvFileStr + "</secretBytes>\n" +
+                            "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                            "EOF"
+            );
+
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "환경변수 파일 인코딩 실패: " + e.getMessage());
+        }
     }
 
     private List<String> makeJenkinsJob(String jobName, String gitRepoUrl, String credentialsId) {
@@ -504,6 +425,131 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
+    private List<String> makeJenkinsFile(String userIdentifyId, String gitlabAccessToken, String getPathWithNamespace) {
+        String repositoryUrl = "https://" + userIdentifyId + ":" + gitlabAccessToken + "@lab.ssafy.com/" + "galilee155/drummer_test" + ".git";
+
+        log.info(repositoryUrl);
+
+        String jenkinsfileContent = """
+            cat <<EOF > Jenkinsfile
+            pipeline {
+                agent any
+            
+                environment {
+                    GIT_BRANCH = 'dev'
+                    REPO_URL   = '""\" + repositoryUrl + ""\"'
+                }
+            
+                stages {
+                    stage('Checkout') {
+                        steps {
+                            echo '1. 워크스페이스 정리 및 소스 체크아웃'
+                            deleteDir()
+                            git branch: "${GIT_BRANCH}", url: "${REPO_URL}"
+                        }
+                    }
+            
+                    stage('Build Backend') {
+                        when {
+                            changeset pattern: 'backend/.*', comparator: 'REGEXP'
+                        }
+                        steps {
+                            echo '2. Backend 변경 감지, 빌드 및 배포'
+                            withCredentials([file(credentialsId: "backend", variable: 'BACKEND_ENV')]) {
+                              sh '''
+                                set -e
+                                echo "  - 복사: $BACKEND_ENV → ${WORKSPACE}/backend/.env"
+                                cp "$BACKEND_ENV" "${WORKSPACE}/backend/.env"
+                              '''
+                            }
+                            dir('backend') {
+                                sh '''
+                                    set -e
+                                    chmod +x gradlew
+                                    ./gradlew clean build -x test
+                                    docker build -t spring-app .
+                                    docker stop my-spring-app || true
+                                    docker rm my-spring-app || true
+                                    docker run -d -p 8080:8080 --env-file .env --name my-spring-app spring-app
+                                '''
+                            }
+                            echo '[INFO] 백엔드 완료'
+                        }
+                    }
+            
+                    stage('Build Frontend') {
+                        when {
+                            changeset pattern: 'frontend/.*', comparator: 'REGEXP'
+                        }
+                        steps {
+                            echo '3. Frontend 변경 감지, 빌드 및 배포'
+                            withCredentials([file(credentialsId: "front", variable: 'FRONT_ENV')]) {
+                              sh '''
+                                set -e
+                                echo "  - 복사: $FRONT_ENV → ${WORKSPACE}/frontend/.env"
+                                cp "$FRONT_ENV" "${WORKSPACE}/frontend/.env"
+                              '''
+                            }
+                            dir('frontend') {
+                                sh '''
+                                    set -e
+                                    docker build -t my-next-app .
+                                    docker stop frontend || true
+                                    docker rm frontend || true
+                                    docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-next-app
+                                '''
+                            }
+                            echo '[INFO] 프론트엔드 완료'
+                        }
+                    }
+            
+                    stage('Build AI') {
+                        when {
+                            changeset pattern: 'ai/.*', comparator: 'REGEXP'
+                        }
+                        steps {
+                            echo '4. AI 변경 감지, 빌드 시작'
+                            withCredentials([file(credentialsId: "ai", variable: 'AI_ENV')]) {
+                              sh '''
+                                set -e
+                                echo "  - 복사: $AI_ENV → ${WORKSPACE}/ai/.env"
+                                cp "$AI_ENV" "${WORKSPACE}/ai/.env"
+                              '''
+                            }
+                            dir('ai') {
+                                sh '''
+                                    set -e
+                                    docker build -t my-ai-app .
+                                    docker stop ai || true
+                                    docker rm ai || true
+                                    docker run -d --restart unless-stopped --name ai -p 8001:8001 -v $(pwd)/app/uploads:/app/uploads --env-file .env my-ai-app
+                                '''
+                            }
+                            echo '[INFO] AI 완료'
+                        }
+                    }
+                }
+            }
+            EOF
+            """;
+
+        // git remote set-url origin https://USERNAME:TOKEN@lab.ssafy.com/galilee155/drummer_test.git
+
+        return List.of(
+                "cd /var/lib/jenkins/jobs/auto-created-deployment-job",
+                //"sudo git config --global --add safe.directory /var/lib/jenkins/jobs/auto-created-deployment-job/drummer_test",
+                "sudo git clone " + repositoryUrl,
+                "cd drummer_test",
+                jenkinsfileContent,
+                "sudo git config user.name \"SeedBot\"",
+                "sudo git config user.email \"seedbot@auto.io\"",
+                "sudo git add Jenkinsfile",
+                "sudo git commit -m 'Add Jenkinsfile for CI/CD'",
+                "sudo git remote set-url origin " + repositoryUrl,
+                "sudo git push origin dev"
+        );
+    }
+
     private List<String> makeGitlabWebhook(String accessToken, Long projectId, String jobName, String jenkinsIp) {
         String hookUrl = "http://" + jenkinsIp + ":9090/project/" + jobName;
         String branchFilter = "master";
@@ -514,18 +560,111 @@ public class ServerServiceImpl implements ServerService {
         return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
     }
 
-    private List<String> makeDockerComposeYml() {
+    // 서버 초기화
+    private List<String> serverResetCommands() {
         return List.of(
                 ""
         );
     }
 
-    // 서버 초기화
-    private List<String> serverResetCommands() {
-        return List.of(
-                "sudo apt purge $(apt-mark showmanual) -y",
-                "sudo apt autoremove -y",
-                "rm -rf ~/.config ~/.local ~/.cache"
-        );
+    @Override
+    public void resetServer(InitServerRequest request, MultipartFile pemFile) {
+        String host = request.getServerIp();
+        Session session = null;
+
+        try {
+            // 1) 원격 서버 세션 등록
+            log.info("세션 생성 시작");
+            session = createSessionWithPem(pemFile, host);
+            log.info("세션 생성 성공");
+
+            // 2) 명령어 실행
+            log.info("초기화 명령 실행 시작");
+            for (String cmd : serverResetCommands()) {
+                log.info("명령 수행:\n{}", cmd);
+                String output = execCommand(session, cmd);
+                log.info("명령 결과:\n{}", output);
+            }
+
+            // 3) 성공 로그
+            log.info("모든 인프라 설정 세팅을 초기화했습니다.");
+
+        } catch (JSchException e) {
+            log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
+        } catch (IOException e) {
+            log.error("PEM 파일 로드 실패: {}", e.getMessage());
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
+
+        } finally {
+            if (session != null && !session.isConnected()) {
+                session.disconnect();
+            }
+        }
+    }
+
+    private Session createSessionWithPem(MultipartFile pemFile, String host) throws JSchException, IOException {
+        byte[] keyBytes = pemFile.getBytes();
+
+        JSch jsch = new JSch();
+        jsch.addIdentity("ec2-key", keyBytes, null, null);
+
+        Session session = jsch.getSession("ubuntu", host, 22);
+        Properties cfg = new Properties();
+        cfg.put("StrictHostKeyChecking", "no");
+        session.setConfig(cfg);
+        session.connect(10000);
+        log.info("SSH 연결 성공: {}", host);
+
+        return session;
+    }
+
+    private String execCommand(Session session, String command) throws JSchException, IOException {
+        ChannelExec channel = null;
+        ByteArrayOutputStream stdout = new ByteArrayOutputStream();
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+
+        try {
+            // 1) 채널 오픈 & 명령 설정
+            channel = (ChannelExec) session.openChannel("exec");
+            channel.setCommand(command);
+            channel.setInputStream(null);
+            channel.setOutputStream(stdout);
+            channel.setErrStream(stderr);
+
+            // 2) 채널 연결 타임아웃 (예: 20초)
+            channel.connect(20000);
+
+            // 3) 명령 실행 대기 (예: 1분)
+            long start = System.currentTimeMillis();
+            long maxWait = 10 * 60_000;
+            while (!channel.isClosed()) {
+                if (System.currentTimeMillis() - start > maxWait) {
+                    channel.disconnect();
+                    throw new IOException("명령 실행 타임아웃: " + command);
+                }
+                Thread.sleep(200);
+            }
+
+            // 4) 종료 코드 확인
+            int code = channel.getExitStatus();
+            if (code != 0) {
+                throw new IOException(
+                        String.format("명령 실패(exit=%d): %s", code, stderr.toString(StandardCharsets.UTF_8))
+                );
+            }
+
+            // 5) 정상 출력 반환
+            return stdout.toString(StandardCharsets.UTF_8);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("명령 대기 중 인터럽트", e);
+        } finally {
+            if (channel != null && channel.isConnected()) {
+                channel.disconnect();
+            }
+        }
     }
 }
+
