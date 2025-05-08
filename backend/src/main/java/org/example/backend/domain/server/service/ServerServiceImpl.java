@@ -17,6 +17,8 @@ import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
 import org.example.backend.domain.project.entity.Project;
+import org.example.backend.domain.project.entity.ProjectConfig;
+import org.example.backend.domain.project.repository.ProjectConfigRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
@@ -38,6 +40,7 @@ public class ServerServiceImpl implements ServerService {
 
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
+    private final ProjectConfigRepository projectConfigRepository;
     private final RedisSessionManager redisSessionManager;
     private final GitlabService gitlabService;
     private final JenkinsInfoRepository jenkinsInfoRepository;
@@ -55,6 +58,9 @@ public class ServerServiceImpl implements ServerService {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
+        ProjectConfig projectConfig = projectConfigRepository.findByProjectId(project.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_CONFIG_NOT_FOUND));
+
         String host = project.getServerIP();
         Session sshSession = null;
 
@@ -66,7 +72,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, request.getGitlabTargetBranchName())) {
+            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, request.getGitlabTargetBranchName(), projectConfig)) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
@@ -77,7 +83,7 @@ public class ServerServiceImpl implements ServerService {
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
             // jenkins api token 생성 및 저장
-//            issueAndSaveToken(projectId, request.getServerIp());
+            //issueAndSaveToken(project.getId(), project.getServerIP());
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -94,7 +100,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(User user, Project project, MultipartFile frontEnvFile, MultipartFile backEnvFile, String gitlabTargetBranchName) {
+    private List<String> serverInitializeCommands(User user, Project project, MultipartFile frontEnvFile, MultipartFile backEnvFile, String gitlabTargetBranchName, ProjectConfig projectConfig) {
         GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), "https://lab.ssafy.com/potential1205/seed-test1");
 
         String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
@@ -114,8 +120,9 @@ public class ServerServiceImpl implements ServerService {
                 setJenkinsConfigure(),
                 makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
                 setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
-                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName),
+                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, projectConfig),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName),
+                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig),
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
@@ -438,26 +445,56 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName) {
+    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, ProjectConfig projectConfig) {
 
         log.info(repositoryUrl);
+
+        String frontendDockerScript;
+
+        switch (projectConfig.getFrontendFramework()) {
+            case "vue.js":
+                frontendDockerScript =
+                        "                        set -e\n" +
+                                "                        docker build -f Dockerfile -t my-vue-app .\n" +
+                                "                        docker stop frontend || true\n" +
+                                "                        docker rm frontend || true\n" +
+                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-vue-app\n";
+                break;
+
+            case "react":
+                frontendDockerScript =
+                        "                        set -e\n" +
+                                "                        docker build -f Dockerfile -t my-react-app .\n" +
+                                "                        docker stop frontend || true\n" +
+                                "                        docker rm frontend || true\n" +
+                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:80 my-react-app\n";
+                break;
+
+            case "next.js":
+            default:
+                frontendDockerScript =
+                        "                        set -e\n" +
+                                "                        docker build -f Dockerfile -t my-next-app .\n" +
+                                "                        docker stop frontend || true\n" +
+                                "                        docker rm frontend || true\n" +
+                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-next-app\n";
+                break;
+        }
+
 
         String jenkinsfileContent =
                 "cd " + projectPath + " && cat <<EOF | sudo tee Jenkinsfile > /dev/null\n" +
                         "pipeline {\n" +
                         "    agent any\n" +
                         "\n" +
-                        "    environment {\n" +
-                        "        GIT_BRANCH = '" + gitlabTargetBranchName + "'\n" +
-                        "        REPO_URL   = '" + repositoryUrl + "'\n" +
-                        "    }\n" +
-                        "\n" +
                         "    stages {\n" +
                         "        stage('Checkout') {\n" +
                         "            steps {\n" +
                         "                echo '1. 워크스페이스 정리 및 소스 체크아웃'\n" +
                         "                deleteDir()\n" +
-                        "                git branch: '" + gitlabTargetBranchName + "', url: '" + repositoryUrl + "'\n" +
+                        "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
+                        "                    git branch: '" + gitlabTargetBranchName + "', url: \"https://\\$GIT_USER:\\$GIT_TOKEN@lab.ssafy.com/" + namespace + "\"\n" +
+                        "                }\n" +
                         "            }\n" +
                         "        }\n" +
                         "\n" +
@@ -504,11 +541,7 @@ public class ServerServiceImpl implements ServerService {
                         "                }\n" +
                         "                dir('frontend') {\n" +
                         "                    sh '''\n" +
-                        "                        set -e\n" +
-                        "                        docker build -t my-next-app .\n" +
-                        "                        docker stop frontend || true\n" +
-                        "                        docker rm frontend || true\n" +
-                        "                        docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-next-app\n" +
+                                                frontendDockerScript +
                         "                    '''\n" +
                         "                }\n" +
                         "                echo '[INFO] 프론트엔드 완료'\n" +
@@ -544,6 +577,7 @@ public class ServerServiceImpl implements ServerService {
                         "}\n" +
                         "EOF\n";
 
+
         return List.of(
                 "cd /var/lib/jenkins/jobs/auto-created-deployment-job &&" +  "sudo git clone " + repositoryUrl + "&& cd " + projectName,
                 jenkinsfileContent,
@@ -559,7 +593,7 @@ public class ServerServiceImpl implements ServerService {
 
         log.info(repositoryUrl);
 
-        String dockerfileContent =
+        String backendDockerfileContent =
                 "cd " + projectPath + "/backend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                         "# 1단계: 빌드 스테이지\n" +
                         "FROM gradle:8.5-jdk17 AS builder\n" +
@@ -576,12 +610,73 @@ public class ServerServiceImpl implements ServerService {
 
         return List.of(
                 "cd " + projectPath + "/backend",
-                dockerfileContent,
+                backendDockerfileContent,
                 "cd " + projectPath + "/backend && sudo git config user.name \"SeedBot\"",
                 "cd " + projectPath + "/backend && sudo git config user.email \"seedbot@auto.io\"",
                 "cd " + projectPath + "/backend && sudo git add Dockerfile",
                 "cd " + projectPath + "/backend && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
                 "cd " + projectPath + "/backend && sudo git push origin " + gitlabTargetBranchName
+        );
+    }
+
+    private List<String> makeDockerfileForFrontend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, ProjectConfig projectConfig) {
+        log.info(repositoryUrl);
+
+        String frontendDockerfileContent;
+
+        switch (projectConfig.getFrontendFramework()) {
+            case "vue.js":
+                frontendDockerfileContent =
+                        "cd " + projectPath + "/frontend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "FROM node:18-alpine\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN npm install && npm run build && npm install -g serve\n" +
+                                "EXPOSE 3000\n" +
+                                "CMD [\"serve\", \"-s\", \"dist\"]\n" +
+                                "EOF\n";
+                break;
+
+            case "react":
+                frontendDockerfileContent =
+                        "cd " + projectPath + "/frontend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "FROM node:18-alpine AS builder\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN npm install && npm run build\n" +
+                                "\n" +
+                                "FROM nginx:alpine\n" +
+                                "COPY --from=builder /app/build /var/www/html\n" +
+                                "EOF\n";
+                break;
+
+            case "next.js":
+            default:
+                frontendDockerfileContent =
+                        "cd " + projectPath + "/frontend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "FROM node:18-alpine AS builder\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN npm install\n" +
+                                "RUN npm run build\n" +
+                                "\n" +
+                                "FROM node:18-alpine\n" +
+                                "WORKDIR /app\n" +
+                                "COPY --from=builder /app ./\n" +
+                                "EXPOSE 3000\n" +
+                                "CMD [\"npm\", \"run\", \"start\"]\n" +
+                                "EOF\n";
+                break;
+        }
+
+        return List.of(
+                "cd " + projectPath + "/frontend",
+                frontendDockerfileContent,
+                "cd " + projectPath + "/frontend && sudo git config user.name \"SeedBot\"",
+                "cd " + projectPath + "/frontend && sudo git config user.email \"seedbot@auto.io\"",
+                "cd " + projectPath + "/frontend && sudo git add Dockerfile",
+                "cd " + projectPath + "/frontend && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
+                "cd " + projectPath + "/frontend && sudo git push origin " + gitlabTargetBranchName
         );
     }
 
