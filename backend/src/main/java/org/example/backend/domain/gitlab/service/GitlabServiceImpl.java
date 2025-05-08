@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 import java.time.Instant;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,15 +51,17 @@ public class GitlabServiceImpl implements GitlabService {
         );
 
         // 더미 파일 생성
-        CommitAction create = new CommitAction();
-        create.setAction("create");
-        create.setFile_path(filePath);
-        create.setContent("triggered at " + Instant.now());
+        CommitAction create = CommitAction.builder()
+                .action("create")
+                .filePath(filePath)
+                .content("triggered at " + Instant.now())
+                .build();
 
         // 바로 삭제
-        CommitAction delete = new CommitAction();
-        delete.setAction("delete");
-        delete.setFile_path(filePath);
+        CommitAction delete = CommitAction.builder()
+                .action("delete")
+                .filePath(filePath)
+                .build();
 
         List<CommitAction> actions = List.of(create, delete);
         String commitMessage = "chore: trigger Jenkins build by SEED";
@@ -163,12 +166,20 @@ public class GitlabServiceImpl implements GitlabService {
 
     /* 레포지토리 tree 구조 조회  */
     @Override
-    public List<GitlabTree> getRepositoryTree(String accessToken, Long projectId, String path, boolean recursive) {
+    public List<GitlabTree> getRepositoryTree(String accessToken, Long projectId, String path, boolean recursive, String branchName) {
         String gitlabAccessToken = tokenValidCheck(accessToken);
         int page = 1;
         int perPage = 100;
 
-        return gitlabApiClient.requestRepositoryTree(gitlabAccessToken, projectId, path, recursive, page, perPage);
+        return gitlabApiClient.requestRepositoryTree(
+                gitlabAccessToken,
+                projectId,
+                path,
+                recursive,
+                page,
+                perPage,
+                branchName
+        );
     }
 
     /* 파일 원본 조회  */
@@ -176,6 +187,25 @@ public class GitlabServiceImpl implements GitlabService {
     public String getRawFileContent(String accessToken, Long projectId, String path, String ref) {
         String gitlabAccessToken = tokenValidCheck(accessToken);
         return gitlabApiClient.requestRawFileContent(gitlabAccessToken, projectId, path, ref);
+    }
+
+    /* 파일 수정 후 커밋 */
+    @Override
+    public void commitPatchedFiles(String accessToken, Long projectId, String branch, String commitMessage, List<PatchedFile> patchedFiles) {
+
+        String gitlabAccessToken = tokenValidCheck(accessToken);
+
+        List<CommitAction> actions = patchedFiles.stream()
+                .map(patchedFile -> CommitAction.builder()
+                        .action("update")
+                        .filePath(patchedFile.getPath())
+                        .content(patchedFile.getPatchedCode())
+                        .build()
+                )
+                .collect(Collectors.toList());
+
+        gitlabApiClient.submitCommit(gitlabAccessToken, projectId, branch, commitMessage, actions);
+
     }
 
     /* 공통 로직 */

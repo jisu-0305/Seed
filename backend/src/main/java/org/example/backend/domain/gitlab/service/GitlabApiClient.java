@@ -35,7 +35,15 @@ public interface GitlabApiClient {
     Mono<GitlabCompareResponse> requestCommitComparison(String accessToken, Long projectId, String from, String to);
 
 
-    List<GitlabTree> requestRepositoryTree(String gitlabAccessToken, Long projectId, String path, boolean recursive, int page, int perPage);
+    List<GitlabTree> requestRepositoryTree(
+            String gitlabAccessToken,
+            Long projectId,
+            String path,
+            boolean recursive,
+            int page,
+            int perPage,
+            String branchName
+    );
 
     String requestRawFileContent(String gitlabAccessToken, Long projectId, String path, String ref);
 

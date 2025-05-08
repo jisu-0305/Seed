@@ -16,6 +16,8 @@ export default function StepSidebar() {
     setIsExpanded((prev) => !prev);
   };
 
+  if (mode === null) return null;
+
   return (
     <SidebarWrapper>
       {/* GitLab 정보 */}
@@ -133,17 +135,24 @@ const Row = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
 
   margin-bottom: 1rem;
 `;
 
 const Label = styled.span`
+  min-width: fit-content;
+
   ${({ theme }) => theme.fonts.Head5};
   color: ${({ theme }) => theme.colors.Text};
 `;
 
 const Value = styled.span`
   ${({ theme }) => theme.fonts.Body3};
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ArrowIcon = styled.img<{ isExpanded?: boolean }>`

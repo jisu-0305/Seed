@@ -4,7 +4,7 @@ import { Global, ThemeProvider } from '@emotion/react';
 import styled from '@emotion/styled';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { usePathname } from 'next/navigation';
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 
 import SideBar from '@/components/Common/SideBar';
 import { queryClient } from '@/libs/queryClient';
@@ -14,7 +14,18 @@ import { darkTheme, lightTheme } from '@/styles/theme';
 
 export function MenuLayout({ children }: { children: ReactNode }) {
   const pathName = usePathname();
-  const { mode } = useThemeStore();
+  const { mode, setMode, hasHydrated } = useThemeStore();
+
+  useEffect(() => {
+    if (hasHydrated && mode === null) {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      setMode(isDark ? 'dark' : 'light');
+    }
+  }, [hasHydrated, mode, setMode]);
+
+  if (!hasHydrated || mode === null) {
+    return null;
+  }
 
   return (
     // <ThemeProvider theme={theme}>

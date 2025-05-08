@@ -29,7 +29,7 @@ export const dummyReports: AiReport[] = [
     id: '117',
     title: '[BE] 스프링 빈 순환 의존성',
     date: 'Apr 22, 2025',
-    status: 'Merged',
+    status: 'Rejected',
     summary: `스프링 빈 간 순환 의존성 문제를 @Lazy 어노테이션으로 해결했습니다.`,
     files: ['PaymentService.java', 'NotificationService.java'],
     detail: `• @Lazy 적용  

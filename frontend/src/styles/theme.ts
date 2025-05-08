@@ -307,15 +307,19 @@ export const lightColors = {
   Gray0: palette.Gray0,
   Gray3: palette.Gray3,
   LightGray2: palette.LightGray2,
+  LightGray3: palette.LightGray3,
   Red1: palette.Red1,
   Red2: palette.Red2,
   Red3: palette.Red3,
+  Red4: palette.Red4,
   Blue1: palette.Blue1,
   Blue2: palette.Blue2,
   Blue4: palette.Blue4,
   Blue3: palette.Blue3,
   Purple1: palette.Purple1,
   Purple3: palette.Purple3,
+  Green1: palette.Green1,
+  Green2: palette.Green2,
 };
 
 export const darkColors = {
@@ -362,15 +366,19 @@ export const darkColors = {
   Gray0: palette.Gray0,
   Gray3: palette.Gray3,
   LightGray2: palette.LightGray2,
+  LightGray3: palette.LightGray3,
   Red1: palette.Red1,
   Red2: palette.Red2,
   Red3: palette.Red3,
+  Red4: palette.Red4,
   Blue1: palette.Blue1,
   Blue2: palette.Blue2,
   Blue4: palette.Blue4,
   Blue3: palette.Blue3,
   Purple1: palette.Purple1,
   Purple3: palette.Purple3,
+  Green1: palette.Green1,
+  Green2: palette.Green2,
 };
 
 export const lightTheme = {

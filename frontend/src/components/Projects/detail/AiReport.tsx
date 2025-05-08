@@ -1,33 +1,60 @@
-/* eslint-disable no-nested-ternary */
-// src/components/AiReportPanel.tsx
 import styled from '@emotion/styled';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 import { dummyReports } from '@/assets/dummy/aiReports';
+import { useThemeStore } from '@/stores/themeStore';
 import type { AiReport } from '@/types/aiReport';
 
+const getIconName = (status: AiReport['status']) => {
+  switch (status) {
+    case 'In Progress':
+      return 'progress';
+    case 'Merged':
+      return 'merged';
+    case 'Rejected':
+      return 'rejected';
+    default:
+      return 'carrot';
+  }
+};
+
 export default function AiReport() {
+  const router = useRouter();
+  const { mode } = useThemeStore();
+
   const [selectedId, setSelectedId] = useState<string>(dummyReports[0].id);
   const selected = dummyReports.find((r) => r.id === selectedId)!;
 
   return (
     <Container>
+      <TitleHeader>
+        <BackIcon
+          src={`/assets/icons/ic_back_${mode}.svg`}
+          alt="뒤로가기"
+          onClick={() => router.back()}
+        />
+        <Heading>AI 보고서</Heading>
+      </TitleHeader>
       <Wrapper>
         <LeftPanel>
           {dummyReports.map((r) => (
             <ReportItem
               key={r.id}
               active={r.id === selectedId}
+              mode={mode ?? 'light'}
               onClick={() => setSelectedId(r.id)}
             >
-              <Date>{r.date}</Date>
+              <ItemHeader>
+                <Date>{r.date}</Date>
+                <Id>#{r.id}</Id>
+              </ItemHeader>
               <Meta>
-                <Icon>
-                  <img src="/assets/icons/ic_ai_report.svg" alt="AI" />
-                </Icon>
-                <Title>
-                  #{r.id} {r.title}
-                </Title>
+                <Icon
+                  src={`/assets/icons/ic_ai_report_${getIconName(r.status)}_${mode}.svg`}
+                  alt={r.status}
+                />
+                <Title>{r.title}</Title>
               </Meta>
               <Status status={r.status}>{r.status}</Status>
             </ReportItem>
@@ -45,13 +72,15 @@ export default function AiReport() {
           </Section>
 
           <Section>
-            <SectionTitle>적용된 파일</SectionTitle>
+            <SectionRow>
+              <SectionTitle>적용된 파일</SectionTitle>
+              <ConfirmButton>확인하기</ConfirmButton>
+            </SectionRow>
             <FileList>
               {selected.files.map((f) => (
                 <FileItem key={f}>{f}</FileItem>
               ))}
             </FileList>
-            <ConfirmButton>확인하기</ConfirmButton>
           </Section>
 
           <Section>
@@ -70,67 +99,75 @@ const Container = styled.div`
   justify-content: flex-start;
   align-items: center;
   width: 100%;
-  padding-top: 5rem;
-  padding-bottom: 5rem;
-  background-color: ${({ theme }) => theme.colors.White};
+  padding: 5rem 2rem;
   border-radius: 1.5rem;
+`;
+
+const TitleHeader = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  max-height: 70rem;
+  max-width: 110rem;
+  margin-bottom: 3rem;
+  padding-left: 5rem;
+  gap: 2rem;
+`;
+
+const BackIcon = styled.img`
+  width: 1.5rem;
+  cursor: pointer;
 `;
 
 const Wrapper = styled.div`
   display: flex;
   max-height: 65rem;
-  max-width: 100rem;
+  max-width: 110rem;
   overflow: hidden;
 `;
 
 const LeftPanel = styled.div`
-  width: 220px;
+  max-width: 30rem;
+  min-width: 22rem;
   background: ${({ theme }) => theme.colors.White};
   border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
+  border-radius: 1.5rem;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 
-  /* WebKit 기반 브라우저 (Chrome, Safari) */
-  &::-webkit-scrollbar {
-    width: 8px;
-    background: transparent;
-  }
-
-  /* 스크롤바 버튼(위/아래) 숨기기 */
-  &::-webkit-scrollbar-button {
-    display: none;
-  }
-
-  /* 스크롤바 thumb */
-  &::-webkit-scrollbar-thumb {
-    background-color: transparent;
-    border-radius: 4px;
-  }
-
-  /* hover 시 thumb 보이기 */
-  &:hover::-webkit-scrollbar-thumb {
-    background-color: ${({ theme }) => theme.colors.Gray3};
-  }
-
-  /* Firefox: 기본에는 숨기기 */
-  scrollbar-width: none;
-
-  /* hover 시만 가늘게 표시 */
-  &:hover {
-    scrollbar-width: thin;
-    scrollbar-color: ${({ theme }) => `${theme.colors.Gray3} transparent`};
+  & {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
   }
 `;
 
-const ReportItem = styled.div<{ active: boolean }>`
-  padding: 1rem 1.5rem;
+const ReportItem = styled.div<{ active: boolean; mode: string }>`
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 1.5rem 2.5rem;
+  gap: 0.6rem;
   border-bottom: 1px solid ${({ theme }) => theme.colors.BorderDefault};
-  background: ${({ active, theme }) =>
-    active ? theme.colors.LightGray2 : 'transparent'};
+  background: ${({ active, mode, theme }) => {
+    if (!active) {
+      return theme.colors.Background;
+    }
+    return mode === 'light' ? theme.colors.LightGray2 : theme.colors.Gray0;
+  }};
   cursor: pointer;
 
   &:hover {
     background: ${({ theme }) => theme.colors.BuildHover};
   }
+`;
+
+const ItemHeader = styled.div`
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 `;
 
 const Date = styled.div`
@@ -139,15 +176,21 @@ const Date = styled.div`
   margin-bottom: 0.25rem;
 `;
 
+const Id = styled.div`
+  ${({ theme }) => theme.fonts.Body4};
+  color: ${({ theme }) => theme.colors.Gray3};
+  margin-bottom: 0.25rem;
+`;
+
 const Meta = styled.div`
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 1rem;
 `;
 
-const Icon = styled.div`
-  width: 1.5rem;
-  height: 1.5rem;
+const Icon = styled.img`
+  width: 3rem;
+  height: 3rem;
 `;
 
 const Title = styled.div`
@@ -155,25 +198,48 @@ const Title = styled.div`
 `;
 
 const Status = styled.div<{ status: AiReport['status'] }>`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+  width: 100%;
+  gap: 0.7rem;
+
   ${({ theme }) => theme.fonts.Body4};
   color: ${({ status, theme }) =>
     status === 'In Progress'
-      ? theme.colors.Main_Carrot
+      ? theme.colors.Purple3
       : status === 'Merged'
-        ? theme.colors.CalendarGreen
+        ? theme.colors.Green2
         : theme.colors.Gray3};
-  margin-top: 0.5rem;
+
+  &::before {
+    content: '●';
+    font-size: 0.8rem;
+  }
 `;
 
 const RightPanel = styled.div`
   flex: 1;
-  padding: 1.5rem;
+  padding: 5rem;
+  max-width: 70rem;
+  min-width: 50rem;
+  border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
+  border-radius: 1.5rem;
   overflow-y: auto;
+
+  & {
+    scrollbar-width: thin;
+    scrollbar-color: ${({ theme }) =>
+      `${theme.colors.BorderDefault} transparent`};
+  }
 `;
 
 const Header = styled.div`
   margin-bottom: 3rem;
   display: flex;
+  justify-content: center;
 `;
 
 const Heading = styled.h2`
@@ -181,12 +247,19 @@ const Heading = styled.h2`
 `;
 
 const Section = styled.div`
-  margin-bottom: 4rem;
+  margin-bottom: 5rem;
 `;
 
 const SectionTitle = styled.h3`
   ${({ theme }) => theme.fonts.Title3};
-  margin-bottom: 0.75rem;
+`;
+
+const SectionRow = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2rem;
 `;
 
 const SummaryBox = styled.div`
@@ -195,26 +268,32 @@ const SummaryBox = styled.div`
   border-radius: 1.5rem;
   ${({ theme }) => theme.fonts.Body1};
   line-height: 1.6;
+  margin-top: 2rem;
 `;
 
 const FileList = styled.ul`
   list-style: disc inside;
   margin: 0 0 1rem;
   padding: 0;
-  ${({ theme }) => theme.fonts.Body1};
 `;
 
 const FileItem = styled.li`
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  ${({ theme }) => theme.fonts.Body2};
 `;
 
 const ConfirmButton = styled.button`
-  padding: 0.6rem 1.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 8rem;
+  height: 3rem;
   border: none;
   border-radius: 1.5rem;
-  background: ${({ theme }) => theme.colors.Black};
-  color: ${({ theme }) => theme.colors.White};
-  ${({ theme }) => theme.fonts.Body1};
+  background: ${({ theme }) => theme.colors.MenuBg};
+  color: ${({ theme }) => theme.colors.MenuText};
+  ${({ theme }) => theme.fonts.Body4};
 `;
 
 const DetailBox = styled.div`
@@ -223,4 +302,5 @@ const DetailBox = styled.div`
   border-radius: 1.5rem;
   ${({ theme }) => theme.fonts.Body1};
   white-space: pre-line;
+  margin-top: 2rem;
 `;

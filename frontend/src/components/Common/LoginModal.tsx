@@ -18,6 +18,8 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const error = useUserStore((s) => s.error);
   const { mode } = useThemeStore();
 
+  if (mode === null) return null;
+
   const handleLogout = async () => {
     try {
       await logout();

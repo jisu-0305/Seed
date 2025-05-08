@@ -13,7 +13,7 @@ export default function Login() {
       <Left>
         <Content>
           <Back onClick={goBack}>
-            <ArrowLeft src="/assets/icons/ic_back.svg" alt="뒤로가기" />
+            <ArrowLeft src="/assets/icons/ic_back_light.svg" alt="뒤로가기" />
             메인으로 돌아가기
           </Back>
           <LogoTextSmall
@@ -111,7 +111,8 @@ const GitlabButton = styled.button`
   ${({ theme }) => theme.fonts.EnTitle2};
 
   &:hover {
-    background: ${({ theme }) => theme.colors.Text};
+    background: ${({ theme }) => theme.colors.Black};
+    color: ${({ theme }) => theme.colors.White};
   }
 `;
 

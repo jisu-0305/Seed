@@ -1,5 +1,7 @@
 package org.example.backend.domain.server.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -10,7 +12,6 @@ import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
 import org.example.backend.controller.request.server.InitServerRequest;
-import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.repository.ProjectRepository;
@@ -21,13 +22,10 @@ import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -39,6 +37,7 @@ public class ServerServiceImpl implements ServerService {
     private final ProjectRepository projectRepository;
     private final RedisSessionManager redisSessionManager;
     private final GitlabService gitlabService;
+    private final JenkinsInfoRepository jenkinsInfoRepository;
 
     @Override
     public void registerDeployment(
@@ -73,6 +72,9 @@ public class ServerServiceImpl implements ServerService {
 
             // 3) 성공 로그
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
+
+            // jenkins api token 생성 및 저장
+//            issueAndSaveToken(projectId, request.getServerIp());
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -589,6 +591,114 @@ public class ServerServiceImpl implements ServerService {
         return List.of();
         //return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
     }
+
+    private void issueAndSaveToken(Long projectId, String serverIp) {
+        try {
+            String jenkinsUrl = "http://" + serverIp + ":9090";
+            String jenkinsJobName = "auto-created-deployment-job";
+            String jenkinsUsername = "admin";
+            String jenkinsToken = generateTokenViaCurl(
+                    jenkinsUrl,
+                    jenkinsUsername,
+                    "pwd123",
+                    jenkinsUsername
+            );
+
+            JenkinsInfo jenkinsInfo = JenkinsInfo.builder()
+                    .projectId(projectId)
+                    .baseUrl(jenkinsUrl)
+                    .username(jenkinsUsername)
+                    .apiToken(jenkinsToken)
+                    .jobName(jenkinsJobName)
+                    .build();
+
+            jenkinsInfoRepository.save(jenkinsInfo);
+            log.info("Jenkins API 토큰을 DB에 저장했습니다.");
+
+        } catch (Exception e) {
+            log.error("Jenkins 토큰 발급 또는 저장 실패", e);
+            throw new BusinessException(ErrorCode.JENKINS_TOKEN_SAVE_FAILED);
+        }
+    }
+
+    private String generateTokenViaCurl(String jenkinsUrl, String username, String password, String tokenName) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            // 쿠키 저장용 임시 파일 생성
+            File cookieFile = File.createTempFile("jenkins_cookie", ".txt");
+            String cookiePath = cookieFile.getAbsolutePath().replace("\\", "/");
+
+            // 1. Crumb + 쿠키 요청
+            List<String> crumbCommand = Arrays.asList(
+                    "curl",
+                    "-u", username + ":" + password,
+                    "-c", cookiePath,
+                    "-s",
+                    jenkinsUrl + "/crumbIssuer/api/json"
+            );
+
+            Process crumbProcess = new ProcessBuilder(crumbCommand)
+                    .redirectErrorStream(true).start();
+
+            String crumbResponse = new BufferedReader(new InputStreamReader(crumbProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+            log.info("Crumb 응답: " + crumbResponse);
+            if (!crumbResponse.trim().startsWith("{")) {
+                throw new BusinessException(ErrorCode.JENKINS_CRUMB_REQUEST_FAILED);
+            }
+
+            JsonNode crumbJson = mapper.readTree(crumbResponse);
+            String crumb = crumbJson.get("crumb").asText();
+            String crumbField = crumbJson.get("crumbRequestField").asText();
+
+            // 2️. 토큰 요청
+            String tokenUrl = jenkinsUrl + "/user/" + username + "/descriptorByName/jenkins.security.ApiTokenProperty/generateNewToken";
+            String tokenJsonPayload = "{\"newTokenName\":\"" + tokenName + "\"}";
+
+            List<String> curlCommand = Arrays.asList(
+                    "curl",
+                    "-u", username + ":" + password,
+                    "-b", cookiePath,
+                    "-c", cookiePath,
+                    "-s",
+                    "-X", "POST",
+                    tokenUrl,
+                    "-H", crumbField + ":" + crumb,
+                    "-H", "Content-Type: application/json",
+                    "-H", "Referer: " + jenkinsUrl + "/",
+                    "-d", tokenJsonPayload
+            );
+
+
+            Process tokenProcess = new ProcessBuilder(curlCommand)
+                    .redirectErrorStream(true).start();
+
+            String tokenResponse = new BufferedReader(new InputStreamReader(tokenProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+
+            if (!tokenResponse.trim().startsWith("{")) {
+                throw new BusinessException(ErrorCode.JENKINS_TOKEN_RESPONSE_INVALID);
+            }
+
+            JsonNode tokenJson = mapper.readTree(tokenResponse);
+            String token = tokenJson.path("data").path("tokenValue").asText();
+
+            if (token == null || token.isBlank()) {
+                throw new BusinessException(ErrorCode.JENKINS_TOKEN_PARSE_FAILED);
+            }
+
+            return token;
+
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.JENKINS_TOKEN_REQUEST_FAILED);
+        }
+    }
+
+
+
 
     // 서버 초기화
     private List<String> serverResetCommands() {

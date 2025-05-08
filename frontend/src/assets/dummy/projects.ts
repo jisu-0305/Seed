@@ -1,4 +1,6 @@
-export const projects = [
+import { ProjectSummary } from '@/types/project';
+
+export const projects: ProjectSummary[] = [
   {
     id: 1,
     projectName: 'K-ing Service',

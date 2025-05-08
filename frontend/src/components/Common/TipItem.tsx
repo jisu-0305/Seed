@@ -6,14 +6,18 @@ interface TipItemProps {
   text: string;
   important?: boolean;
   help?: boolean;
+  openModal?: () => void;
 }
 
 export default function TipItem({
   text,
   important = false,
   help = false,
+  openModal,
 }: TipItemProps) {
   const { mode } = useThemeStore();
+
+  if (mode === null) return null;
 
   return (
     <StWrapper important={important}>
@@ -22,6 +26,7 @@ export default function TipItem({
 
       {help && (
         <IcIcon
+          onClick={openModal}
           src={
             important
               ? `/assets/icons/ic_help_important.svg`

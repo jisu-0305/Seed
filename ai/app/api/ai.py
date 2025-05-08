@@ -6,17 +6,18 @@ from typing import List
 from fastapi import APIRouter, HTTPException, Form, Body
 from fastapi.responses import JSONResponse, PlainTextResponse
 from typing import List
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, Field, ValidationError
 
 from app.agents.file_locator import FileLocatorAgent
 from app.agents.error_resolver import BuildErrorResolverAgent
 from app.agents.patch_generator import PatchGeneratorAgent
 from app.agents.error_reporter import ErrorReportAgent
+from app.agents.application_detector import AppInferenceAgent
 
 router = APIRouter(prefix="/ai", tags=["AI Agents"])
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 1) File Locator
+#  File Locator
 # ─────────────────────────────────────────────────────────────────────────────
 
 class CommitInfo(BaseModel):
@@ -80,7 +81,7 @@ async def file_locator(
         raise HTTPException(500, str(e))
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 2) Error Resolver
+#  Error Resolver
 # ─────────────────────────────────────────────────────────────────────────────
 
 class FilePayload(BaseModel):
@@ -143,7 +144,7 @@ async def resolve_error(
         raise HTTPException(status_code=500, detail=str(e))
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 3) Patch Generator
+#  Patch Generator
 # ─────────────────────────────────────────────────────────────────────────────
 
 class PatchResponse(BaseModel):
@@ -202,7 +203,7 @@ async def generate_patch_file(
     return PlainTextResponse(content=patched, media_type="text/plain", headers=headers)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 4) Error Reporter
+#  Error Reporter
 # ─────────────────────────────────────────────────────────────────────────────
 
 class FileFix(BaseModel):
@@ -255,5 +256,54 @@ async def generate_error_report(request: ErrorReportRequest):
         raise HTTPException(status_code=500, detail=f"AI response JSON parsing failed: {je}")
     except ValidationError as ve:
         raise HTTPException(status_code=422, detail=ve.errors())
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+# ─────────────────────────────────────────────────────────────────────────────
+#  Error Reporter
+# ─────────────────────────────────────────────────────────────────────────────
+
+class GitDiffHunk(BaseModel):
+    old_path: str
+    new_path: str
+    a_mode: str
+    b_mode: str
+    diff: str
+    new_file: bool
+    renamed_file: bool
+    deleted_file: bool
+
+class AppInferenceRequest(BaseModel):
+    gitDiff: List[GitDiffHunk]
+    jenkinsLog: str = Field(..., description="Jenkins 빌드/배포 로그")
+    applicationNames: List[str] = Field(
+        ..., description="프로젝트에서 사용 중인 애플리케이션 이름 목록"
+    )
+
+@router.post("/infer/apps", summary="Infer problematic application names")
+async def infer_apps(request: AppInferenceRequest):
+    """
+    요청 예시 (application/json):
+    {
+      "gitDiff": [ { ... }, { ... } ],
+      "jenkinsLog": "Step 1/5 ... Error: pull access denied ...",
+      "applicationNames": ["nginx", "redis", "spring", "react"]
+    }
+    """
+    try:
+        payload = request.dict()
+    except ValidationError as ve:
+        raise HTTPException(status_code=422, detail=ve.errors())
+
+    try:
+        agent = AppInferenceAgent()
+        ai_resp = await agent.run(
+            gitDiff=payload["gitDiff"],
+            jenkinsLog=payload["jenkinsLog"],
+            applicationNames=payload["applicationNames"],
+        )
+        return json.loads(ai_resp)
+    except json.JSONDecodeError as je:
+        raise HTTPException(status_code=500, detail=f"AI 응답 JSON 파싱 실패: {je}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
