@@ -318,6 +318,7 @@ export const lightColors = {
   Blue3: palette.Blue3,
   Purple1: palette.Purple1,
   Purple3: palette.Purple3,
+  Green1: palette.Green1,
   Green2: palette.Green2,
 };
 
@@ -376,6 +377,7 @@ export const darkColors = {
   Blue3: palette.Blue3,
   Purple1: palette.Purple1,
   Purple3: palette.Purple3,
+  Green1: palette.Green1,
   Green2: palette.Green2,
 };
 
