@@ -1,5 +1,7 @@
 package org.example.backend.domain.server.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -12,6 +14,12 @@ import org.example.backend.controller.request.server.DeploymentRegistrationReque
 import org.example.backend.controller.request.server.InitServerRequest;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
+import org.example.backend.domain.jenkins.entity.JenkinsInfo;
+import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
+import org.example.backend.domain.project.entity.Project;
+import org.example.backend.domain.project.entity.ProjectConfig;
+import org.example.backend.domain.project.repository.ProjectConfigRepository;
+import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -19,13 +27,10 @@ import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -34,8 +39,11 @@ import java.util.stream.Stream;
 public class ServerServiceImpl implements ServerService {
 
     private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final ProjectConfigRepository projectConfigRepository;
     private final RedisSessionManager redisSessionManager;
     private final GitlabService gitlabService;
+    private final JenkinsInfoRepository jenkinsInfoRepository;
 
     @Override
     public void registerDeployment(
@@ -47,7 +55,13 @@ public class ServerServiceImpl implements ServerService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        String host = request.getServerIp();
+        Project project = projectRepository.findById(request.getProjectId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
+        ProjectConfig projectConfig = projectConfigRepository.findByProjectId(project.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_CONFIG_NOT_FOUND));
+
+        String host = project.getServerIP();
         Session sshSession = null;
 
         try {
@@ -58,14 +72,18 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(request, frontEnvFile, backEnvFile, user, accessToken)) {
+            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, request.getGitlabTargetBranchName(), projectConfig)) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
             }
 
+
             // 3) 성공 로그
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
+
+            // jenkins api token 생성 및 저장
+            //issueAndSaveToken(project.getId(), project.getServerIP());
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -82,29 +100,30 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(DeploymentRegistrationRequest request, MultipartFile frontEnvFile, MultipartFile backEnvFile, User user, String accessToken) {
-        String serverIp = request.getServerIp();
-        String gitlabProjectUrl = "https://lab.ssafy.com/galilee155/drummer_test.git";
-        String projectId = "998708";
+    private List<String> serverInitializeCommands(User user, Project project, MultipartFile frontEnvFile, MultipartFile backEnvFile, String gitlabTargetBranchName, ProjectConfig projectConfig) {
+        GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), "https://lab.ssafy.com/potential1205/seed-test1");
 
-        accessToken = "Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiI3IiwidXNlcklkIjo3LCJwcm92aWRlciI6IkdJVExBQiIsIm9hdXRoVXNlcklkIjoiMjIyMjkiLCJpYXQiOjE3NDY2MDM2MTcsImV4cCI6MTc0NjY5MDAxN30._nmaIvMx4Ef3bOXY68EdjCKP5lOQprCl6hJED1B7r8ucJEuesuT2oYaLT0R1o5OLyVFS-arlxwZwF9uiVFuMdg";
+        String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
+        String namespace = user.getUserIdentifyId() + "/" + gitlabProject.getName() + ".git";
+        String gitlabProjectUrlWithToken = "https://" + user.getUserIdentifyId() + ":" + user.getGitlabPersonalAccessToken() + "@lab.ssafy.com/" + namespace;
 
-        // gitlab repository 정보
-        //GitlabProject gitlabProject = gitlabService.getProjectByUrl(accessToken, gitlabProjectUrl);
+        log.info(gitlabProject.toString());
 
         return Stream.of(
-                updatePackageManager(),
-                setSwapMemory(),
-                setJDK(),
-                setNodejs(),
-                setDocker(),
-                setNginx(serverIp),
+                //updatePackageManager(),
+                //setSwapMemory(),
+                //setJDK(),
+                //setNodejs(),
+                //setDocker(),
+                //setNginx(project.getServerIP()),
                 setJenkins(),
                 setJenkinsConfigure(),
-                makeJenkinsJob("auto-created-deployment-job", gitlabProjectUrl, "gitlab-token"),
-                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabAccessToken(), frontEnvFile, backEnvFile),
-                makeJenkinsFile(user.getUserIdentifyId(), user.getGitlabAccessToken(), "")
-                //makeGitlabWebhook(accessToken, gitlabProject.getId(), "dummy-job", serverIp)
+                makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
+                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
+                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, projectConfig),
+                makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName),
+                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig),
+                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
 
@@ -320,11 +339,12 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins credentials 생성
-    // 환경변수 자동 등록하기
     private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, MultipartFile frontEnvFile, MultipartFile backEnvFile) {
         try {
             String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile.getBytes());
             String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile.getBytes());
+
+            log.info(gitlabToken);
 
             return List.of(
                     // CLI 다운로드
@@ -345,7 +365,7 @@ public class ServerServiceImpl implements ServerService {
                     "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
                             "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
                             "  <scope>GLOBAL</scope>\n" +
-                            "  <id>backEnvFile</id>\n" +
+                            "  <id>backend</id>\n" +
                             "  <description></description>\n" +
                             "  <fileName>.env</fileName>\n" +
                             "  <secretBytes>" + backEnvFileStr + "</secretBytes>\n" +
@@ -356,7 +376,7 @@ public class ServerServiceImpl implements ServerService {
                     "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
                             "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
                             "  <scope>GLOBAL</scope>\n" +
-                            "  <id>frontEnvFile</id>\n" +
+                            "  <id>front</id>\n" +
                             "  <description></description>\n" +
                             "  <fileName>.env</fileName>\n" +
                             "  <secretBytes>" + frontEnvFileStr + "</secretBytes>\n" +
@@ -369,7 +389,7 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    private List<String> makeJenkinsJob(String jobName, String gitRepoUrl, String credentialsId) {
+    private List<String> makeJenkinsJob(String jobName, String gitRepoUrl, String credentialsId, String gitlabTargetBranchName) {
         String jobConfigXml = String.join("\n",
                 "sudo tee job-config.xml > /dev/null <<EOF",
                 "<?xml version='1.1' encoding='UTF-8'?>",
@@ -387,7 +407,7 @@ public class ServerServiceImpl implements ServerService {
                 "      </userRemoteConfigs>",
                 "      <branches>",
                 "        <hudson.plugins.git.BranchSpec>",
-                "          <name>*/master</name>",
+                "          <name>*/" + gitlabTargetBranchName +"</name>",
                 "        </hudson.plugins.git.BranchSpec>",
                 "      </branches>",
                 "    </scm>",
@@ -425,140 +445,358 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeJenkinsFile(String userIdentifyId, String gitlabAccessToken, String getPathWithNamespace) {
-        String repositoryUrl = "https://" + userIdentifyId + ":" + gitlabAccessToken + "@lab.ssafy.com/" + "galilee155/drummer_test" + ".git";
+    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, ProjectConfig projectConfig) {
 
         log.info(repositoryUrl);
 
-        String jenkinsfileContent = """
-            cat <<EOF > Jenkinsfile
-            pipeline {
-                agent any
-            
-                environment {
-                    GIT_BRANCH = 'dev'
-                    REPO_URL   = '""\" + repositoryUrl + ""\"'
-                }
-            
-                stages {
-                    stage('Checkout') {
-                        steps {
-                            echo '1. 워크스페이스 정리 및 소스 체크아웃'
-                            deleteDir()
-                            git branch: "${GIT_BRANCH}", url: "${REPO_URL}"
-                        }
-                    }
-            
-                    stage('Build Backend') {
-                        when {
-                            changeset pattern: 'backend/.*', comparator: 'REGEXP'
-                        }
-                        steps {
-                            echo '2. Backend 변경 감지, 빌드 및 배포'
-                            withCredentials([file(credentialsId: "backend", variable: 'BACKEND_ENV')]) {
-                              sh '''
-                                set -e
-                                echo "  - 복사: $BACKEND_ENV → ${WORKSPACE}/backend/.env"
-                                cp "$BACKEND_ENV" "${WORKSPACE}/backend/.env"
-                              '''
-                            }
-                            dir('backend') {
-                                sh '''
-                                    set -e
-                                    chmod +x gradlew
-                                    ./gradlew clean build -x test
-                                    docker build -t spring-app .
-                                    docker stop my-spring-app || true
-                                    docker rm my-spring-app || true
-                                    docker run -d -p 8080:8080 --env-file .env --name my-spring-app spring-app
-                                '''
-                            }
-                            echo '[INFO] 백엔드 완료'
-                        }
-                    }
-            
-                    stage('Build Frontend') {
-                        when {
-                            changeset pattern: 'frontend/.*', comparator: 'REGEXP'
-                        }
-                        steps {
-                            echo '3. Frontend 변경 감지, 빌드 및 배포'
-                            withCredentials([file(credentialsId: "front", variable: 'FRONT_ENV')]) {
-                              sh '''
-                                set -e
-                                echo "  - 복사: $FRONT_ENV → ${WORKSPACE}/frontend/.env"
-                                cp "$FRONT_ENV" "${WORKSPACE}/frontend/.env"
-                              '''
-                            }
-                            dir('frontend') {
-                                sh '''
-                                    set -e
-                                    docker build -t my-next-app .
-                                    docker stop frontend || true
-                                    docker rm frontend || true
-                                    docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-next-app
-                                '''
-                            }
-                            echo '[INFO] 프론트엔드 완료'
-                        }
-                    }
-            
-                    stage('Build AI') {
-                        when {
-                            changeset pattern: 'ai/.*', comparator: 'REGEXP'
-                        }
-                        steps {
-                            echo '4. AI 변경 감지, 빌드 시작'
-                            withCredentials([file(credentialsId: "ai", variable: 'AI_ENV')]) {
-                              sh '''
-                                set -e
-                                echo "  - 복사: $AI_ENV → ${WORKSPACE}/ai/.env"
-                                cp "$AI_ENV" "${WORKSPACE}/ai/.env"
-                              '''
-                            }
-                            dir('ai') {
-                                sh '''
-                                    set -e
-                                    docker build -t my-ai-app .
-                                    docker stop ai || true
-                                    docker rm ai || true
-                                    docker run -d --restart unless-stopped --name ai -p 8001:8001 -v $(pwd)/app/uploads:/app/uploads --env-file .env my-ai-app
-                                '''
-                            }
-                            echo '[INFO] AI 완료'
-                        }
-                    }
-                }
-            }
-            EOF
-            """;
+        String frontendDockerScript;
 
-        // git remote set-url origin https://USERNAME:TOKEN@lab.ssafy.com/galilee155/drummer_test.git
+        switch (projectConfig.getFrontendFramework()) {
+            case "vue.js":
+                frontendDockerScript =
+                        "                        set -e\n" +
+                                "                        docker build -f Dockerfile -t my-vue-app .\n" +
+                                "                        docker stop frontend || true\n" +
+                                "                        docker rm frontend || true\n" +
+                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-vue-app\n";
+                break;
+
+            case "react":
+                frontendDockerScript =
+                        "                        set -e\n" +
+                                "                        docker build -f Dockerfile -t my-react-app .\n" +
+                                "                        docker stop frontend || true\n" +
+                                "                        docker rm frontend || true\n" +
+                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:80 my-react-app\n";
+                break;
+
+            case "next.js":
+            default:
+                frontendDockerScript =
+                        "                        set -e\n" +
+                                "                        docker build -f Dockerfile -t my-next-app .\n" +
+                                "                        docker stop frontend || true\n" +
+                                "                        docker rm frontend || true\n" +
+                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-next-app\n";
+                break;
+        }
+
+
+        String jenkinsfileContent =
+                "cd " + projectPath + " && cat <<EOF | sudo tee Jenkinsfile > /dev/null\n" +
+                        "pipeline {\n" +
+                        "    agent any\n" +
+                        "\n" +
+                        "    stages {\n" +
+                        "        stage('Checkout') {\n" +
+                        "            steps {\n" +
+                        "                echo '1. 워크스페이스 정리 및 소스 체크아웃'\n" +
+                        "                deleteDir()\n" +
+                        "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
+                        "                    git branch: '" + gitlabTargetBranchName + "', url: \"https://\\$GIT_USER:\\$GIT_TOKEN@lab.ssafy.com/" + namespace + "\"\n" +
+                        "                }\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "\n" +
+                        "        stage('Build Backend') {\n" +
+                        "            when {\n" +
+                        "                changeset pattern: 'backend/.*', comparator: 'REGEXP'\n" +
+                        "            }\n" +
+                        "            steps {\n" +
+                        "                echo '2. Backend 변경 감지, 빌드 및 배포'\n" +
+                        "                withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
+                        "                    sh '''\n" +
+                        "                        set -e\n" +
+                        "                        echo \"  - 복사: $BACKEND_ENV → ${WORKSPACE}/backend/.env\"\n" +
+                        "                        cp \"\\$BACKEND_ENV\" \"\\$WORKSPACE/backend/.env\"\n" +
+                        "                    '''\n" +
+                        "                }\n" +
+                        "                dir('backend') {\n" +
+                        "                    sh '''\n" +
+                        "                        set -e\n" +
+                        "                        chmod +x gradlew\n" +
+                        "                        ./gradlew clean build -x test\n" +
+                        "                        docker build -t spring-app .\n" +
+                        "                        docker stop my-spring-app || true\n" +
+                        "                        docker rm my-spring-app || true\n" +
+                        "                        docker run -d -p 8080:8080 --env-file .env --name my-spring-app spring-app\n" +
+                        "                    '''\n" +
+                        "                }\n" +
+                        "                echo '[INFO] 백엔드 완료'\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "\n" +
+                        "        stage('Build Frontend') {\n" +
+                        "            when {\n" +
+                        "                changeset pattern: 'frontend/.*', comparator: 'REGEXP'\n" +
+                        "            }\n" +
+                        "            steps {\n" +
+                        "                echo '3. Frontend 변경 감지, 빌드 및 배포'\n" +
+                        "                withCredentials([file(credentialsId: \"front\", variable: 'FRONT_ENV')]) {\n" +
+                        "                    sh '''\n" +
+                        "                        set -e\n" +
+                        "                        echo \"  - 복사: $FRONT_ENV → ${WORKSPACE}/frontend/.env\"\n" +
+                        "                        cp \"\\$FRONT_ENV\" \"\\$WORKSPACE/frontend/.env\"\n" +
+                        "                    '''\n" +
+                        "                }\n" +
+                        "                dir('frontend') {\n" +
+                        "                    sh '''\n" +
+                                                frontendDockerScript +
+                        "                    '''\n" +
+                        "                }\n" +
+                        "                echo '[INFO] 프론트엔드 완료'\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "\n" +
+                        "        stage('Build AI') {\n" +
+                        "            when {\n" +
+                        "                changeset pattern: 'ai/.*', comparator: 'REGEXP'\n" +
+                        "            }\n" +
+                        "            steps {\n" +
+                        "                echo '4. AI 변경 감지, 빌드 시작'\n" +
+                        "                withCredentials([file(credentialsId: \"ai\", variable: 'AI_ENV')]) {\n" +
+                        "                    sh '''\n" +
+                        "                        set -e\n" +
+                        "                        echo \"  - 복사: $AI_ENV → ${WORKSPACE}/ai/.env\"\n" +
+                        "                        cp \"\\$AI_ENV\" \"\\$WORKSPACE/ai/.env\"\n" +
+                        "                    '''\n" +
+                        "                }\n" +
+                        "                dir('ai') {\n" +
+                        "                    sh '''\n" +
+                        "                        set -e\n" +
+                        "                        docker build -t my-ai-app .\n" +
+                        "                        docker stop ai || true\n" +
+                        "                        docker rm ai || true\n" +
+                        "                        docker run -d --restart unless-stopped --name ai -p 8001:8001 -v $(pwd)/app/uploads:/app/uploads --env-file .env my-ai-app\n" +
+                        "                    '''\n" +
+                        "                }\n" +
+                        "                echo '[INFO] AI 완료'\n" +
+                        "            }\n" +
+                        "        }\n" +
+                        "    }\n" +
+                        "}\n" +
+                        "EOF\n";
+
 
         return List.of(
-                "cd /var/lib/jenkins/jobs/auto-created-deployment-job",
-                //"sudo git config --global --add safe.directory /var/lib/jenkins/jobs/auto-created-deployment-job/drummer_test",
-                "sudo git clone " + repositoryUrl,
-                "cd drummer_test",
+                "cd /var/lib/jenkins/jobs/auto-created-deployment-job &&" +  "sudo git clone " + repositoryUrl + "&& cd " + projectName,
                 jenkinsfileContent,
-                "sudo git config user.name \"SeedBot\"",
-                "sudo git config user.email \"seedbot@auto.io\"",
-                "sudo git add Jenkinsfile",
-                "sudo git commit -m 'Add Jenkinsfile for CI/CD'",
-                "sudo git remote set-url origin " + repositoryUrl,
-                "sudo git push origin dev"
+                "cd " + projectPath + "&& sudo git config user.name \"SeedBot\"",
+                "cd " + projectPath + "&& sudo git config user.email \"seedbot@auto.io\"",
+                "cd " + projectPath + "&& sudo git add Jenkinsfile",
+                "cd " + projectPath + "&& sudo git commit --allow-empty -m 'add Jenkinsfile for CI/CD with SEED'",
+                "cd " + projectPath + "&& sudo git push origin " + gitlabTargetBranchName
         );
     }
 
-    private List<String> makeGitlabWebhook(String accessToken, Long projectId, String jobName, String jenkinsIp) {
-        String hookUrl = "http://" + jenkinsIp + ":9090/project/" + jobName;
-        String branchFilter = "master";
+    private List<String> makeDockerfileForBackend(String repositoryUrl, String projectPath, String gitlabTargetBranchName) {
 
-        gitlabService.createPushWebhook(accessToken, projectId, hookUrl, branchFilter);
+        log.info(repositoryUrl);
+
+        String backendDockerfileContent =
+                "cd " + projectPath + "/backend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                        "# 1단계: 빌드 스테이지\n" +
+                        "FROM gradle:8.5-jdk17 AS builder\n" +
+                        "WORKDIR /app\n" +
+                        "COPY . .\n" +
+                        "RUN gradle bootJar --no-daemon\n" +
+                        "\n" +
+                        "# 2단계: 실행 스테이지\n" +
+                        "FROM openjdk:17-jdk-slim\n" +
+                        "WORKDIR /app\n" +
+                        "COPY --from=builder /app/build/libs/*.jar app.jar\n" +
+                        "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
+                        "EOF\n";
+
+        return List.of(
+                "cd " + projectPath + "/backend",
+                backendDockerfileContent,
+                "cd " + projectPath + "/backend && sudo git config user.name \"SeedBot\"",
+                "cd " + projectPath + "/backend && sudo git config user.email \"seedbot@auto.io\"",
+                "cd " + projectPath + "/backend && sudo git add Dockerfile",
+                "cd " + projectPath + "/backend && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
+                "cd " + projectPath + "/backend && sudo git push origin " + gitlabTargetBranchName
+        );
+    }
+
+    private List<String> makeDockerfileForFrontend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, ProjectConfig projectConfig) {
+        log.info(repositoryUrl);
+
+        String frontendDockerfileContent;
+
+        switch (projectConfig.getFrontendFramework()) {
+            case "vue.js":
+                frontendDockerfileContent =
+                        "cd " + projectPath + "/frontend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "FROM node:18-alpine\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN npm install && npm run build && npm install -g serve\n" +
+                                "EXPOSE 3000\n" +
+                                "CMD [\"serve\", \"-s\", \"dist\"]\n" +
+                                "EOF\n";
+                break;
+
+            case "react":
+                frontendDockerfileContent =
+                        "cd " + projectPath + "/frontend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "FROM node:18-alpine AS builder\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN npm install && npm run build\n" +
+                                "\n" +
+                                "FROM nginx:alpine\n" +
+                                "COPY --from=builder /app/build /var/www/html\n" +
+                                "EOF\n";
+                break;
+
+            case "next.js":
+            default:
+                frontendDockerfileContent =
+                        "cd " + projectPath + "/frontend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "FROM node:18-alpine AS builder\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN npm install\n" +
+                                "RUN npm run build\n" +
+                                "\n" +
+                                "FROM node:18-alpine\n" +
+                                "WORKDIR /app\n" +
+                                "COPY --from=builder /app ./\n" +
+                                "EXPOSE 3000\n" +
+                                "CMD [\"npm\", \"run\", \"start\"]\n" +
+                                "EOF\n";
+                break;
+        }
+
+        return List.of(
+                "cd " + projectPath + "/frontend",
+                frontendDockerfileContent,
+                "cd " + projectPath + "/frontend && sudo git config user.name \"SeedBot\"",
+                "cd " + projectPath + "/frontend && sudo git config user.email \"seedbot@auto.io\"",
+                "cd " + projectPath + "/frontend && sudo git add Dockerfile",
+                "cd " + projectPath + "/frontend && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
+                "cd " + projectPath + "/frontend && sudo git push origin " + gitlabTargetBranchName
+        );
+    }
+
+    private List<String> makeGitlabWebhook(String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
+        String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
+
+        gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
 
         //최초 실행 로직 한번 필요 그래야 아래 777의미가 있음
-        return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
+        return List.of();
+        //return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
     }
+
+    private void issueAndSaveToken(Long projectId, String serverIp) {
+        try {
+            String jenkinsUrl = "http://" + serverIp + ":9090";
+            String jenkinsJobName = "auto-created-deployment-job";
+            String jenkinsUsername = "admin";
+            String jenkinsToken = generateTokenViaCurl(
+                    jenkinsUrl,
+                    jenkinsUsername,
+                    "pwd123",
+                    jenkinsUsername
+            );
+
+            JenkinsInfo jenkinsInfo = JenkinsInfo.builder()
+                    .projectId(projectId)
+                    .baseUrl(jenkinsUrl)
+                    .username(jenkinsUsername)
+                    .apiToken(jenkinsToken)
+                    .jobName(jenkinsJobName)
+                    .build();
+
+            jenkinsInfoRepository.save(jenkinsInfo);
+            log.info("Jenkins API 토큰을 DB에 저장했습니다.");
+
+        } catch (Exception e) {
+            log.error("Jenkins 토큰 발급 또는 저장 실패", e);
+            throw new BusinessException(ErrorCode.JENKINS_TOKEN_SAVE_FAILED);
+        }
+    }
+
+    private String generateTokenViaCurl(String jenkinsUrl, String username, String password, String tokenName) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            // 쿠키 저장용 임시 파일 생성
+            File cookieFile = File.createTempFile("jenkins_cookie", ".txt");
+            String cookiePath = cookieFile.getAbsolutePath().replace("\\", "/");
+
+            // 1. Crumb + 쿠키 요청
+            List<String> crumbCommand = Arrays.asList(
+                    "curl",
+                    "-u", username + ":" + password,
+                    "-c", cookiePath,
+                    "-s",
+                    jenkinsUrl + "/crumbIssuer/api/json"
+            );
+
+            Process crumbProcess = new ProcessBuilder(crumbCommand)
+                    .redirectErrorStream(true).start();
+
+            String crumbResponse = new BufferedReader(new InputStreamReader(crumbProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+            log.info("Crumb 응답: " + crumbResponse);
+            if (!crumbResponse.trim().startsWith("{")) {
+                throw new BusinessException(ErrorCode.JENKINS_CRUMB_REQUEST_FAILED);
+            }
+
+            JsonNode crumbJson = mapper.readTree(crumbResponse);
+            String crumb = crumbJson.get("crumb").asText();
+            String crumbField = crumbJson.get("crumbRequestField").asText();
+
+            // 2️. 토큰 요청
+            String tokenUrl = jenkinsUrl + "/user/" + username + "/descriptorByName/jenkins.security.ApiTokenProperty/generateNewToken";
+            String tokenJsonPayload = "{\"newTokenName\":\"" + tokenName + "\"}";
+
+            List<String> curlCommand = Arrays.asList(
+                    "curl",
+                    "-u", username + ":" + password,
+                    "-b", cookiePath,
+                    "-c", cookiePath,
+                    "-s",
+                    "-X", "POST",
+                    tokenUrl,
+                    "-H", crumbField + ":" + crumb,
+                    "-H", "Content-Type: application/json",
+                    "-H", "Referer: " + jenkinsUrl + "/",
+                    "-d", tokenJsonPayload
+            );
+
+
+            Process tokenProcess = new ProcessBuilder(curlCommand)
+                    .redirectErrorStream(true).start();
+
+            String tokenResponse = new BufferedReader(new InputStreamReader(tokenProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+
+            if (!tokenResponse.trim().startsWith("{")) {
+                throw new BusinessException(ErrorCode.JENKINS_TOKEN_RESPONSE_INVALID);
+            }
+
+            JsonNode tokenJson = mapper.readTree(tokenResponse);
+            String token = tokenJson.path("data").path("tokenValue").asText();
+
+            if (token == null || token.isBlank()) {
+                throw new BusinessException(ErrorCode.JENKINS_TOKEN_PARSE_FAILED);
+            }
+
+            return token;
+
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.JENKINS_TOKEN_REQUEST_FAILED);
+        }
+    }
+
+
+
 
     // 서버 초기화
     private List<String> serverResetCommands() {

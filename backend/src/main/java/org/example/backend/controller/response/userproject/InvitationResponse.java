@@ -2,6 +2,7 @@ package org.example.backend.controller.response.userproject;
 
 import lombok.Builder;
 import lombok.Getter;
+import org.example.backend.domain.fcm.enums.NotificationType;
 
 import java.time.LocalDateTime;
 
@@ -12,4 +13,5 @@ public class InvitationResponse {
     private Long projectId;
     private Long receiverId;
     private LocalDateTime expiresAt;
+    private NotificationType notificationType;
 }

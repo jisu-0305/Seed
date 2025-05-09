@@ -1,13 +1,8 @@
 package org.example.backend.domain.fcm.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.*;
+import org.example.backend.domain.fcm.enums.NotificationType;
 
 import java.time.LocalDateTime;
 
@@ -26,13 +21,15 @@ public class Notification {
 
     private boolean isRead;
 
-    private String notificationTile;
+    @Enumerated(EnumType.STRING)
+    private NotificationType notificationType;
+
+    private String notificationTitle;
 
     private String notificationContent;
 
     private LocalDateTime createdAt;
 
-    public void setRead(boolean read) {
-        this.isRead = read;
-    }
+    public void setRead(boolean read) { this.isRead = read; }
+
 }

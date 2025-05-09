@@ -31,14 +31,23 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Push _ webhook 생성 */
     @Override
-    public void registerPushWebhook(String gitlabAccessToken, Long projectId, String hookUrl, String branchFilter) {
+    public void registerPushWebhook(String gitlabPersonalAccessToken, Long projectId, String hookUrl, String branchFilter) {
 
         URI uri = uriBuilder.buildPushWebhookUri(projectId, hookUrl, branchFilter);
+
+        Map<String, Object> body = Map.of(
+                "url", hookUrl,
+                "push_events", true,
+                "enable_ssl_verification", false,
+                "push_events_branch_filter", branchFilter
+        );
 
         try {
             gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
                     .retrieve()
                     .toBodilessEntity()
                     .block();
@@ -184,14 +193,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 레포지토리 단건 조회 (URL) */
     @Override
-    public GitlabProject requestProjectInfo(String gitlabAccessToken, String projectPath) {
+    public GitlabProject requestProjectInfo(String gitlabPersonalAccessToken, String projectPath) {
 
         URI uri = uriBuilder.buildProjectUri(projectPath);
 
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToMono(GitlabProject.class)
                     .block();

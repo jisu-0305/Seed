@@ -30,9 +30,9 @@ public class GitlabServiceImpl implements GitlabService {
 
     /* Push _ webhook 생성 */
     @Override
-    public void createPushWebhook(String accessToken, Long projectId, String hookUrl, String branchFilter) {
-        String gitlabAccessToken = tokenValidCheck(accessToken);
-        gitlabApiClient.registerPushWebhook(gitlabAccessToken, projectId, hookUrl, branchFilter);
+    public void createPushWebhook(String gitlabPersonalAccessToken, Long projectId, String hookUrl, String branchFilter) {
+        //String gitlabAccessToken = tokenValidCheck(accessToken);
+        gitlabApiClient.registerPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, branchFilter);
     }
 
     /* Push 트리거 */
@@ -124,14 +124,14 @@ public class GitlabServiceImpl implements GitlabService {
 
     /* 레포지토리 단건 조회 (URL) */
     @Override
-    public GitlabProject getProjectByUrl(String accessToken, String repoUrl) {
-        String gitlabAccessToken = tokenValidCheck(accessToken);
+    public GitlabProject getProjectByUrl(String gitlabPersonalAccessToken, String repoUrl) {
+        //String gitlabAccessToken = tokenValidCheck(accessToken);
 
         String repoPath = repoUrl.startsWith("http")
                 ? java.net.URI.create(repoUrl).getPath().substring(1)
                 : repoUrl;
 
-        return gitlabApiClient.requestProjectInfo(gitlabAccessToken, repoPath);
+        return gitlabApiClient.requestProjectInfo(gitlabPersonalAccessToken, repoPath);
     }
 
     /* Diff 1 ) 최신 MR 기준 diff 조회 */

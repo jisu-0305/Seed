@@ -1,7 +1,9 @@
 package org.example.backend.domain.jenkins.service;
 
+import org.example.backend.domain.jenkins.entity.JenkinsInfo;
+
 public interface JenkinsClient {
-    String fetchBuildInfo(String jobName, String path);
-    String fetchBuildLog(String jobName, int buildNumber);
-    void triggerBuild(String jobName);
+    String fetchBuildInfo(JenkinsInfo info, String path);
+    String fetchBuildLog(JenkinsInfo info, int buildNumber);
+    void triggerBuild(JenkinsInfo info);
 }
