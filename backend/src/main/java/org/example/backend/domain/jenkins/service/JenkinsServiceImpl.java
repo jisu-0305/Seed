@@ -209,12 +209,12 @@ public class JenkinsServiceImpl implements JenkinsService {
         validateUserInProject(projectId, accessToken);
         try {
             String jenkinsUrl = "http://" + serverIp + ":9090";
-            String jenkinsJobName = "seed-deployment";
-            String jenkinsUsername = "seed";
+            String jenkinsJobName = "drum-dummy1";
+            String jenkinsUsername = "admin";
             String jenkinsToken = generateTokenViaCurl(
                     jenkinsUrl,
                     jenkinsUsername,
-                    "seed0206!",
+                    "pwd123",
                     jenkinsUsername
             );
 
