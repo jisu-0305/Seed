@@ -51,17 +51,18 @@ export async function fetchInvitationCandidates(
   const params: Record<string, any> = { projectId };
   if (keyword) params.keyword = keyword;
 
-  const res = await client.get<InvitationCandidatesResponse>(
+  const {
+    data: { success, message, data },
+  } = await client.get<InvitationCandidatesResponse>(
     '/invitations/candidates',
     { params },
   );
 
-  if (!res.data.success) {
-    throw new Error(
-      res.data.message || '초대 가능 사용자 조회에 실패했습니다.',
-    );
+  if (!success) {
+    throw new Error(message || '초대 가능 사용자 조회에 실패했습니다.');
   }
-  return res.data.data;
+
+  return data;
 }
 
 /**
@@ -96,11 +97,18 @@ interface UserProjectsResponse {
 export async function fetchProjectUsers(
   projectId: number,
 ): Promise<ProjectMember[]> {
-  const res = await client.get<UserProjectsResponse>(
+  const {
+    data: {
+      success,
+      data: { users },
+    },
+  } = await client.get<UserProjectsResponse>(
     `/user-projects/project/${projectId}`,
   );
-  if (!res.data.success) {
+
+  if (!success) {
     throw new Error('프로젝트 사용자 조회에 실패했습니다.');
   }
-  return res.data.data.users;
+
+  return users;
 }

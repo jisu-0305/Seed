@@ -14,8 +14,6 @@ import { NotificationItem } from '@/types/notification';
 
 const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const user = useUserStore((s) => s.user);
-  const loadingUser = useUserStore((s) => s.loading);
-  const errorUser = useUserStore((s) => s.error);
   const { mode } = useThemeStore();
 
   const [notifications, setNotifications] = useState<NotificationItem[] | null>(
@@ -52,9 +50,6 @@ const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <>
       <Backdrop onClick={onClose} />
       <Modal>
-        {loadingUser && <p>유저 정보 로딩 중…</p>}
-        {errorUser && <p>유저 정보를 불러올 수 없습니다.</p>}
-
         {user && (
           <>
             {loading && <p>알림 로딩 중…</p>}

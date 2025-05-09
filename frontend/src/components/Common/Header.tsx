@@ -13,13 +13,10 @@ interface HeaderProps {
 
 export default function Header({ title }: HeaderProps) {
   const user = useUserStore((s) => s.user);
-  const loading = useUserStore((s) => s.loading);
   const hasHydrated = useUserStore((s) => s.hasHydrated);
 
-  // 프로필용 모달 훅
-  const { isShowing: isLoginShowing, toggle: toggleLogin } = useModal();
-  // 알람용 모달 훅
-  const { isShowing: isNotifShowing, toggle: toggleNotif } = useModal();
+  const login = useModal();
+  const notif = useModal();
 
   const { mode, toggleMode } = useThemeStore();
 
@@ -43,19 +40,19 @@ export default function Header({ title }: HeaderProps) {
           alt="light mode"
         />
         <Alarm
-          onClick={toggleNotif}
+          onClick={notif.toggle}
           src={`/assets/icons/ic_alarm_${mode}.svg`}
           alt="alarm"
         />
-        <Profile onClick={toggleLogin}>
+        <Profile onClick={login.toggle}>
           <ProfileImg
             src={user?.profileImageUrl || '/assets/user.png'}
             alt="profile"
           />
-          {loading ? '...' : user?.userName || 'SSAFY'}
+          {user?.userName || 'SSAFY'}
         </Profile>
-        {isNotifShowing && <NotificationModal onClose={toggleNotif} />}
-        {isLoginShowing && <LoginModal onClose={toggleLogin} />}
+        {notif.isShowing && <NotificationModal onClose={notif.toggle} />}
+        {login.isShowing && <LoginModal onClose={login.toggle} />}
       </MenuWrapper>
     </HeaderWrapper>
   );
