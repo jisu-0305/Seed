@@ -6,7 +6,10 @@ import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.response.userproject.UserProjectListResponse;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
+import org.example.backend.domain.userproject.entity.Invitation;
 import org.example.backend.domain.userproject.entity.UserProject;
+import org.example.backend.domain.userproject.mapper.UserProjectMapper;
+import org.example.backend.domain.userproject.repository.InvitationRepository;
 import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
@@ -14,13 +17,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-import static org.example.backend.domain.userproject.mapper.UserProjectMapper.toListResponse;
-
 @Service
 @RequiredArgsConstructor
 public class UserProjectServiceImpl implements UserProjectService {
 
     private final UserProjectRepository userProjectRepository;
+    private final InvitationRepository invitationRepository;
     private final RedisSessionManager redisSessionManager;
     private final UserRepository userRepository;
 
@@ -39,6 +41,8 @@ public class UserProjectServiceImpl implements UserProjectService {
 
         List<User> users = userRepository.findAllById(userIdList);
 
-        return toListResponse(projectId, users);
+        List<Invitation> invitations = invitationRepository.findAllByProjectId(projectId);
+
+        return UserProjectMapper.toListResponse(projectId, users, invitations);
     }
 }
