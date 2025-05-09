@@ -110,12 +110,12 @@ public class ServerServiceImpl implements ServerService {
         log.info(gitlabProject.toString());
 
         return Stream.of(
-                //updatePackageManager(),
+                updatePackageManager(),
                 //setSwapMemory(),
                 //setJDK(),
                 //setNodejs(),
                 //setDocker(),
-                //setNginx(project.getServerIP()),
+                setNginx(project.getServerIP()),
                 setJenkins(),
                 setJenkinsConfigure(),
                 makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
@@ -158,7 +158,8 @@ public class ServerServiceImpl implements ServerService {
         return List.of(
                 "sudo apt update",
                 "sudo apt upgrade -y",
-                "sudo apt-get update"
+                "sudo apt-get update",
+                "sudo timedatectl set-timezone Asia/Seoul"
         );
     }
 
@@ -212,12 +213,15 @@ public class ServerServiceImpl implements ServerService {
                 "server {\n" +
                         "    listen 80;\n" +
                         "    server_name " + serverIp + ";\n" +
-                        "\n" +
-                        "    root /var/www/html;\n" +
-                        "    index index.html;\n" +
-                        "\n" +
+
                         "    location / {\n" +
-                        "        try_files $uri $uri/ /index.html;\n" +
+//                        "        try_files $uri $uri/ /index.html;\n" +
+                        "        proxy_pass http://localhost:3000;\n" +
+                        "        proxy_http_version 1.1;\n" +
+                        "        proxy_set_header Upgrade $http_upgrade;\n" +
+                        "        proxy_set_header Connection 'upgrade';\n" +
+                        "        proxy_set_header Host $host;\n" +
+                        "        proxy_cache_bypass $http_upgrade;\n" +
                         "    }\n" +
                         "\n" +
                         "    location /api/ {\n" +
@@ -297,7 +301,7 @@ public class ServerServiceImpl implements ServerService {
                 // Setup Wizard 비활성화 및 포트 변경
                 "sudo sed -i '/ExecStart/ c\\ExecStart=/usr/bin/java -Djava.awt.headless=true -Djenkins.install.runSetupWizard=false -jar /usr/share/java/jenkins.war --httpPort=9090 --argumentsRealm.passwd.admin=pwd123 --argumentsRealm.roles.admin=admin' /lib/systemd/system/jenkins.service",
                 "sudo systemctl daemon-reload",
-                "sudo systemctl start jenkins",
+                "sudo systemctl restart jenkins",
 
                 // admin 사용자 등록
                 "sudo mkdir -p /var/lib/jenkins/users/admin",
@@ -329,6 +333,8 @@ public class ServerServiceImpl implements ServerService {
                         "  pipeline-stage-view \\\n" +
                         "  credentials \\\n" +
                         "  credentials-binding\\\n" +
+                        "  workflow-api\\\n" +
+                        "  pipeline-rest-api\\\n" +
                         "  configuration-as-code",
 
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins",
@@ -455,29 +461,29 @@ public class ServerServiceImpl implements ServerService {
             case "vue.js":
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t my-vue-app .\n" +
-                                "                        docker stop frontend || true\n" +
-                                "                        docker rm frontend || true\n" +
-                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-vue-app\n";
+                                "                        docker build -f Dockerfile -t vue .\n" +
+                                "                        docker stop vue || true\n" +
+                                "                        docker rm vue || true\n" +
+                                "                        docker run -d --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
                 break;
 
             case "react":
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t my-react-app .\n" +
-                                "                        docker stop frontend || true\n" +
-                                "                        docker rm frontend || true\n" +
-                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:80 my-react-app\n";
+                                "                        docker build -f Dockerfile -t react .\n" +
+                                "                        docker stop react || true\n" +
+                                "                        docker rm react || true\n" +
+                                "                        docker run -d --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
                 break;
 
             case "next.js":
             default:
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t my-next-app .\n" +
+                                "                        docker build -f Dockerfile -t next .\n" +
                                 "                        docker stop frontend || true\n" +
                                 "                        docker rm frontend || true\n" +
-                                "                        docker run -d --restart unless-stopped --name frontend -p 3000:3000 my-next-app\n";
+                                "                        docker run -d --env-file .env --restart unless-stopped --name frontend -p 3000:3000 next\n";
                 break;
         }
 
@@ -541,7 +547,7 @@ public class ServerServiceImpl implements ServerService {
                         "                }\n" +
                         "                dir('frontend') {\n" +
                         "                    sh '''\n" +
-                                                frontendDockerScript +
+                        frontendDockerScript +
                         "                    '''\n" +
                         "                }\n" +
                         "                echo '[INFO] 프론트엔드 완료'\n" +
@@ -580,6 +586,7 @@ public class ServerServiceImpl implements ServerService {
 
         return List.of(
                 "cd /var/lib/jenkins/jobs/auto-created-deployment-job &&" +  "sudo git clone " + repositoryUrl + "&& cd " + projectName,
+                "sudo chmod -R 777 /var/lib/jenkins/jobs",
                 jenkinsfileContent,
                 "cd " + projectPath + "&& sudo git config user.name \"SeedBot\"",
                 "cd " + projectPath + "&& sudo git config user.email \"seedbot@auto.io\"",
@@ -637,18 +644,19 @@ public class ServerServiceImpl implements ServerService {
                                 "EOF\n";
                 break;
 
+
             case "react":
                 frontendDockerfileContent =
                         "cd " + projectPath + "/frontend && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
-                                "FROM node:18-alpine AS builder\n" +
+                                "FROM node:18-alpine\n" +
                                 "WORKDIR /app\n" +
                                 "COPY . .\n" +
-                                "RUN npm install && npm run build\n" +
-                                "\n" +
-                                "FROM nginx:alpine\n" +
-                                "COPY --from=builder /app/build /var/www/html\n" +
+                                "RUN npm install && npm run build && npm install -g serve\n" +
+                                "EXPOSE 3000\n" +
+                                "CMD [\"serve\", \"-s\", \"build\"]\n" +
                                 "EOF\n";
                 break;
+
 
             case "next.js":
             default:
