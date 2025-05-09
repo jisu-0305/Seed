@@ -33,6 +33,7 @@ public class HttpsLogServiceImpl implements HttpsLogService{
                 .build());
     }
 
+    @Override
     public List<HttpsLogResponse> getLogs(Long projectId, String accessToken) {
         validateUserInProject(projectId, accessToken);
         List<HttpsLog> logs = httpsLogRepository.findAllByProjectIdOrderByCreatedAtAsc(projectId);
