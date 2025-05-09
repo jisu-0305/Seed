@@ -1,55 +1,48 @@
 import styled from '@emotion/styled';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
+import { getImageTag } from '@/apis/gitlab';
 import { useModal } from '@/hooks/Common';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 import ModalWrapper from '../Common/Modal/ModalWrapper';
 import TipItem from '../Common/TipItem';
+import CustomDropdown from './CustomDropdown';
 import InformInboundBriefModal from './Modal/InformInboundBriefModal';
 import SearchDockerImageModal from './Modal/SearchDockerImageModal';
 
-// const dummyApps = [
-//   {
-//     name: 'redis',
-//     tag: 'latest',
-//     port: 8081,
-//   },
-//   {
-//     name: 'mysql',
-//     tag: 'stable',
-//     port: 3306,
-//   },
-//   {
-//     name: 'elastic search',
-//     tag: 'latest',
-//     port: 9200,
-//   },
-// ];
+interface TagResponse {
+  name: string;
+  repository: number;
+  v2: boolean;
+  digest: string;
+}
 
 export default function AppInput() {
   const { mode } = useThemeStore();
 
   const { stepStatus, setAppStatus } = useProjectInfoStore();
-  // const apps = dummyApps;
   const { app: apps } = stepStatus;
 
   const inboundTip = useModal();
   const search = useModal();
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [tag, setTag] = useState('latest');
+  const [tagList, setTagList] = useState<string[]>([]);
   const [port, setPort] = useState(8080);
 
-  const handleAddApp = (app: { name: string }) => {
-    const existingIndex = apps.findIndex((a) => a.name === app.name);
+  useEffect(() => {
+    fetchImageTag(apps[selectedIndex || 0].name);
+  }, [selectedIndex]);
+
+  const handleAddApp = (name: string) => {
+    const existingIndex = apps.findIndex((a) => a.name === name);
 
     if (existingIndex !== -1) {
       // 새로 추가한 앱
       const existingApp = apps[existingIndex];
       setSelectedIndex(existingIndex);
-      setTag(existingApp.tag);
       setPort(existingApp.port);
       return;
     }
@@ -62,24 +55,30 @@ export default function AppInput() {
     }
 
     const newApp = {
-      name: app.name,
-      tag: 'latest',
+      name,
+      tag: tagList[0],
       port: assignedPort,
     };
 
     const updatedApps = [...apps, newApp];
     setAppStatus(updatedApps);
     setSelectedIndex(updatedApps.length - 1);
-    setTag(newApp.tag);
     setPort(newApp.port);
+  };
+
+  // 이미지 선택시
+  const fetchImageTag = async (tag: string) => {
+    const { data } = await getImageTag(tag);
+    setTagList(data.map((item: TagResponse) => item.name));
   };
 
   const handleSelectApp = (index: number) => {
     setSelectedIndex(index);
-    setTag(apps[index].tag);
+    fetchImageTag(apps[index].name);
     setPort(apps[index].port);
   };
 
+  // 이미지 삭제
   const handleDeleteApp = (index: number) => {
     const updated = [...apps];
     updated.splice(index, 1);
@@ -90,18 +89,26 @@ export default function AppInput() {
     }
   };
 
-  const handleTagChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setTag(e.target.value);
-
+  // 태그 선택시
+  const handleTagChange = (value: string) => {
     if (selectedIndex !== null) {
       const updated = [...apps];
-      updated[selectedIndex].tag = e.target.value;
+      updated[selectedIndex].tag = value;
       setAppStatus(updated);
     }
   };
 
   const handlePortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const portNum = Number(e.target.value);
+    const usedPorts = new Set(
+      apps.map((a, i) => (i === selectedIndex ? null : a.port)),
+    );
+
+    if (usedPorts.has(portNum)) {
+      alert('이미 사용 중인 포트입니다. 다른 포트를 입력해주세요.');
+      return;
+    }
+
     setPort(portNum);
 
     if (selectedIndex !== null) {
@@ -125,16 +132,15 @@ export default function AppInput() {
               onClick={() => handleSelectApp(idx)}
             >
               <AppName>{app.name} :</AppName>
-              {app.tag === 'latest' ? 'LTS' : app.tag}
+              {app.tag}
               <CloseButton onClick={() => handleDeleteApp(idx)}>x</CloseButton>
             </Tag>
           ))}
         </RegisteredList>
 
-        <SearchWrapper>
+        <SearchWrapper onClick={search.toggle}>
           <SearchInput placeholder="어플리케이션을 검색해주세요." readOnly />
           <SearchIcon
-            onClick={search.toggle}
             src={`/assets/icons/ic_search_${mode}.svg`}
             alt="search"
           />
@@ -153,13 +159,10 @@ export default function AppInput() {
             <Row>
               <SelectWrapper>
                 <Label>Tag</Label>
-                <Select value={tag} onChange={handleTagChange}>
-                  <option value="latest">latest</option>
-                  <option value="stable">stable</option>
-                </Select>
-                <ArrowIcon
-                  src={`/assets/icons/ic_arrow_down_${mode}.svg`}
-                  alt="arrow"
+                <CustomDropdown
+                  options={tagList}
+                  value={apps[selectedIndex].tag}
+                  onChange={handleTagChange}
                 />
               </SelectWrapper>
 
@@ -168,6 +171,8 @@ export default function AppInput() {
                 <PortInput
                   type="number"
                   value={port}
+                  min={1000}
+                  max={9999}
                   onChange={handlePortChange}
                 />
               </div>
@@ -253,6 +258,8 @@ const SearchWrapper = styled.div`
   align-items: center;
 
   margin-bottom: 2rem;
+
+  cursor: pointer;
 `;
 
 const SearchInput = styled.input`
@@ -264,21 +271,25 @@ const SearchInput = styled.input`
 
   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
   border-radius: 1rem;
+
+  cursor: pointer;
 `;
 
 const SearchIcon = styled.img`
   margin-left: -4rem;
-
-  cursor: pointer;
 `;
 
 const Row = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  /* gap: 3rem; */
   flex-wrap: wrap;
 
   margin-bottom: 1.5rem;
+
+  &:last-of-type {
+    gap: 2rem;
+  }
 `;
 
 const Label = styled.label`
@@ -305,39 +316,12 @@ const IcIcon = styled.img`
 `;
 
 const SelectWrapper = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
   position: relative;
   width: 20rem;
-`;
-
-const Select = styled.select`
-  width: 15rem;
-  padding: 1rem;
-  padding-right: 4rem;
-
-  ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Text};
-  text-align: center;
-
-  background-color: ${({ theme }) => theme.colors.InputBackground};
-  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
-  border-radius: 1rem;
-
-  appearance: none;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  cursor: pointer;
-`;
-
-const ArrowIcon = styled.img`
-  position: absolute;
-  right: 3rem;
-  top: 55%;
-  transform: translateY(-50%);
-
-  pointer-events: none;
 `;
 
 const PortInput = styled.input`
