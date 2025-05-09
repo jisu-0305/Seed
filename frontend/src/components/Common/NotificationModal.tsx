@@ -37,12 +37,20 @@ const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handleAccept = async (notifId: number) => {
     try {
       await acceptInvitation(notifId);
+      handleRead(notifId);
+    } catch (err) {
+      console.error('초대 수락 실패', err);
+    }
+  };
+
+  const handleRead = async (notifId: number) => {
+    try {
       await markNotificationRead(notifId);
       setNotifications((prev) =>
         prev ? prev.filter((n) => n.id !== notifId) : prev,
       );
     } catch (err) {
-      console.error('초대 수락 실패', err);
+      console.error('알림 읽음 처리 실패', err);
     }
   };
 
@@ -78,9 +86,15 @@ const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       <Message>{n.notificationContent}</Message>
                     </Text>
                   </Info>
-                  <AcceptButton onClick={() => handleAccept(n.id)}>
-                    수락하기
-                  </AcceptButton>
+                  {n.notificationType === 'INVITATION_CREATED_TYPE' ? (
+                    <AcceptButton onClick={() => handleAccept(n.id)}>
+                      수락하기
+                    </AcceptButton>
+                  ) : (
+                    <AcceptButton onClick={() => handleRead(n.id)}>
+                      읽음처리
+                    </AcceptButton>
+                  )}
                 </Item>
               ))}
             </List>
