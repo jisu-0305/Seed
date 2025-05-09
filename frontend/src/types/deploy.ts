@@ -10,4 +10,6 @@ export const DeployTabNames: DeployTabName[] = [
 
 export interface DeployStatusProps {
   tasksByTab: Record<DeployTabName, Task[]>;
+  selectedTab: DeployTabName;
+  onTabChange: (tab: DeployTabName) => void;
 }

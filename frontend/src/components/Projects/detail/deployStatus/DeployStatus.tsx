@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import { useState } from 'react';
 
 import { useThemeStore } from '@/stores/themeStore';
 import type { DeployStatusProps, DeployTabName } from '@/types/deploy';
@@ -7,9 +6,12 @@ import type { DeployStatusProps, DeployTabName } from '@/types/deploy';
 import { BuildHistoryPanel } from './BuildHistoryPanel';
 import { DeployTable } from './DeployTable';
 
-export function DeployStatus({ tasksByTab }: DeployStatusProps) {
+export function DeployStatus({
+  tasksByTab,
+  selectedTab,
+  onTabChange,
+}: DeployStatusProps) {
   const tabs = Object.keys(tasksByTab) as DeployTabName[];
-  const [active, setActive] = useState<DeployTabName>(tabs[0]);
   const { mode } = useThemeStore();
 
   if (mode === null) return null;
@@ -20,9 +22,9 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
         {tabs.map((t) => (
           <Tab
             key={t}
-            active={t === active}
+            active={t === selectedTab}
             mode={mode}
-            onClick={() => setActive(t)}
+            onClick={() => onTabChange(t)}
           >
             {t}
           </Tab>
@@ -30,10 +32,10 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
       </TabList>
 
       <ContentWrapper>
-        {active === '빌드 기록' ? (
+        {selectedTab === '빌드 기록' ? (
           <BuildHistoryPanel />
         ) : (
-          <DeployTable tasks={tasksByTab[active]} />
+          <DeployTable tasks={tasksByTab[selectedTab]} />
         )}
       </ContentWrapper>
     </Container>

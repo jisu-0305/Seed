@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { fetchHttpsBuildLogs, HttpsBuildLog } from '@/apis/build';
 import { fetchProjectDetail } from '@/apis/project';
 import { tasksByTab as dummyTasks } from '@/assets/dummy/builds';
 import { useProjectStore } from '@/stores/projectStore';
@@ -25,6 +26,9 @@ export default function ProjectDetail() {
   const router = useRouter();
 
   const { projects, loadProjects } = useProjectStore();
+  const [selectedTab, setSelectedTab] = useState<DeployTabName>(
+    DeployTabNames[0],
+  );
 
   const [detail, setDetail] = useState<
     ProjectDetailData &
@@ -74,7 +78,6 @@ export default function ProjectDetail() {
       });
   }, [projectId, projects, router]);
 
-  // 1) state로 관리
   const [tasksByTab, setTasksByTab] = useState<Record<DeployTabName, Task[]>>(
     // 초기에는 모든 탭 빈 배열
     DeployTabNames.reduce(
@@ -86,18 +89,41 @@ export default function ProjectDetail() {
     ),
   );
 
-  // 2) 마운트 시에 "API 호출" (여기서는 더미)
   useEffect(() => {
-    // 실제 API 호출이라면 fetch(...) 후 json 파싱
-    // 예: fetch(`/api/projects/${id}/deploy-tasks`).then(res => res.json()).then(data => setTasksByTab(data));
+    if (!projectId) return;
+    const id = Number(projectId);
+    if (Number.isNaN(id)) return;
 
-    // 더미 데이터를 가져와서 500ms 뒤에 세팅
-    const timer = setTimeout(() => {
-      setTasksByTab(dummyTasks);
-    }, 500);
+    if (selectedTab === 'Https 세팅') {
+      fetchHttpsBuildLogs(id)
+        .then((logs: HttpsBuildLog[]) => {
+          // API 응답을 Task 타입으로 맵핑
+          const tasks: Task[] = logs.map((log) => ({
+            no: log.stepNumber,
+            description: log.stepName,
+            duration: new Date(log.createdAt).toLocaleTimeString(), // 예시 변환
+            status: inferStatusFromLog(log.logContent), // 커스텀 로직
+          }));
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: tasks }));
+        })
+        .catch((err) => {
+          console.error('HTTPS 빌드 로그 로딩 실패', err);
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: [] }));
+        });
+    } else {
+      // 다른 탭은 더미 혹은 초기값 유지
+      setTasksByTab((prev) => ({
+        ...prev,
+        [selectedTab]: dummyTasks[selectedTab] || [],
+      }));
+    }
+  }, [projectId, selectedTab]);
 
-    return () => clearTimeout(timer);
-  }, [projectId]);
+  function inferStatusFromLog(logContent: string): Task['status'] {
+    if (/success/i.test(logContent)) return 'Complete';
+    if (/fail|error/i.test(logContent)) return 'Fail';
+    return 'In Progress';
+  }
 
   if (loading) return <p>로딩 중…</p>;
   if (error) return <p>{error}</p>;
@@ -143,7 +169,11 @@ export default function ProjectDetail() {
         </SectionInfo>
 
         <SubTitle>Deploy Status</SubTitle>
-        <DeployStatus tasksByTab={tasksByTab} />
+        <DeployStatus
+          tasksByTab={tasksByTab}
+          selectedTab={selectedTab}
+          onTabChange={setSelectedTab}
+        />
       </Section>
     </SectionWrapper>
   );
