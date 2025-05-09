@@ -12,6 +12,7 @@ import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -32,17 +33,22 @@ public class HttpsLogServiceImpl implements HttpsLogService{
                 .build());
     }
 
-    @Override
     public List<HttpsLogResponse> getLogs(Long projectId, String accessToken) {
         validateUserInProject(projectId, accessToken);
         List<HttpsLog> logs = httpsLogRepository.findAllByProjectIdOrderByCreatedAtAsc(projectId);
-        return logs.stream().map(log ->
-                HttpsLogResponse.builder()
-                        .stepName(log.getStepName())
-                        .logContent(log.getLogContent())
-                        .createdAt(log.getCreatedAt())
-                        .build()
-        ).toList();
+
+        List<HttpsLogResponse> response = new ArrayList<>();
+        int stepNumber = 1;
+        for (HttpsLog log : logs) {
+            response.add(HttpsLogResponse.builder()
+                    .stepNumber(stepNumber++)
+                    .stepName(log.getStepName())
+                    .logContent(log.getLogContent())
+                    .createdAt(log.getCreatedAt())
+                    .build());
+        }
+
+        return response;
     }
 
     @Override
