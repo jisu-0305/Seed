@@ -34,10 +34,11 @@ const initialStatus: ProjectInfo = {
   },
   app: [],
   env: {
+    frontendFramework: '',
     frontEnv: false,
     backEnv: false,
     node: 'v22',
-    jdk: 17,
+    jdk: '17',
     buildTool: 'Gradle',
   },
 };

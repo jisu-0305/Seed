@@ -33,7 +33,7 @@ export default function AppInput() {
   const [port, setPort] = useState(8080);
 
   const handleAddApp = async (name: string) => {
-    const existingIndex = apps.findIndex((a) => a.name === name);
+    const existingIndex = apps.findIndex((a) => a.imageName === name);
 
     if (existingIndex !== -1) {
       const existingApp = apps[existingIndex];
@@ -51,7 +51,7 @@ export default function AppInput() {
     const tagName = await fetchImageTag(name);
 
     const newApp = {
-      name,
+      imageName: name,
       tag: tagName,
       port: assignedPort,
     };
@@ -72,7 +72,7 @@ export default function AppInput() {
 
   const handleSelectApp = (index: number) => {
     setSelectedIndex(index);
-    fetchImageTag(apps[index].name);
+    fetchImageTag(apps[index].imageName);
     setPort(apps[index].port);
   };
 
@@ -125,11 +125,11 @@ export default function AppInput() {
         <RegisteredList>
           {apps.map((app, idx) => (
             <Tag
-              key={app.name}
+              key={app.imageName}
               selected={idx === selectedIndex}
               onClick={() => handleSelectApp(idx)}
             >
-              <AppName>{app.name} :</AppName>
+              <AppName>{app.imageName} :</AppName>
               {app.tag}
               <CloseButton onClick={() => handleDeleteApp(idx)}>x</CloseButton>
             </Tag>
@@ -149,7 +149,7 @@ export default function AppInput() {
             <Row>
               <Label>선택한 어플리케이션</Label>
               <SelectedApp>
-                {apps[selectedIndex].name}
+                {apps[selectedIndex].imageName}
                 <IcIcon src="/assets/icons/ic_official.svg" alt="lock" />
               </SelectedApp>
             </Row>
@@ -159,7 +159,7 @@ export default function AppInput() {
                 <Label>Tag</Label>
                 <CustomDropdown
                   options={tagList}
-                  value={apps[selectedIndex].tag}
+                  value={apps[selectedIndex].tag || ''}
                   onChange={handleTagChange}
                 />
               </SelectWrapper>

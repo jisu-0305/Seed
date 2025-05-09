@@ -11,16 +11,13 @@ export interface ProjectInfo {
     ip: string;
     pem: boolean;
   };
-  app: {
-    name: string;
-    tag: string;
-    port: number;
-  }[];
+  app: Application[];
   env: {
+    frontendFramework: string;
     frontEnv: boolean;
     backEnv: boolean;
     node: string;
-    jdk: number;
+    jdk: string;
     buildTool: string;
   };
 }
@@ -79,3 +76,27 @@ export interface ProjectDetailResponse {
   message: string;
   data: ProjectDetailData;
 }
+
+interface BaseProjectInfo {
+  repositoryUrl: string;
+  jdkVersion: string;
+  serverIP: string;
+  frontendFramework: string;
+  nodejsVersion: string;
+  applicationList: Application[];
+  jdkBuildTool: string;
+}
+
+export interface PostMonoProjectInfo extends BaseProjectInfo {
+  structure: 'MONO';
+  backendDirectoryName: string;
+  frontendDirectoryName: string;
+}
+
+export interface PostMultiProjectInfo extends BaseProjectInfo {
+  structure: 'MULTI';
+  backendBranchName: string;
+  frontendBranchName: string;
+}
+
+export type PostProjectInfo = PostMonoProjectInfo | PostMultiProjectInfo;

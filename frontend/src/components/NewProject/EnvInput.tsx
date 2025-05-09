@@ -19,7 +19,7 @@ export default function EnvInput() {
     setEnvStatus({ ...env, node: e.target.value });
   };
 
-  const handleJdkChange = (version: number) => {
+  const handleJdkChange = (version: string) => {
     setEnvStatus({ ...env, jdk: version });
   };
 
@@ -35,6 +35,10 @@ export default function EnvInput() {
   const handleServerEnvChange = (file: File) => {
     setEnvStatus({ ...env, backEnv: !!file });
     setBackEnvFile(file);
+  };
+
+  const handleFrontFrameworkChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setEnvStatus({ ...env, frontendFramework: e.target.value });
   };
 
   // 유효성 검사
@@ -58,11 +62,20 @@ export default function EnvInput() {
       <Section>
         <Title>Client</Title>
         <Row>
+          <Label>Framework</Label>
+          <Input
+            type="text"
+            placeholder="react"
+            value={env.frontendFramework || ''}
+            onChange={handleFrontFrameworkChange}
+          />
+        </Row>
+        <Row>
           <Label>Node.js version</Label>
           <Input
             type="text"
             placeholder="22"
-            value={env.node}
+            value={env.node || ''}
             onChange={handleNodeVersionChange}
           />
         </Row>
@@ -85,16 +98,16 @@ export default function EnvInput() {
             <label>
               <input
                 type="radio"
-                checked={env.jdk === 17}
-                onChange={() => handleJdkChange(17)}
+                checked={env.jdk === '17'}
+                onChange={() => handleJdkChange('17')}
               />{' '}
               17
             </label>
             <label>
               <input
                 type="radio"
-                checked={env.jdk === 21}
-                onChange={() => handleJdkChange(21)}
+                checked={env.jdk === '21'}
+                onChange={() => handleJdkChange('21')}
               />{' '}
               21
             </label>

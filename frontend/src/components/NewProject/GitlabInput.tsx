@@ -28,13 +28,19 @@ export default function GitlabInput() {
 
   const fetchUserRepos = async () => {
     const { data } = await getUserRepos();
-    console.log(data);
     setRepoList(data);
   };
 
   // input 핸들러
   const handleRepoChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setGitlabStatus({ ...gitlab, repo: e.target.value });
+    const url = e.target.value;
+    const repoName =
+      url
+        ?.split('/')
+        .pop()
+        ?.replace(/\.git$/, '') || '';
+
+    setGitlabStatus({ ...gitlab, repo: repoName });
   };
 
   const handleStructureSelect = (value: '모노' | '멀티') => {
@@ -89,7 +95,7 @@ export default function GitlabInput() {
             레포지토리를 선택하세요
           </option>
           {repoList.map((repo) => (
-            <option key={repo.id} value={repo.name}>
+            <option key={repo.id} value={repo.http_url_to_repo}>
               {repo.name}
             </option>
           ))}
