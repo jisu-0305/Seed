@@ -2,7 +2,7 @@ package org.example.backend.controller.response.userproject;
 
 import lombok.Builder;
 import lombok.Getter;
-import org.example.backend.domain.userproject.dto.UserInProject;
+import org.example.backend.domain.userproject.dto.UserInProjectWithInvitationStatus;
 
 import java.util.List;
 
@@ -10,5 +10,5 @@ import java.util.List;
 @Builder
 public class UserProjectListResponse {
     private Long projectId;
-    private List<UserInProject> users;
+    private List<UserInProjectWithInvitationStatus> users;
 }
