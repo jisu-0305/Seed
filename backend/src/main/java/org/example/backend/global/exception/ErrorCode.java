@@ -12,6 +12,7 @@ public enum ErrorCode {
 
     // 2xxx: 비즈니스 로직 관련 오류
     BUSINESS_ERROR(HttpStatus.BAD_REQUEST, 2001, "비즈니스 로직 오류가 발생했습니다."),
+    INVALID_STEP_ID(HttpStatus.BAD_REQUEST, 2002, "stepId는 정수여야 합니다"),
 
     // 3xxx: 리소스(자원) 관련 오류
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "요청한 자원을 찾을 수 없습니다."),
@@ -77,7 +78,10 @@ public enum ErrorCode {
     JENKINS_TOKEN_RESPONSE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR,6012, "Jenkins Token 응답이 JSON이 아님"),
     JENKINS_TOKEN_PARSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6013, "Jenkins Token 파싱 실패"),
     JENKINS_TOKEN_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6014, "Jenkins Token 요청 실패"),
-    JENKINS_INFO_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6015, "해당 프로젝트의 Jenkins 정보가 존재하지 않습니다.");
+    JENKINS_INFO_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6015, "해당 프로젝트의 Jenkins 정보가 존재하지 않습니다."),
+    JENKINS_STEP_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6016, "해당 step 번호에 대한 로그를 찾을 수 없습니다."),
+    HTTPS_ALREADY_ENABLED(HttpStatus.INTERNAL_SERVER_ERROR,6017, "이미 HTTPS가 활성화된 프로젝트입니다.");
+
 
 
     private final HttpStatus status;
