@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-import { projects } from '@/assets/dummy/projects';
+import { useProjectStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 export default function SideBar() {
@@ -14,9 +15,16 @@ export default function SideBar() {
   const match = pathname.match(/^\/projects\/(\d+)(\/|$)/);
   const currentProjectId = match ? Number(match[1]) : null;
 
+  const { projects, loading, error, loadProjects } = useProjectStore();
+
   const handleMovePage = (url: string) => {
     router.push(url);
   };
+
+  useEffect(() => {
+    // 마운트 시 프로젝트 로드
+    loadProjects();
+  }, [loadProjects]);
 
   if (mode === null) return null;
 
@@ -81,17 +89,24 @@ export default function SideBar() {
           <IcArrow src="/assets/icons/ic_arrow_right.svg" alt="화살표" />
         </MenuItem>
         {isProjectsActive && (
-          <SubMenu>
-            {projects.map((p) => (
-              <SubMenuItem
-                key={p.id}
-                active={p.id === currentProjectId}
-                onClick={() => handleMovePage(`/projects/${p.id}`)}
-              >
-                {p.projectName}
-              </SubMenuItem>
-            ))}
-          </SubMenu>
+          <>
+            {loading && <p>프로젝트 로딩 중…</p>}
+            {error && <p>{error}</p>}
+
+            {!loading && !error && (
+              <SubMenu>
+                {projects.map((p) => (
+                  <SubMenuItem
+                    key={p.id}
+                    active={p.id === currentProjectId}
+                    onClick={() => handleMovePage(`/projects/${p.id}`)}
+                  >
+                    {p.projectName}
+                  </SubMenuItem>
+                ))}
+              </SubMenu>
+            )}
+          </>
         )}
       </Menu>
     </SideWrapper>

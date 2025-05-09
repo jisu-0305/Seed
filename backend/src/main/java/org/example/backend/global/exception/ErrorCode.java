@@ -12,6 +12,7 @@ public enum ErrorCode {
 
     // 2xxx: 비즈니스 로직 관련 오류
     BUSINESS_ERROR(HttpStatus.BAD_REQUEST, 2001, "비즈니스 로직 오류가 발생했습니다."),
+    INVALID_STEP_ID(HttpStatus.BAD_REQUEST, 2002, "stepId는 정수여야 합니다"),
 
     // 3xxx: 리소스(자원) 관련 오류
     RESOURCE_NOT_FOUND(HttpStatus.NOT_FOUND, 3001, "요청한 자원을 찾을 수 없습니다."),
@@ -20,6 +21,7 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
     GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3203, "GitLab API 요청이 실패했습니다."),
+
 
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3204, "초대를 찾을 수 없습니다."),
     ALREADY_JOINED_PROJECT(HttpStatus.BAD_REQUEST, 3205, "이미 참여 중인 프로젝트입니다."),
@@ -38,6 +40,7 @@ public enum ErrorCode {
     GITLAB_BAD_COMPARE(HttpStatus.BAD_REQUEST, 3218, "깃랩 diff를 불러오는 데 실패했습니다."),
     GITLAB_BAD_CREATE_BRANCH(HttpStatus.BAD_REQUEST, 3219, "깃랩 브랜치 생성에 실패했습니다."),
     GITLAB_BAD_DELETE_BRANCH(HttpStatus.BAD_REQUEST, 3220, "깃랩 브랜치 삭제를 실패했습니다."),
+    PROJECT_CONFIG_NOT_FOUND(HttpStatus.BAD_REQUEST, 3221, "프로젝트 설정 정보를 찾지 못했습니다."),
 
     UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3221, "지원하지 않는 알림 타입입니다."),
 
@@ -68,7 +71,17 @@ public enum ErrorCode {
     JENKINS_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6005, "젠킨스 응답 파싱에 실패했습니다."),
     COMMAND_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6006, "서버 명령어 실행에 실패했습니다."),
     CERTBOT_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6007, "SSL 인증서 발급에 실패했습니다."),
-    NGINX_RELOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6008, "Nginx reload에 실패했습니다.");
+    NGINX_RELOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6008, "Nginx reload에 실패했습니다."),
+    JENKINS_TOKEN_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6009, "Jenkins API 토큰 발급에 실패했습니다."),
+    JENKINS_TOKEN_SAVE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6010, "Jenkins API 토큰 저장에 실패했습니다."),
+    JENKINS_CRUMB_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6011, "Jenkins Crumb 요청 실패"),
+    JENKINS_TOKEN_RESPONSE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR,6012, "Jenkins Token 응답이 JSON이 아님"),
+    JENKINS_TOKEN_PARSE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6013, "Jenkins Token 파싱 실패"),
+    JENKINS_TOKEN_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6014, "Jenkins Token 요청 실패"),
+    JENKINS_INFO_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6015, "해당 프로젝트의 Jenkins 정보가 존재하지 않습니다."),
+    JENKINS_STEP_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6016, "해당 step 번호에 대한 로그를 찾을 수 없습니다."),
+    HTTPS_ALREADY_ENABLED(HttpStatus.INTERNAL_SERVER_ERROR,6017, "이미 HTTPS가 활성화된 프로젝트입니다.");
+
 
 
     private final HttpStatus status;

@@ -8,10 +8,11 @@ import { useThemeStore } from '@/stores/themeStore';
 import ManageMemberModal from '../Modal/ManageMemberModal';
 
 interface ActionButtonsProps {
-  projectId: string | undefined;
+  projectId: string | null;
+  gitlab?: string | URL;
 }
 
-export function ActionButtons({ projectId }: ActionButtonsProps) {
+export function ActionButtons({ projectId, gitlab }: ActionButtonsProps) {
   const { mode } = useThemeStore();
   const team = useModal();
 
@@ -31,7 +32,7 @@ export function ActionButtons({ projectId }: ActionButtonsProps) {
   };
 
   const goToGitLab = () => {
-    window.open('https://lab.ssafy.com/s12-final/S12P31A206', '_blank');
+    window.open(gitlab?.toString(), '_blank');
   };
 
   const goToEdit = () => {
@@ -78,6 +79,7 @@ export function ActionButtons({ projectId }: ActionButtonsProps) {
       </Wrapper>
       <ModalWrapper isShowing={team.isShowing}>
         <ManageMemberModal
+          projectId={projectId}
           isShowing={team.isShowing}
           handleClose={team.toggle}
         />

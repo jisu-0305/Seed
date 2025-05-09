@@ -1,12 +1,15 @@
 import styled from '@emotion/styled';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { fetchProjectDetail } from '@/apis/project';
 import { tasksByTab as dummyTasks } from '@/assets/dummy/builds';
-import { project } from '@/assets/dummy/project_detail';
+import { useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
+import { ProjectDetailData, ProjectSummary } from '@/types/project';
 import type { Task } from '@/types/task';
+import { formatDateTime } from '@/utils/getFormattedTime';
 
 import { AvatarList } from '../AvatarList';
 import { ActionButtons } from './ActionButtons';
@@ -18,6 +21,58 @@ export default function ProjectDetail() {
   const params = useParams();
   const rawId = params?.id;
   const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
+
+  const router = useRouter();
+
+  const { projects, loadProjects } = useProjectStore();
+
+  const [detail, setDetail] = useState<
+    ProjectDetailData &
+      Pick<
+        ProjectSummary,
+        | 'memberList'
+        | 'autoDeploymentEnabled'
+        | 'httpsEnabled'
+        | 'buildStatus'
+        | 'lastBuildAt'
+      >
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  >(null as any);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
+
+  useEffect(() => {
+    if (!projectId) {
+      router.replace('/projects');
+      return;
+    }
+    const id = Number(projectId);
+    const summary = projects.find((p) => p.id === id);
+    setLoading(true);
+
+    fetchProjectDetail(id)
+      .then((data) => {
+        setDetail({
+          ...data,
+          memberList: summary?.memberList ?? [],
+          autoDeploymentEnabled: summary?.autoDeploymentEnabled ?? false,
+          httpsEnabled: summary?.httpsEnabled ?? false,
+          buildStatus: summary?.buildStatus ?? null,
+          lastBuildAt: summary?.lastBuildAt ?? null,
+        });
+      })
+      .catch((err) => {
+        console.error(err);
+        setError('프로젝트 상세 정보를 불러오는 데 실패했습니다.');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [projectId, projects, router]);
 
   // 1) state로 관리
   const [tasksByTab, setTasksByTab] = useState<Record<DeployTabName, Task[]>>(
@@ -44,32 +99,47 @@ export default function ProjectDetail() {
     return () => clearTimeout(timer);
   }, [projectId]);
 
+  if (loading) return <p>로딩 중…</p>;
+  if (error) return <p>{error}</p>;
+  if (!detail) return null;
+
+  let emoji: 'default' | 'success' | 'fail';
+  if (detail.buildStatus === 'SUCCESS') {
+    emoji = 'success';
+  } else {
+    emoji = 'fail';
+  }
+
+  const time = detail.lastBuildAt
+    ? formatDateTime(detail.lastBuildAt)
+    : '빌드 이력 없음';
+
   return (
     <SectionWrapper>
       <Section>
         <SectionTitle>
           <Icon src="/assets/icons/ic_gitlab.svg" alt="gitlab" />
-          <Title>{project.projectName}</Title>
-          <AvatarList users={project.users} maxVisible={2} />
+          <Title>{detail.projectName}</Title>
+          <AvatarList users={detail.memberList} maxVisible={2} />
         </SectionTitle>
         <SectionInfo>
           <ProjectHeader
-            emojiSrc={project.emojiSrc}
-            https={project.httpsEnabled}
-            lastBuildStatus={project.lastBuildStatus}
-            lastBuildTime={project.lastBuildTime}
+            emojiSrc={`/assets/projectcard/project_${emoji}.png`}
+            https={detail.httpsEnabled}
+            buildStatus={detail.buildStatus}
+            lastBuildAt={time}
           />
 
           <ProjectInfo
-            folder={project.projectInfo.folder}
-            clientDir={project.projectInfo.clientDir}
-            serverDir={project.projectInfo.serverDir}
-            nodeVersion={project.projectInfo.nodeVersion}
-            jdkVersion={project.projectInfo.jdkVersion}
-            buildTool={project.projectInfo.buildTool}
+            folder={detail.structure}
+            clientDir={detail.frontendDirectoryName}
+            serverDir={detail.backendDirectoryName}
+            nodeVersion={detail.nodejsVersion}
+            jdkVersion={detail.jdkVersion}
+            buildTool={detail.jdkBuildTool}
           />
 
-          <ActionButtons projectId={projectId} />
+          <ActionButtons projectId={projectId} gitlab={detail.repositoryUrl} />
         </SectionInfo>
 
         <SubTitle>Deploy Status</SubTitle>

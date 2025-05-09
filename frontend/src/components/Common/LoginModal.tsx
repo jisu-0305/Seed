@@ -1,5 +1,3 @@
-// src/components/LoginModal.tsx
-
 'use client';
 
 import styled from '@emotion/styled';
@@ -14,8 +12,6 @@ import { clearUserData } from '@/utils/auth';
 const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
-  const loading = useUserStore((s) => s.loading);
-  const error = useUserStore((s) => s.error);
   const { mode } = useThemeStore();
 
   if (mode === null) return null;
@@ -41,9 +37,6 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <>
       <Backdrop onClick={onClose} />
       <Modal>
-        {loading && <p>로딩 중…</p>}
-        {error && <p>유저 정보를 불러올 수 없습니다.</p>}
-
         {user && (
           <>
             <ProfileSection>
@@ -82,10 +75,10 @@ const Backdrop = styled.div`
 
 const Modal = styled.div`
   position: absolute;
-  top: 5.1rem;
-  right: 1rem;
+  top: 7.1rem;
+  right: 0.5rem;
   width: 17rem;
-  background: ${({ theme }) => theme.colors.Background};
+  background: ${({ theme }) => theme.colors.ModalBg};
   border-radius: 1rem;
   padding: 1.5rem 3rem;
   box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);

@@ -17,8 +17,6 @@ public class WebClientConfig {
     @Value("${docker.hub.api.base-url}")
     private String dockerHubApiBaseUrl;
 
-    @Value("${jenkins.api.base-url}")
-    private String jenkinsApiBaseUrl;
 
     @Value("${docker.registry.api.base-url}")
     private String dockerRegistryApiBaseUrl;
@@ -74,14 +72,6 @@ public class WebClientConfig {
     public WebClient dockerAuthWebClient() {
         return WebClient.builder()
                 .baseUrl(dockerAuthApiBaseUrl)
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .build();
-    }
-
-    @Bean("jenkinsWebClient")
-    public WebClient jenkinsWebClient() {
-        return WebClient.builder()
-                .baseUrl(jenkinsApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }

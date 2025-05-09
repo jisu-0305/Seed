@@ -4,6 +4,15 @@ import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.Session;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.common.session.RedisSessionManager;
+import org.example.backend.common.session.dto.SessionInfoDto;
+import org.example.backend.domain.project.entity.Project;
+import org.example.backend.domain.project.entity.ProjectStatus;
+import org.example.backend.domain.project.repository.ProjectRepository;
+import org.example.backend.domain.project.repository.ProjectStatusRepository;
+import org.example.backend.domain.server.entity.HttpsLog;
+import org.example.backend.domain.server.repository.HttpsLogRepository;
+import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.global.response.ApiResponse;
@@ -11,6 +20,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.time.LocalDateTime;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -18,56 +28,60 @@ import java.io.InputStream;
 public class ConvertHttpsUtil {
 
     private final SshUtil sshUtil;
+    private final HttpsLogRepository httpsLogRepository;
+    private final RedisSessionManager redisSessionManager;
+    private final UserProjectRepository userProjectRepository;
+    private final ProjectStatusRepository projectStatusRepository;
 
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app";
 
-    public ApiResponse<String> convertHttpToHttps(MultipartFile pem, String host, String domain, String email) {
+    public ApiResponse<String> convertHttpToHttps(MultipartFile pem, String host, String domain, String email, Long projectId, String accessToken) {
         Session session = null;
         try {
+            validateUserInProject(projectId, accessToken);
+            ProjectStatus status = projectStatusRepository.findByProjectId(projectId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
+            if (status.isHttpsEnabled()) {
+                throw new BusinessException(ErrorCode.HTTPS_ALREADY_ENABLED);
+            }
+
             session = sshUtil.createSessionWithPem(pem, host);
-            installCertbot(session);
-            issueSslCertificate(session, domain, email);
-            overwriteNginxConf(session, domain);
-            reloadNginx(session);
+            saveLog(projectId, "Certbot 설치", installCertbot(session));
+            saveLog(projectId, "인증서 발급", issueSslCertificate(session, domain, email));
+            saveLog(projectId, "Nginx 설정 덮어쓰기", overwriteNginxConf(session, domain));
+            saveLog(projectId, "Nginx reload", reloadNginx(session));
             return ApiResponse.success("HTTPS 변환 완료");
         } catch (Exception e) {
             log.error("❌ HTTPS 변환 중 에러 발생", e);
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         } finally {
-            if (session != null) {
-                session.disconnect();
-            }
+            if (session != null) session.disconnect();
         }
     }
 
-    private void installCertbot(Session session) {
-        log.info("📦 Certbot 설치 시작...");
-        executeCommand(session, "sudo apt update");
-        executeCommand(session, "sudo apt install -y certbot python3-certbot-nginx");
-        log.info("📦 Certbot 설치 완료");
+    private String installCertbot(Session session) {
+        StringBuilder logs = new StringBuilder();
+        logs.append(executeCommand(session, "sudo apt update"));
+        logs.append(executeCommand(session, "sudo apt install -y certbot python3-certbot-nginx"));
+        return logs.toString();
     }
 
-    private void issueSslCertificate(Session session, String domain, String email) {
-        log.info("🔐 SSL 인증서 발급...");
-        String command = String.format("sudo certbot --nginx -d %s --email %s --agree-tos --redirect --non-interactive", domain, email);
-        executeCommand(session, command);
-        log.info("🔐 인증서 발급 완료");
+    private String issueSslCertificate(Session session, String domain, String email) {
+        String cmd = String.format("sudo certbot --nginx -d %s --email %s --agree-tos --redirect --non-interactive", domain, email);
+        return executeCommand(session, cmd);
     }
 
-    private void overwriteNginxConf(Session session, String domain) {
-        log.info("📝 Nginx 설정 덮어쓰기...");
+    private String overwriteNginxConf(Session session, String domain) {
         String conf = generateNginxConf(domain).replace("'", "'\"'\"'");
-        String command = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
-        executeCommand(session, command);
+        String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
+        return executeCommand(session, cmd);
     }
 
-    private void reloadNginx(Session session) {
-        log.info("🔁 Nginx reload...");
-        executeCommand(session, "sudo systemctl reload nginx");
-        log.info("🔁 완료");
+    private String reloadNginx(Session session) {
+        return executeCommand(session, "sudo systemctl reload nginx");
     }
 
-    private void executeCommand(Session session, String command) {
+    private String executeCommand(Session session, String command) {
         try {
             ChannelExec channel = (ChannelExec) session.openChannel("exec");
             channel.setCommand(command);
@@ -75,7 +89,13 @@ public class ConvertHttpsUtil {
             channel.setInputStream(null);
             channel.connect();
 
+            StringBuilder output = new StringBuilder();
             try (InputStream in = channel.getInputStream()) {
+                int read;
+                byte[] buffer = new byte[1024];
+                while ((read = in.read(buffer)) != -1) {
+                    output.append(new String(buffer, 0, read));
+                }
                 while (!channel.isClosed()) {
                     Thread.sleep(100);
                 }
@@ -84,9 +104,19 @@ public class ConvertHttpsUtil {
                 }
             }
             channel.disconnect();
+            return output.toString();
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.COMMAND_EXECUTION_FAILED);
         }
+    }
+
+    private void saveLog(Long projectId, String stepName, String logContent) {
+        httpsLogRepository.save(HttpsLog.builder()
+                .projectId(projectId)
+                .stepName(stepName)
+                .logContent(logContent)
+                .createdAt(LocalDateTime.now())
+                .build());
     }
 
     private String generateNginxConf(String domain) {
@@ -148,5 +178,14 @@ public class ConvertHttpsUtil {
                 }
             }
         """, domain, domain, domain, domain);
+    }
+
+    private void validateUserInProject(Long projectId, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
+        }
     }
 }

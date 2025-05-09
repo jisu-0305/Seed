@@ -31,14 +31,23 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Push _ webhook 생성 */
     @Override
-    public void registerPushWebhook(String gitlabAccessToken, Long projectId, String hookUrl, String branchFilter) {
+    public void registerPushWebhook(String gitlabPersonalAccessToken, Long projectId, String hookUrl, String branchFilter) {
 
         URI uri = uriBuilder.buildPushWebhookUri(projectId, hookUrl, branchFilter);
+
+        Map<String, Object> body = Map.of(
+                "url", hookUrl,
+                "push_events", true,
+                "enable_ssl_verification", false,
+                "push_events_branch_filter", branchFilter
+        );
 
         try {
             gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(body)
                     .retrieve()
                     .toBodilessEntity()
                     .block();
@@ -53,7 +62,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Push 트리거 (커밋 날리기) */
     @Override
-    public void submitCommit(String gitlabAccessToken, Long projectId, String branch, String message, List<CommitAction> actions) {
+    public void submitCommit(String gitlabPersonalAccessToken, Long projectId, String branch, String message, List<CommitAction> actions) {
 
         URI uri = uriBuilder.buildCommitUri(projectId);
 
@@ -62,7 +71,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             gitlabWebClient.post()
                     .uri(uri)
-                    .headers(h -> h.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(payload)
                     .retrieve()
@@ -79,7 +88,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* MR생성 */
     @Override
-    public MergeRequestCreateResponse submitMergeRequest(String gitlabAccessToken,
+    public MergeRequestCreateResponse submitMergeRequest(String gitlabPersonalAccessToken,
                                                          Long projectId,
                                                          String sourceBranch,
                                                          String targetBranch,
@@ -100,7 +109,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                     .body(form)
                     .retrieve()
@@ -117,14 +126,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 브랜치 생성 */
     @Override
-    public GitlabBranch submitBranchCreation(String gitlabAccessToken, Long projectId, String branch, String refBranch) {
+    public GitlabBranch submitBranchCreation(String gitlabPersonalAccessToken, Long projectId, String branch, String refBranch) {
 
         URI uri = uriBuilder.buildCreateBranchUri(projectId, branch, refBranch);
 
         try {
             return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToMono(GitlabBranch.class)
                     .block();
@@ -139,14 +148,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /*브랜치 삭제*/
     @Override
-    public void submitBranchDeletion(String gitlabAccessToken, Long projectId, String branch) {
+    public void submitBranchDeletion(String gitlabPersonalAccessToken, Long projectId, String branch) {
 
         URI uri = uriBuilder.buildDeleteBranchUri(projectId, branch);
 
         try {
             gitlabWebClient.delete()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToMono(Void.class)
                     .block();
@@ -161,14 +170,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 레포지토리 목록 조회 */
     @Override
-    public List<GitlabProject> requestProjectList(String gitlabAccessToken, int page, int perPage) {
+    public List<GitlabProject> requestProjectList(String gitlabPersonalAccessToken, int page, int perPage) {
 
         URI uri = uriBuilder.buildProjectsUri(page, perPage);
 
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToFlux(GitlabProject.class)
                     .collectList()
@@ -184,14 +193,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 레포지토리 단건 조회 (URL) */
     @Override
-    public GitlabProject requestProjectInfo(String gitlabAccessToken, String projectPath) {
+    public GitlabProject requestProjectInfo(String gitlabPersonalAccessToken, String projectPath) {
 
         URI uri = uriBuilder.buildProjectUri(projectPath);
 
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToMono(GitlabProject.class)
                     .block();
@@ -206,13 +215,13 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Diff 1 ) 최신 MR 기준 diff 조회 */
     @Override
-    public Mono<List<GitlabMergeRequest>> requestMergedMrs(String gitlabAccessToken, Long projectId, int page, int perPage) {
+    public Mono<List<GitlabMergeRequest>> requestMergedMrs(String gitlabPersonalAccessToken, Long projectId, int page, int perPage) {
 
         URI uri = uriBuilder.buildListMergedMrsUri(projectId, page, perPage);
 
         return gitlabWebClient.get()
                 .uri(uri)
-                .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                 .retrieve()
                 .bodyToFlux(GitlabMergeRequest.class)
                 .collectList()
@@ -222,13 +231,13 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public Mono<GitlabMergeRequest> requestMrDetail(String gitlabAccessToken, Long projectId, Long mergeRequestIid) {
+    public Mono<GitlabMergeRequest> requestMrDetail(String gitlabPersonalAccessToken, Long projectId, Long mergeRequestIid) {
 
         URI uri = uriBuilder.buildMrDetailUri(projectId, mergeRequestIid);
 
         return gitlabWebClient.get()
                 .uri(uri)
-                .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError,
                         response -> Mono.error(new BusinessException(ErrorCode.GITLAB_BAD_REQUEST)))
@@ -241,13 +250,13 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Diff 1, 2 ) 커밋 간 변경사항 조회 */
     @Override
-    public Mono<GitlabCompareResponse> requestCommitComparison(String gitlabAccessToken, Long projectId, String from, String to) {
+    public Mono<GitlabCompareResponse> requestCommitComparison(String gitlabPersonalAccessToken, Long projectId, String from, String to) {
 
         URI uri = uriBuilder.buildCompareCommitsUri(projectId, from, to);
 
         return gitlabWebClient.get()
                 .uri(uri)
-                .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                 .retrieve()
                 .onStatus(HttpStatusCode::is4xxClientError,
                         response -> Mono.error(new BusinessException(ErrorCode.GITLAB_BAD_REQUEST)))
@@ -261,7 +270,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     /* 레포지토리 tree 구조 조회  */
     @Override
     public List<GitlabTree> requestRepositoryTree(
-            String gitlabAccessToken,
+            String gitlabPersonalAccessToken,
             Long projectId,
             String path,
             boolean recursive,
@@ -275,7 +284,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToFlux(GitlabTree.class)
                     .collectList()
@@ -291,14 +300,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 파일 원본 조회  */
     @Override
-    public String requestRawFileContent(String gitlabAccessToken, Long projectId, String path, String refBranch) {
+    public String requestRawFileContent(String gitlabPersonalAccessToken, Long projectId, String path, String refBranch) {
 
         URI uri = uriBuilder.buildRawFileUri(projectId, path, refBranch);
 
         try {
             return gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
@@ -313,14 +322,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 브랜치 조회 */
     @Override
-    public void validateBranchExists(String gitlabAccessToken, Long projectId, String branchName) {
+    public void validateBranchExists(String gitlabPersonalAccessToken, Long projectId, String branchName) {
 
         URI uri = uriBuilder.buildBranchUri(projectId, branchName);
 
         try {
             gitlabWebClient.get()
                     .uri(uri)
-                    .headers(header -> header.setBearerAuth(gitlabAccessToken))
+                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
                     .retrieve()
                     .bodyToMono(GitlabBranch.class)
                     .block();

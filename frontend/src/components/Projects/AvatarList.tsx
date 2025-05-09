@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 
+import { ProjectMember } from '@/types/project';
+
 interface AvatarListProps {
-  users: { id: number; profileImageUrl: string; name: string }[];
+  users: ProjectMember[];
   maxVisible?: number; // 한 줄에 보여줄 최대 아바타 개수
 }
 
@@ -12,8 +14,8 @@ export function AvatarList({ users, maxVisible = 2 }: AvatarListProps) {
   return (
     <List>
       {visible.map((u) => (
-        <AvatarWrapper key={u.id}>
-          <Avatar src={u.profileImageUrl} alt={u.name} title={u.name} />
+        <AvatarWrapper key={u.userId}>
+          <Avatar src={u.profileImageUrl} alt={u.userName} title={u.userName} />
         </AvatarWrapper>
       ))}
       {extraCount > 0 && <MoreCount>+{extraCount}</MoreCount>}
