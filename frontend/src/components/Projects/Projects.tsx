@@ -1,6 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 import { useProjectStore } from '@/stores/projectStore';
@@ -9,6 +10,7 @@ import { formatDateTime } from '@/utils/getFormattedTime';
 import { ProjectCard } from './ProjectCard';
 
 export default function Projects() {
+  const router = useRouter();
   const { projects, loading, error, loadProjects } = useProjectStore();
 
   useEffect(() => {
@@ -17,6 +19,20 @@ export default function Projects() {
 
   if (loading) return <p>로딩 중…</p>;
   if (error) return <p>{error}</p>;
+
+  if (projects.length === 0) {
+    return (
+      <SectionWrapper>
+        <SectionTitle>
+          <Title>Projects</Title>
+        </SectionTitle>
+        <Message>아직 프로젝트가 없습니다. 프로젝트를 생성해주세요.</Message>
+        <CreateButton onClick={() => router.push('/create/gitlab')}>
+          프로젝트 생성하기
+        </CreateButton>
+      </SectionWrapper>
+    );
+  }
 
   return (
     <SectionWrapper>
@@ -94,9 +110,30 @@ const Title = styled.div`
   ${({ theme }) => theme.fonts.EnTitle1};
 `;
 
+const Message = styled.div`
+  text-align: center;
+  min-width: 80rem;
+  ${({ theme }) => theme.fonts.Body2};
+`;
+
 const CardsList = styled.div`
   display: flex;
   flex-direction: column;
   min-width: 80rem;
   gap: 3rem;
+`;
+
+const CreateButton = styled.button`
+  margin-top: 1.5rem;
+  padding: 1rem 1.5rem;
+  ${({ theme }) => theme.fonts.Title5};
+  background-color: ${({ theme }) => theme.colors.Main_Carrot};
+  color: white;
+  border: none;
+  border-radius: 5rem;
+  cursor: pointer;
+
+  &:hover {
+    opacity: 0.9;
+  }
 `;
