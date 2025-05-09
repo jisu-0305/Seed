@@ -3,6 +3,7 @@ export interface NotificationItem {
   notificationTitle: string;
   notificationContent: string;
   createdAt: string;
+  notificationType: string;
   read: boolean;
 }
 

@@ -14,8 +14,6 @@ import { NotificationItem } from '@/types/notification';
 
 const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const user = useUserStore((s) => s.user);
-  const loadingUser = useUserStore((s) => s.loading);
-  const errorUser = useUserStore((s) => s.error);
   const { mode } = useThemeStore();
 
   const [notifications, setNotifications] = useState<NotificationItem[] | null>(
@@ -39,12 +37,20 @@ const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const handleAccept = async (notifId: number) => {
     try {
       await acceptInvitation(notifId);
+      handleRead(notifId);
+    } catch (err) {
+      console.error('초대 수락 실패', err);
+    }
+  };
+
+  const handleRead = async (notifId: number) => {
+    try {
       await markNotificationRead(notifId);
       setNotifications((prev) =>
         prev ? prev.filter((n) => n.id !== notifId) : prev,
       );
     } catch (err) {
-      console.error('초대 수락 실패', err);
+      console.error('알림 읽음 처리 실패', err);
     }
   };
 
@@ -52,9 +58,6 @@ const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <>
       <Backdrop onClick={onClose} />
       <Modal>
-        {loadingUser && <p>유저 정보 로딩 중…</p>}
-        {errorUser && <p>유저 정보를 불러올 수 없습니다.</p>}
-
         {user && (
           <>
             {loading && <p>알림 로딩 중…</p>}
@@ -83,9 +86,15 @@ const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                       <Message>{n.notificationContent}</Message>
                     </Text>
                   </Info>
-                  <AcceptButton onClick={() => handleAccept(n.id)}>
-                    수락하기
-                  </AcceptButton>
+                  {n.notificationType === 'INVITATION_CREATED_TYPE' ? (
+                    <AcceptButton onClick={() => handleAccept(n.id)}>
+                      수락하기
+                    </AcceptButton>
+                  ) : (
+                    <AcceptButton onClick={() => handleRead(n.id)}>
+                      읽음처리
+                    </AcceptButton>
+                  )}
                 </Item>
               ))}
             </List>

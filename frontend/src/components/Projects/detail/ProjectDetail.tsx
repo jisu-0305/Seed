@@ -139,7 +139,7 @@ export default function ProjectDetail() {
             buildTool={detail.jdkBuildTool}
           />
 
-          <ActionButtons projectId={projectId} />
+          <ActionButtons projectId={projectId} gitlab={detail.repositoryUrl} />
         </SectionInfo>
 
         <SubTitle>Deploy Status</SubTitle>

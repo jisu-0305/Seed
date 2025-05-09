@@ -12,8 +12,6 @@ import { clearUserData } from '@/utils/auth';
 const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const router = useRouter();
   const user = useUserStore((s) => s.user);
-  const loading = useUserStore((s) => s.loading);
-  const error = useUserStore((s) => s.error);
   const { mode } = useThemeStore();
 
   if (mode === null) return null;
@@ -39,9 +37,6 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     <>
       <Backdrop onClick={onClose} />
       <Modal>
-        {loading && <p>로딩 중…</p>}
-        {error && <p>유저 정보를 불러올 수 없습니다.</p>}
-
         {user && (
           <>
             <ProfileSection>

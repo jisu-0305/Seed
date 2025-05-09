@@ -1,49 +1,86 @@
 /* eslint-disable react/no-array-index-key */
 import styled from '@emotion/styled';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
+import {
+  fetchInvitationCandidates,
+  fetchProjectUsers,
+  sendInvitations,
+} from '@/apis/user';
 import SmallModal from '@/components/Common/Modal/SmallModal';
+import { ProjectMember } from '@/types/project';
 
 interface InviteModalProps {
+  projectId: string | null;
   isShowing: boolean;
   handleClose: () => void;
 }
 
-const dummyUsers = [
-  { name: '김승엽', id: '@syt05342' },
-  { name: '김예슬', id: '@0ysgong' },
-  { name: '김유진', id: '@galilee155' },
-  { name: '김재훈', id: '@potential1205' },
-  { name: '김지수', id: '@comjisu0311' },
-  { name: '김효승', id: '@julia_2000' },
-];
-
-const invited = [
-  { name: '김예슬', id: '@0ysgong', status: 'accepted' },
-  { name: '김지수', id: '@comjisu0311', status: 'accepted' },
-  { name: '이효승', id: '@julia_2000', status: 'pending' },
-  { name: '배석진', id: '@bsj1044', status: 'rejected' },
-];
-
-const TeamInviteModal = ({ isShowing, handleClose }: InviteModalProps) => {
+const TeamInviteModal = ({
+  projectId,
+  isShowing,
+  handleClose,
+}: InviteModalProps) => {
   const [query, setQuery] = useState('');
-  const [filtered, setFiltered] = useState(dummyUsers);
-  const [selectedUsers, setSelectedUsers] = useState<typeof dummyUsers>([]);
+  const [filtered, setFiltered] = useState<ProjectMember[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<ProjectMember[]>([]);
+  const [projectUsers, setProjectUsers] = useState<ProjectMember[]>([]);
 
-  const handleSelectUser = (user: (typeof dummyUsers)[0]) => {
-    if (selectedUsers.some((u) => u.id === user.id)) return;
+  const handleSelectUser = (user: ProjectMember) => {
+    if (selectedUsers.some((u) => u.userId === user.userId)) return;
     setSelectedUsers((prev) => [...prev, user]);
   };
 
-  const handleRemoveSelected = (id: string) => {
-    setSelectedUsers((prev) => prev.filter((user) => user.id !== id));
+  const handleRemoveSelected = (userId: number) => {
+    setSelectedUsers((prev) => prev.filter((user) => user.userId !== userId));
   };
 
-  const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = async (e: ChangeEvent<HTMLInputElement>) => {
     const keyword = e.target.value;
     setQuery(keyword);
-    setFiltered(dummyUsers.filter((user) => user.name.includes(keyword)));
+    if (!projectId) {
+      setFiltered([]);
+      return;
+    }
+    const id = Number(projectId);
+    if (Number.isNaN(id)) {
+      setFiltered([]);
+      return;
+    }
+
+    try {
+      const candidates = await fetchInvitationCandidates(id, keyword);
+      setFiltered(candidates);
+    } catch (err) {
+      console.error('초대 가능 사용자 조회 실패', err);
+      setFiltered([]);
+    }
   };
+
+  const handleDone = async () => {
+    if (!projectId) return;
+    const id = Number(projectId);
+    if (Number.isNaN(id)) return;
+
+    const idList = selectedUsers.map((u) => u.userId);
+    try {
+      await sendInvitations(id, idList);
+      handleClose();
+    } catch (err) {
+      console.error('초대 요청 실패', err);
+    }
+  };
+
+  useEffect(() => {
+    if (!isShowing || !projectId) return;
+    const id = Number(projectId);
+    if (Number.isNaN(id)) {
+      console.warn(`Invalid projectId: ${projectId}`);
+      return;
+    }
+
+    fetchProjectUsers(id).then(setProjectUsers);
+  }, [isShowing, projectId]);
 
   return (
     isShowing && (
@@ -71,9 +108,12 @@ const TeamInviteModal = ({ isShowing, handleClose }: InviteModalProps) => {
               <SearchList>
                 {filtered.map((user, idx) => (
                   <SearchItem key={idx} onClick={() => handleSelectUser(user)}>
-                    <Profile src="/assets/icons/ic_profile.svg" alt="profile" />
-                    <div>{user.name}</div>
-                    <div>{user.id}</div>
+                    <Profile
+                      src={user.profileImageUrl || '/assets/user.png'}
+                      alt="profile"
+                    />
+                    <div>{user.userName}</div>
+                    <div>{user.userIdentifyId}</div>
                   </SearchItem>
                 ))}
               </SearchList>
@@ -83,16 +123,19 @@ const TeamInviteModal = ({ isShowing, handleClose }: InviteModalProps) => {
               <UserList>
                 {/* 새로 선택한 유저 */}
                 {selectedUsers.map((user) => (
-                  <UserItem key={user.id}>
-                    <Profile src="/assets/icons/ic_profile.svg" alt="profile" />
+                  <UserItem key={user.userId}>
+                    <Profile
+                      src={user.profileImageUrl || '/assets/user.png'}
+                      alt="profile"
+                    />
                     <UserInfo>
-                      <div>{user.name}</div>
-                      <div>{user.id}</div>
+                      <div>{user.userName}</div>
+                      <div>{user.userIdentifyId}</div>
                     </UserInfo>
                     <IcIcon
                       src="/assets/icons/ic_delete.svg"
                       alt="delete button"
-                      onClick={() => handleRemoveSelected(user.id)}
+                      onClick={() => handleRemoveSelected(user.userId)}
                     />
                   </UserItem>
                 ))}
@@ -100,12 +143,15 @@ const TeamInviteModal = ({ isShowing, handleClose }: InviteModalProps) => {
 
               <UserList>
                 {/* 기존 초대한 사람들 (상태 표시만) */}
-                {invited.map((user, idx) => (
+                {projectUsers.map((user, idx) => (
                   <UserItem key={idx}>
-                    <Profile src="/assets/icons/ic_profile.svg" alt="profile" />
+                    <Profile
+                      src={user.profileImageUrl || '/assets/user.png'}
+                      alt="profile"
+                    />
                     <UserInfo>
-                      <div>{user.name}</div>
-                      <div>{user.id}</div>
+                      <div>{user.userName}</div>
+                      <div>{user.userIdentifyId}</div>
                     </UserInfo>
                     <StatusText status={user.status}>
                       {user.status === 'accepted'
@@ -120,7 +166,7 @@ const TeamInviteModal = ({ isShowing, handleClose }: InviteModalProps) => {
             </MemberWrapper>
           </ContentWrapper>
 
-          <DoneButton onClick={handleClose}>완료</DoneButton>
+          <DoneButton onClick={handleDone}>완료</DoneButton>
         </ModalWrapper>
       </SmallModal>
     )
@@ -226,12 +272,19 @@ const UserList = styled.div`
   margin-top: 1rem;
 
   overflow-y: auto;
+  overflow-x: hidden;
 
   border-bottom: 1px solid ${({ theme }) => theme.colors.LightGray2};
 
   &:last-of-type {
     height: 100%;
     border-bottom: none;
+  }
+
+  & {
+    scrollbar-width: thin;
+    scrollbar-color: ${({ theme }) =>
+      `${theme.colors.BorderDefault} transparent`};
   }
 `;
 

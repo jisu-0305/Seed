@@ -42,6 +42,7 @@ export interface ProjectMember {
   userName: string;
   userIdentifyId: string;
   profileImageUrl: string;
+  status: 'accepted' | 'pending' | 'rejected';
 }
 
 export interface Application {
