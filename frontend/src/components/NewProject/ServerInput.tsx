@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import { useEffect } from 'react';
 
 import { useModal } from '@/hooks/Common';
-import { useProjectInfoStore } from '@/stores/projectStore';
+import {
+  useProjectFileStore,
+  useProjectInfoStore,
+} from '@/stores/projectStore';
 
 import FileInput from '../Common/FileInput';
 import ModalWrapper from '../Common/Modal/ModalWrapper';
@@ -16,6 +19,8 @@ export default function ServerInput() {
   const { stepStatus, setServerStatus, setOnNextValidate, setOnNextSuccess } =
     useProjectInfoStore();
   const { server } = stepStatus;
+
+  const { setPemFile } = useProjectFileStore();
 
   const pemTip = useModal();
   const ipTip = useModal();
@@ -38,6 +43,7 @@ export default function ServerInput() {
   const handlePemChange = (file: File) => {
     if (file) {
       setServerStatus({ ip: server.ip, pem: !!file });
+      setPemFile(file);
     }
   };
 

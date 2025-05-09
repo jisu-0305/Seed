@@ -1,14 +1,19 @@
 import styled from '@emotion/styled';
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useEffect } from 'react';
 
-import { useProjectInfoStore } from '@/stores/projectStore';
+import {
+  useProjectFileStore,
+  useProjectInfoStore,
+} from '@/stores/projectStore';
 
 import FileInput from '../Common/FileInput';
 import TipItem from '../Common/TipItem';
 
 export default function EnvInput() {
-  const { stepStatus, setEnvStatus } = useProjectInfoStore();
+  const { stepStatus, setEnvStatus, setOnNextValidate } = useProjectInfoStore();
   const { env } = stepStatus;
+
+  const { setBackEnvFile, setFrontEnvFile } = useProjectFileStore();
 
   const handleNodeVersionChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEnvStatus({ ...env, node: e.target.value });
@@ -24,11 +29,30 @@ export default function EnvInput() {
 
   const handleClientEnvChange = (file: File) => {
     setEnvStatus({ ...env, frontEnv: !!file });
+    setFrontEnvFile(file);
   };
 
   const handleServerEnvChange = (file: File) => {
     setEnvStatus({ ...env, backEnv: !!file });
+    setBackEnvFile(file);
   };
+
+  // 유효성 검사
+  const isFormValid = () => {
+    return (
+      !!env.frontEnv &&
+      !!env.node &&
+      !!env.node &&
+      !!env.backEnv &&
+      !!env.buildTool
+    );
+  };
+
+  // next 버튼 핸들러
+  useEffect(() => {
+    setOnNextValidate(isFormValid);
+  }, [env]);
+
   return (
     <Container>
       <Section>
@@ -37,7 +61,7 @@ export default function EnvInput() {
           <Label>Node.js version</Label>
           <Input
             type="text"
-            placeholder="v22.14.0"
+            placeholder="22"
             value={env.node}
             onChange={handleNodeVersionChange}
           />

@@ -35,7 +35,7 @@ const initialStatus: ProjectInfo = {
   env: {
     frontEnv: false,
     backEnv: false,
-    node: 'v22.14.0',
+    node: 'v22',
     jdk: 17,
     buildTool: 'Gradle',
   },
@@ -80,3 +80,30 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
     },
   ),
 );
+
+interface ProjectFileState {
+  pemFile: File | null;
+  frontEnvFile: File | null;
+  backEnvFile: File | null;
+  setPemFile: (file: File | null) => void;
+  setFrontEnvFile: (file: File | null) => void;
+  setBackEnvFile: (file: File | null) => void;
+  clearAll: () => void;
+}
+
+export const useProjectFileStore = create<ProjectFileState>((set) => ({
+  pemFile: null,
+  frontEnvFile: null,
+  backEnvFile: null,
+
+  setPemFile: (file) => set({ pemFile: file }),
+  setFrontEnvFile: (file) => set({ frontEnvFile: file }),
+  setBackEnvFile: (file) => set({ backEnvFile: file }),
+
+  clearAll: () =>
+    set({
+      pemFile: null,
+      frontEnvFile: null,
+      backEnvFile: null,
+    }),
+}));

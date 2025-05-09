@@ -85,11 +85,11 @@ export default function ProjectEditInput() {
   };
 
   const handleClientEnvChange = (file: File) => {
-    setEnvStatus({ ...env, env: !!file });
+    setEnvStatus({ ...env, frontEnv: !!file });
   };
 
   const handleServerEnvChange = (file: File) => {
-    setEnvStatus({ ...env, env: !!file });
+    setEnvStatus({ ...env, frontEnv: !!file });
   };
 
   const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
@@ -126,7 +126,7 @@ export default function ProjectEditInput() {
               onClick={() => handleSelectApp(idx)}
             >
               <AppName>{app.name} :</AppName>
-              {app.tag === 'latest' ? 'LTS' : app.tag}
+              {app.tag}
               <CloseButton onClick={() => handleDeleteApp(idx)}>x</CloseButton>
             </Tag>
           ))}
