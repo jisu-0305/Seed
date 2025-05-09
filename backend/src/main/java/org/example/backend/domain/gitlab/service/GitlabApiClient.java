@@ -9,34 +9,34 @@ import java.util.List;
 
 public interface GitlabApiClient {
 
-    void registerPushWebhook(String gitlabAccessToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
+    void registerPushWebhook(String gitlabPersonalAccessToken, Long projectId, String hookUrl, String pushEventsBranchFilter);
 
-    void submitCommit(String gitlabAccessToken, Long projectId, String branch, String commitMessage, List<CommitAction> action);
+    void submitCommit(String gitlabPersonalAccessToken, Long projectId, String branch, String commitMessage, List<CommitAction> action);
 
-    MergeRequestCreateResponse submitMergeRequest(String accessToken,
+    MergeRequestCreateResponse submitMergeRequest(String gitlabPersonalAccessToken,
                                                   Long projectId,
                                                   String sourceBranch,
                                                   String targetBranch,
                                                   String title,
                                                   String description);
 
-    GitlabBranch submitBranchCreation(String accessToken, Long projectId, String branch, String ref);
+    GitlabBranch submitBranchCreation(String gitlabPersonalAccessToken, Long projectId, String branch, String ref);
 
-    void submitBranchDeletion(String accessToken, Long projectId, String branch);
+    void submitBranchDeletion(String gitlabPersonalAccessToken, Long projectId, String branch);
 
-    List<GitlabProject> requestProjectList(String gitlabAccessToken, int page, int perPage);
+    List<GitlabProject> requestProjectList(String gitlabPersonalAccessToken, int page, int perPage);
 
     GitlabProject requestProjectInfo(String gitlabPersonalAccessToken, String projectUrl);
 
-    Mono<List<GitlabMergeRequest>> requestMergedMrs(String accessToken, Long projectId, int page, int perPage);
+    Mono<List<GitlabMergeRequest>> requestMergedMrs(String gitlabPersonalAccessToken, Long projectId, int page, int perPage);
 
-    Mono<GitlabMergeRequest> requestMrDetail(String accessToken, Long projectId, Long mergeRequestIid);
+    Mono<GitlabMergeRequest> requestMrDetail(String gitlabPersonalAccessToken, Long projectId, Long mergeRequestIid);
 
-    Mono<GitlabCompareResponse> requestCommitComparison(String accessToken, Long projectId, String from, String to);
+    Mono<GitlabCompareResponse> requestCommitComparison(String gitlabPersonalAccessToken, Long projectId, String from, String to);
 
 
     List<GitlabTree> requestRepositoryTree(
-            String gitlabAccessToken,
+            String gitlabPersonalAccessToken,
             Long projectId,
             String path,
             boolean recursive,
@@ -45,8 +45,8 @@ public interface GitlabApiClient {
             String branchName
     );
 
-    String requestRawFileContent(String gitlabAccessToken, Long projectId, String path, String ref);
+    String requestRawFileContent(String gitlabPersonalAccessToken, Long projectId, String path, String ref);
 
-    void validateBranchExists(String accessToken, Long projectId, String branchName);
+    void validateBranchExists(String gitlabPersonalAccessToken, Long projectId, String branchName);
 
 }
