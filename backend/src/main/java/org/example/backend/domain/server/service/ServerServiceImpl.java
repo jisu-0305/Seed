@@ -110,12 +110,12 @@ public class ServerServiceImpl implements ServerService {
         log.info(gitlabProject.toString());
 
         return Stream.of(
-                updatePackageManager(),
+                //updatePackageManager(),
                 //setSwapMemory(),
                 //setJDK(),
                 //setNodejs(),
                 //setDocker(),
-                setNginx(project.getServerIP()),
+                //setNginx(project.getServerIP()),
                 setJenkins(),
                 setJenkinsConfigure(),
                 makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
@@ -481,9 +481,9 @@ public class ServerServiceImpl implements ServerService {
                 frontendDockerScript =
                         "                        set -e\n" +
                                 "                        docker build -f Dockerfile -t next .\n" +
-                                "                        docker stop frontend || true\n" +
-                                "                        docker rm frontend || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name frontend -p 3000:3000 next\n";
+                                "                        docker stop next || true\n" +
+                                "                        docker rm next || true\n" +
+                                "                        docker run -d --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
                 break;
         }
 
@@ -522,10 +522,10 @@ public class ServerServiceImpl implements ServerService {
                         "                        set -e\n" +
                         "                        chmod +x gradlew\n" +
                         "                        ./gradlew clean build -x test\n" +
-                        "                        docker build -t spring-app .\n" +
-                        "                        docker stop my-spring-app || true\n" +
-                        "                        docker rm my-spring-app || true\n" +
-                        "                        docker run -d -p 8080:8080 --env-file .env --name my-spring-app spring-app\n" +
+                        "                        docker build -t spring .\n" +
+                        "                        docker stop spring || true\n" +
+                        "                        docker rm spring || true\n" +
+                        "                        docker run -d -p 8080:8080 --env-file .env --name spring spring\n" +
                         "                    '''\n" +
                         "                }\n" +
                         "                echo '[INFO] 백엔드 완료'\n" +
