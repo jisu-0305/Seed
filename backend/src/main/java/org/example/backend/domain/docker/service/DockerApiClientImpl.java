@@ -9,10 +9,15 @@ import org.example.backend.domain.docker.dto.ContainerDto;
 import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 
 import java.net.URI;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 @Component
@@ -64,6 +69,40 @@ public class DockerApiClientImpl implements DockerApiClient {
         return fetchFlux(dockerWebClient, uri, ContainerDto.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
     }
 
+    @Override
+    public List<String> getContainerLogs(
+            String containerId,
+            Boolean stdout,
+            Boolean stderr,
+            String tail,
+            Long since,
+            Long until,
+            Boolean timestamps,
+            Boolean details,
+            Boolean follow
+    ) {
+
+        URI uri = uriBuilder.buildContainerLogsUri(
+                containerId, stdout, stderr, tail, since, until, timestamps, details, follow
+        );
+        log.debug(">> 컨테이너 로그 조회 URI: {}", uri);
+
+        // 1) Raw DataBuffer flux로 받기
+        Flux<DataBuffer> rawFlux = dockerWebClient.get()
+                .uri(uri)
+                .retrieve()
+                .bodyToFlux(DataBuffer.class);
+
+        // 2) Demultiplex and collect lines
+        List<String> logLines = rawFlux
+                .flatMap(dataBuffer -> demultiplex(dataBuffer.asByteBuffer()))
+                .collectList()
+                .block();
+
+        return logLines;
+
+    }
+
     /* 공통 로짘 */
     private <T> T fetchMono(WebClient client, URI uri, Class<T> clazz, ErrorCode errorCode) {
         try {
@@ -90,5 +129,19 @@ public class DockerApiClientImpl implements DockerApiClient {
             log.error(">> fetchFlux 실패 - URI: {}, Error: {}", uri, e.getMessage(), e);
             throw new BusinessException(errorCode);
         }
+    }
+
+    private Flux<String> demultiplex(ByteBuffer buf) {
+        List<String> out = new ArrayList<>();
+        while (buf.remaining() >= 8) {
+            buf.get(); // stream type
+            buf.get(); buf.get(); buf.get(); // reserved
+            int len = buf.getInt(); // payload 길이
+            if (buf.remaining() < len) break;
+            byte[] chunk = new byte[len];
+            buf.get(chunk);
+            out.add(new String(chunk, StandardCharsets.UTF_8));
+        }
+        return Flux.fromIterable(out);
     }
 }

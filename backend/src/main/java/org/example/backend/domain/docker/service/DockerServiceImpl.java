@@ -2,7 +2,9 @@ package org.example.backend.domain.docker.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.*;
+import org.example.backend.domain.docker.dto.ContainerDto;
 import org.example.backend.domain.docker.dto.DockerImage;
 import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
@@ -131,6 +133,33 @@ public class DockerServiceImpl implements DockerService {
             log.error("도커 getAppStatus 실패_ appName={}", appName, e);
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
         }
+    }
+
+    @Override
+    public List<DockerContainerLogResponse> getContainerLogs(String appName, DockerContainerLogRequest request) {
+
+        List<ContainerDto> containers = dockerApiClient.getContainersByName(appName);
+        if (containers.isEmpty()) {
+            throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
+                    String.format("애플리케이션 이름 '%s' 에 해당하는 컨테이너가 없습니다.", appName));
+        }
+        String containerId = containers.get(0).getId();
+
+        List<String> rawLines = dockerApiClient.getContainerLogs(
+                containerId,
+                request.stdout(),
+                request.stderr(),
+                request.tail(),
+                request.since(),
+                request.until(),
+                request.timestamps(),
+                request.details(),
+                request.follow()
+        );
+
+        return rawLines.stream()
+                .map(line -> DockerContainerLogResponse.of(line, request.timestamps()))
+                .collect(Collectors.toList());
     }
 
 }

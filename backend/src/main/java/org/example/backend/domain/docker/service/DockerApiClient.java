@@ -13,4 +13,15 @@ public interface DockerApiClient {
     DemonContainerStateCountResponse getInfo();
     List<ContainerDto> getContainersByStatus(List<String> statuses);
     List<ContainerDto> getContainersByName(String nameFilter);
+    List<String> getContainerLogs(
+            String containerId,
+            Boolean stdout,
+            Boolean stderr,
+            String tail,
+            Long since,
+            Long until,
+            Boolean timestamps,
+            Boolean details,
+            Boolean follow
+    );
 }
