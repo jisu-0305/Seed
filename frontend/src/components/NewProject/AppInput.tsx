@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { getImageTag } from '@/apis/gitlab';
 import { useModal } from '@/hooks/Common';
@@ -32,31 +32,27 @@ export default function AppInput() {
   const [tagList, setTagList] = useState<string[]>([]);
   const [port, setPort] = useState(8080);
 
-  useEffect(() => {
-    fetchImageTag(apps[selectedIndex || 0].name);
-  }, [selectedIndex]);
-
-  const handleAddApp = (name: string) => {
+  const handleAddApp = async (name: string) => {
     const existingIndex = apps.findIndex((a) => a.name === name);
 
     if (existingIndex !== -1) {
-      // 새로 추가한 앱
       const existingApp = apps[existingIndex];
       setSelectedIndex(existingIndex);
       setPort(existingApp.port);
       return;
     }
 
-    // 이미 있는 앱
     const usedPorts = new Set(apps.map((a) => a.port));
     let assignedPort = 8080;
     while (usedPorts.has(assignedPort)) {
       assignedPort += 1;
     }
 
+    const tagName = await fetchImageTag(name);
+
     const newApp = {
       name,
-      tag: tagList[0],
+      tag: tagName,
       port: assignedPort,
     };
 
@@ -70,6 +66,8 @@ export default function AppInput() {
   const fetchImageTag = async (tag: string) => {
     const { data } = await getImageTag(tag);
     setTagList(data.map((item: TagResponse) => item.name));
+
+    return data[0].name;
   };
 
   const handleSelectApp = (index: number) => {

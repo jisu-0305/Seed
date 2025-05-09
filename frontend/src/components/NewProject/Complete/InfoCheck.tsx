@@ -69,8 +69,7 @@ export default function InfoCheck() {
             status.app.map((app) => (
               <Row key={app.name}>
                 <AppInfo>
-                  <strong>{app.name}</strong> :{' '}
-                  {app.tag === 'latest' ? 'LTS' : app.tag}
+                  <strong>{app.name}</strong> : {app.tag}
                 </AppInfo>
                 <PortInfo>: {app.port}</PortInfo>
               </Row>
