@@ -5,7 +5,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class ReportResponseDto {
+public class ReportResponse {
     private String summary;
     private List<String> appliedFiles;
     private String additionalNotes;

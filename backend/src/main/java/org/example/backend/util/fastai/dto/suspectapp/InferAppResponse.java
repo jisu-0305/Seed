@@ -6,7 +6,7 @@ import lombok.Data;
 import java.util.List;
 
 @Data
-public class InferApplicationResponseDto {
+public class InferAppResponse {
     @JsonProperty("Reason")
     private String reason;
     private List<String> suspectedApps;

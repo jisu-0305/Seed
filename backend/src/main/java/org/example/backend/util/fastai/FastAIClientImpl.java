@@ -7,10 +7,10 @@ import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
-import org.example.backend.util.fastai.dto.aireport.ReportResponseDto;
-import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponseDto;
-import org.example.backend.util.fastai.dto.suspectapp.InferApplicationResponseDto;
-import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponseDto;
+import org.example.backend.util.fastai.dto.aireport.ReportResponse;
+import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponse;
+import org.example.backend.util.fastai.dto.suspectapp.InferAppResponse;
+import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -36,6 +36,7 @@ public class FastAIClientImpl implements FastAIClient{
 
         try {
             json = objectMapper.writeValueAsString(request);
+            log.debug("🔍 [InferApp] Request JSON: {}", json);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
         }
@@ -54,9 +55,9 @@ public class FastAIClientImpl implements FastAIClient{
         }
 
 
-        InferApplicationResponseDto dto;
+        InferAppResponse dto;
         try {
-            dto = objectMapper.readValue(response, InferApplicationResponseDto.class);
+            dto = objectMapper.readValue(response, InferAppResponse.class);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AI_INFER_RESPONSE_PARSING_FAILED);
         }
@@ -68,12 +69,13 @@ public class FastAIClientImpl implements FastAIClient{
         return dto.getSuspectedApps();
     }
 
-    public SuspectFileResponseDto requestSuspectFiles(String diffRaw, String tree, String log) {
+    public SuspectFileResponse requestSuspectFiles(String diffRaw, String tree, String appLog) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("diff_raw", diffRaw);
         formData.add("tree", tree);
-        formData.add("log", log);
+        formData.add("log", appLog);
 
+        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", formData);
         String response = webClient.post()
                 .uri(fastApiBaseUrl + "/ai/filepath")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -84,7 +86,7 @@ public class FastAIClientImpl implements FastAIClient{
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            SuspectFileResponseDto dto = objectMapper.readValue(response, SuspectFileResponseDto.class);
+            SuspectFileResponse dto = objectMapper.readValue(response, SuspectFileResponse.class);
 
             // 필수 필드 확인
             if (dto.getResponse() == null ||
@@ -103,13 +105,14 @@ public class FastAIClientImpl implements FastAIClient{
         }
     }
 
-    public ResolveErrorResponseDto  requestResolveError(String errorSummary, String cause, String resolutionHint, String filesRawJson) {
+    public ResolveErrorResponse requestResolveError(String errorSummary, String cause, String resolutionHint, String filesRawJson) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("errorSummary", errorSummary);
         formData.add("cause", cause);
         formData.add("resolutionHint", resolutionHint);
         formData.add("files_raw", filesRawJson);
 
+        log.debug(">>>>>>>> [Fast API]requestResolveError: {}", formData);
         String response;
         try {
             response = webClient.post()
@@ -125,7 +128,7 @@ public class FastAIClientImpl implements FastAIClient{
 
         try {
             ObjectMapper objectMapper = new ObjectMapper();
-            ResolveErrorResponseDto dto = objectMapper.readValue(response, ResolveErrorResponseDto.class);
+            ResolveErrorResponse dto = objectMapper.readValue(response, ResolveErrorResponse.class);
 
             if (dto.getResponse() == null ||
                     dto.getResponse().getFileFixes() == null ||
@@ -144,6 +147,7 @@ public class FastAIClientImpl implements FastAIClient{
         formData.add("original_code", originalCode);
         formData.add("instruction", instruction);
 
+        log.debug(">>>>>>>> [Fast API]requestPatchText: {}", formData);
         try {
             return webClient.post()
                     .uri(fastApiBaseUrl + "/ai/patch")
@@ -163,6 +167,7 @@ public class FastAIClientImpl implements FastAIClient{
         formData.add("original_code", originalCode);
         formData.add("instruction", instruction);
 
+        log.debug(">>>>>>>> [Fast API]requestPatchFile: {}", formData);
         try {
             String patchedCode = webClient.post()
                     .uri(fastApiBaseUrl + "/ai/patch/file")
@@ -182,8 +187,9 @@ public class FastAIClientImpl implements FastAIClient{
         }
     }
 
-    public ReportResponseDto requestErrorReport(String jsonBody) {
+    public ReportResponse requestErrorReport(String jsonBody) {
         String response;
+        log.debug(">>>>>>>> [Fast API]requestErrorReport: {}", jsonBody);
         try {
             response = webClient.post()
                     .uri(fastApiBaseUrl + "/ai/report")
@@ -198,7 +204,7 @@ public class FastAIClientImpl implements FastAIClient{
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            ReportResponseDto dto = mapper.readValue(response, ReportResponseDto.class);
+            ReportResponse dto = mapper.readValue(response, ReportResponse.class);
 
             if (dto.getSummary() == null || dto.getAppliedFiles() == null || dto.getAppliedFiles().isEmpty()) {
                 throw new BusinessException(ErrorCode.AI_REPORT_RESPONSE_MALFORMED);

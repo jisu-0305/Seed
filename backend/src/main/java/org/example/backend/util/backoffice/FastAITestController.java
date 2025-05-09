@@ -6,12 +6,14 @@ import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.fastai.FastAIClientImpl;
-import org.example.backend.util.fastai.dto.*;
-import org.example.backend.util.fastai.dto.aireport.ReportResponseDto;
-import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponseDto;
+import org.example.backend.util.fastai.dto.aireport.ReportResponse;
+import org.example.backend.util.fastai.dto.patchfile.PatchFileRequest;
+import org.example.backend.util.fastai.dto.patchfile.PatchTextRequest;
+import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponse;
+import org.example.backend.util.fastai.dto.resolvefile.ResolveRequest;
 import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
 import org.example.backend.util.fastai.dto.suspectfile.FilepathRequest;
-import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponseDto;
+import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -33,14 +35,14 @@ public class FastAITestController {
     }
 
     @PostMapping("/filepath")
-    public ResponseEntity<SuspectFileResponseDto> testFilepathRequest(@ModelAttribute FilepathRequest filepathRequest) {
+    public ResponseEntity<SuspectFileResponse> testFilepathRequest(@ModelAttribute FilepathRequest filepathRequest) {
         if (!StringUtils.hasText(filepathRequest.getDiffRaw()) ||
                 !StringUtils.hasText(filepathRequest.getTree()) ||
                 !StringUtils.hasText(filepathRequest.getLog())) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        SuspectFileResponseDto response = fastAIClientImpl.requestSuspectFiles(
+        SuspectFileResponse response = fastAIClientImpl.requestSuspectFiles(
                 filepathRequest.getDiffRaw(),
                 filepathRequest.getTree(),
                 filepathRequest.getLog()
@@ -49,8 +51,8 @@ public class FastAITestController {
     }
 
     @PostMapping("/resolve")
-    public ResponseEntity<ResolveErrorResponseDto> testResolveRequest(@ModelAttribute ResolveRequest resolveRequest) {
-        ResolveErrorResponseDto response = fastAIClientImpl.requestResolveError(
+    public ResponseEntity<ResolveErrorResponse> testResolveRequest(@ModelAttribute ResolveRequest resolveRequest) {
+        ResolveErrorResponse response = fastAIClientImpl.requestResolveError(
                 resolveRequest.getErrorSummary(),
                 resolveRequest.getCause(),
                 resolveRequest.getResolutionHint(),
@@ -79,8 +81,8 @@ public class FastAITestController {
     }
 
     @PostMapping("/report")
-    public ResponseEntity<ReportResponseDto> testReport(@RequestBody String reportJson) {
-        ReportResponseDto response = fastAIClientImpl.requestErrorReport(reportJson);
+    public ResponseEntity<ReportResponse> testReport(@RequestBody String reportJson) {
+        ReportResponse response = fastAIClientImpl.requestErrorReport(reportJson);
         return ResponseEntity.ok(response);
     }
 }
