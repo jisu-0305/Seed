@@ -18,5 +18,5 @@ public interface JenkinsService {
     List<JenkinsBuildChangeSummaryResponse> getBuildChangesWithSummary(int buildNumber, Long projectId, String accessToken);
     void logLastBuildResultToProject(Long projectId, String accessToken);
     void issueAndSaveToken(Long projectId, String serverIp, String accessToken);
-    String getStepLogById(Long projectId, int buildNumber, String stepId, String accessToken);
+    String getStepLogById(Long projectId, int buildNumber, String stepNumber, String accessToken);
 }

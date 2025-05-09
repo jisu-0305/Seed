@@ -234,7 +234,7 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public String getStepLogById(Long projectId, int buildNumber, String stepId, String accessToken) {
+    public String getStepLogById(Long projectId, int buildNumber, String stepNumber, String accessToken) {
         validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
 
@@ -244,7 +244,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
         int targetStepIndex;
         try {
-            targetStepIndex = Integer.parseInt(stepId);
+            targetStepIndex = Integer.parseInt(stepNumber);
         } catch (NumberFormatException e) {
             throw new BusinessException(ErrorCode.INVALID_STEP_ID);
         }
