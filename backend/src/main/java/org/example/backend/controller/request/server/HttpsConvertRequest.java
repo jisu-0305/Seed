@@ -8,6 +8,9 @@ import lombok.Setter;
 @Setter
 @NoArgsConstructor
 public class HttpsConvertRequest {
+    private String serverIP;
     private String domain;
     private String email;
+    private Long projectId;
+
 }
