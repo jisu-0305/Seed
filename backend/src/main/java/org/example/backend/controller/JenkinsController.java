@@ -89,4 +89,16 @@ public class JenkinsController {
         jenkinsService.issueAndSaveToken(projectId, serverIp, accessToken);
         return ResponseEntity.ok("토큰 발급 및 저장 완료");
     }
+
+    @Operation(summary = "단계별 로그 조회", description = "빌드 번호와 단계명(stepId)을 이용해 해당 단계의 콘솔 로그를 조회합니다.")
+    @GetMapping("/{projectId}/builds/{buildNumber}/step-log")
+    public ResponseEntity<String> getStepLogById(@PathVariable Long projectId,
+                                                 @PathVariable int buildNumber,
+                                                 @RequestParam String stepId,
+                                                 @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+        String log = jenkinsService.getStepLogById(projectId, buildNumber, stepId, accessToken);
+        return ResponseEntity.ok(log);
+    }
+
+
 }

@@ -4,8 +4,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
+import org.example.backend.common.util.JenkinsUriBuilder;
 import org.example.backend.controller.response.jenkins.*;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class JenkinsServiceImpl implements JenkinsService {
 
     private final JenkinsClient jenkinsClient;
@@ -86,14 +89,19 @@ public class JenkinsServiceImpl implements JenkinsService {
     public JenkinsBuildDetailResponse getBuildDetail(int buildNumber, Long projectId, String accessToken) {
         validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
-        JsonNode buildInfo = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
+
+        String wfapiJson = jenkinsClient.fetchBuildInfo(info, buildNumber + "/wfapi/describe");
         String consoleLog = jenkinsClient.fetchBuildLog(info, buildNumber);
+
+        List<JenkinsBuildStepResponse> steps = mergeStageStatusWithEchoes(wfapiJson, consoleLog);
+
+        JsonNode buildInfo = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
 
         return JenkinsBuildDetailResponse.builder()
                 .buildNumber(buildNumber)
                 .buildName("MR 빌드")
                 .overallStatus(buildInfo.path("result").asText())
-                .stepList(parseConsoleLog(consoleLog))
+                .stepList(steps)
                 .build();
     }
 
@@ -225,90 +233,145 @@ public class JenkinsServiceImpl implements JenkinsService {
         }
     }
 
-    private List<JenkinsBuildStepResponse> parseConsoleLog(String consoleLog) {
-        List<JenkinsBuildStepResponse> steps = new ArrayList<>();
+    @Override
+    public String getStepLogById(Long projectId, int buildNumber, String stepId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+
+        // 전체 콘솔 로그 조회
+        String consoleLog = jenkinsClient.fetchBuildLog(info, buildNumber);
         String[] lines = consoleLog.split("\n");
 
-        int stepNumber = 1;
-        int echoNumber = 1;
-        String currentStageName = null;
-        List<JenkinsBuildEchoResponse> currentEchoes = new ArrayList<>();
-        String currentStartTime = null;
+        int targetStepIndex;
+        try {
+            targetStepIndex = Integer.parseInt(stepId);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(ErrorCode.INVALID_STEP_ID);
+        }
 
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
-        boolean expectingEchoContent = false;
+        int currentStepIndex = 0;
+        String currentStage = null;
+        List<String> collected = new ArrayList<>();
+        boolean insideTargetStage = false;
+
+        for (String line : lines) {
+            if (line.contains("[Pipeline] { (")) {
+                currentStepIndex++;
+                String stageName = line.substring(line.indexOf('(') + 1, line.indexOf(')'));
+
+                if (currentStepIndex == targetStepIndex) {
+                    insideTargetStage = true;
+                    currentStage = stageName;
+                    collected.add("=== Stage: " + stageName + " ===");
+                } else {
+                    insideTargetStage = false;
+                }
+                continue;
+            }
+
+            if (insideTargetStage) {
+                collected.add(line);
+            }
+        }
+
+        if (collected.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_STEP_ID);
+        }
+
+        return String.join("\n", collected);
+    }
+
+
+
+
+
+    private List<JenkinsBuildStepResponse> mergeStageStatusWithEchoes(String wfapiJson, String consoleLog) {
+        JsonNode wfapi = safelyParseJson(wfapiJson);
+        JsonNode stages = wfapi.path("stages");
+
+        Map<String, String> stageStatusMap = new LinkedHashMap<>();
+        for (JsonNode stage : stages) {
+            String name = stage.path("name").asText();
+            String status = stage.path("status").asText();
+            stageStatusMap.put(name, status);
+        }
+
+        Map<String, List<String>> echoMap = extractEchoesFromConsole(consoleLog);
+
+        List<JenkinsBuildStepResponse> stepList = new ArrayList<>();
+        int stepNumber = 1;
+
+        for (Map.Entry<String, String> entry : stageStatusMap.entrySet()) {
+            String stageName = entry.getKey();
+            String status = entry.getValue();
+
+            List<String> echoes = echoMap.getOrDefault(stageName, Collections.emptyList());
+            List<JenkinsBuildEchoResponse> echoDtos = new ArrayList<>();
+            int echoNumber = 1;
+            for (String echo : echoes) {
+                echoDtos.add(JenkinsBuildEchoResponse.builder()
+                        .echoNumber(echoNumber++)
+                        .echoContent(echo)
+                        .duration("-")
+                        .build());
+            }
+
+            stepList.add(JenkinsBuildStepResponse.builder()
+                    .stepNumber(stepNumber++)
+                    .stepName(stageName)
+                    .status(status)
+                    .duration("-")
+                    .echoList(echoDtos)
+                    .build());
+        }
+
+        return stepList;
+    }
+
+    private Map<String, List<String>> extractEchoesFromConsole(String consoleLog) {
+        Map<String, List<String>> stageEchoMap = new LinkedHashMap<>();
+        String[] lines = consoleLog.split("\n");
+
+        String currentStage = null;
+        List<String> currentEchoes = new ArrayList<>();
+        boolean expectingEcho = false;
 
         for (String rawLine : lines) {
             String line = rawLine.trim();
 
-            // timestamp 추출
-            String timestamp = null;
-            if (line.matches("^\\[\\d{2}:\\d{2}:\\d{2}]\\s.*")) {
-                timestamp = line.substring(1, 9);
-                line = line.substring(10);
-            }
-
-            // echo 감지: 다음 줄에 출력이 있는 경우
-            if (expectingEchoContent) {
-                if (!line.isBlank()) {
-                    currentEchoes.add(JenkinsBuildEchoResponse.builder()
-                            .echoNumber(echoNumber++)
-                            .echoContent(line.trim())
-                            .duration("-")
-                            .build());
+            if (line.startsWith("[Pipeline] { (")) {
+                if (currentStage != null) {
+                    stageEchoMap.put(currentStage, new ArrayList<>(currentEchoes));
                 }
-                expectingEchoContent = false;
+                int startIdx = line.indexOf('(');
+                int endIdx = line.indexOf(')', startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    currentStage = line.substring(startIdx + 1, endIdx).trim();
+                    currentEchoes.clear();
+                }
                 continue;
             }
 
             if (line.contains("[Pipeline] echo")) {
-                expectingEchoContent = true;
+                expectingEcho = true;
                 continue;
             }
 
-            // stage 시작 감지: [Pipeline] { (StageName)
-            if (line.startsWith("[Pipeline] { (")) {
-                int startIdx = line.indexOf('(');
-                int endIdx = line.indexOf(')', startIdx);
-                if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
-                    // 이전 단계 저장
-                    if (currentStageName != null) {
-                        steps.add(createStep(stepNumber++, currentStageName, currentStartTime, timestamp, currentEchoes));
-                    }
-
-                    currentStageName = line.substring(startIdx + 1, endIdx).trim();
-                    currentStartTime = timestamp;
-                    currentEchoes = new ArrayList<>();
-                    echoNumber = 1;
-                }
+            if (expectingEcho && !line.startsWith("[Pipeline]") && !line.isBlank()) {
+                currentEchoes.add(line);
+                expectingEcho = false;
             }
         }
 
-        // 마지막 스테이지 마무리
-        if (currentStageName != null) {
-            steps.add(createStep(stepNumber, currentStageName, currentStartTime, null, currentEchoes));
+        if (currentStage != null) {
+            stageEchoMap.put(currentStage, currentEchoes);
         }
 
-        return steps;
+        return stageEchoMap;
     }
 
 
 
-    private JenkinsBuildStepResponse createStep(int stepNumber, String stageName, String start, String end, List<JenkinsBuildEchoResponse> echoes) {
-        String duration = "-";
-        if (start != null && end != null) {
-            long durationSeconds = calculateDuration(start, end);
-            duration = formatDuration(durationSeconds);
-        }
-
-        return JenkinsBuildStepResponse.builder()
-                .stepNumber(stepNumber)
-                .stepName(stageName)
-                .duration(duration)
-                .status("SUCCESS")
-                .echoList(new ArrayList<>(echoes))
-                .build();
-    }
 
     private long calculateDuration(String start, String end) {
         try {
@@ -323,14 +386,6 @@ public class JenkinsServiceImpl implements JenkinsService {
         }
     }
 
-    private String formatDuration(long seconds) {
-        if (seconds < 0) {
-            return "-";
-        }
-        long minutes = seconds / 60;
-        long remainingSeconds = seconds % 60;
-        return (minutes > 0 ? minutes + "m " : "") + remainingSeconds + "s";
-    }
 
     private String formatJenkinsTimestamp(long timestampMillis) {
         return FULL_TIME_FORMATTER.format(Instant.ofEpochMilli(timestampMillis));
@@ -344,9 +399,6 @@ public class JenkinsServiceImpl implements JenkinsService {
         }
     }
 
-    private BuildStatus convertToBuildStatus(String result) {
-        return BuildStatus.valueOf(result);
-    }
 
     private String generateTokenViaCurl(String jenkinsUrl, String username, String password, String tokenName) {
         try {

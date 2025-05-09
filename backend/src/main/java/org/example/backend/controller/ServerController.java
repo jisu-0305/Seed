@@ -4,7 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.common.util.ConvertHttpsUtil;
 import org.example.backend.controller.request.server.*;
+import org.example.backend.controller.response.log.HttpsLogResponse;
 import org.example.backend.domain.project.service.ProjectService;
+import org.example.backend.domain.server.service.HttpsLogService;
 import org.example.backend.domain.server.service.ServerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
@@ -12,6 +14,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -21,6 +25,7 @@ public class ServerController {
     private final ServerService serverService;
     private final ConvertHttpsUtil convertHttpsUtil;
     private final ProjectService projectService;
+    private final HttpsLogService httpsLogService;
 
 
     @PostMapping("/deployment")
@@ -47,16 +52,27 @@ public class ServerController {
     }
 
     @PostMapping(value = "/convert", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "HTTPS 변환", description = "PEM 파일을 업로드하여 HTTPS 설정")
-    public ResponseEntity<ApiResponse<String>> convertHttps(
+    public ApiResponse<String> convertHttps(
             @RequestPart("pem") MultipartFile pem,
             @RequestPart("host") String host,
             @RequestPart("domain") String domain,
             @RequestPart("email") String email,
-            @RequestPart("projectId") String projectId
+            @RequestPart("projectId") String projectId,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
     ) {
-        ApiResponse<String> result = convertHttpsUtil.convertHttpToHttps(pem, host, domain, email);
+        ApiResponse<String> result = convertHttpsUtil.convertHttpToHttps(pem, host, domain, email, Long.parseLong(projectId), accessToken);
         projectService.markHttpsConverted(Long.parseLong(projectId));
-        return ResponseEntity.ok(result);
+        return result;
     }
+
+    @Operation(summary = "HTTPS 로그 조회", description = "프로젝트 ID 기준으로 HTTPS 설정 로그를 조회합니다.")
+    @GetMapping("/{projectId}")
+    public ApiResponse<List<HttpsLogResponse>> getLogs(
+            @PathVariable Long projectId,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
+    ) {
+        List<HttpsLogResponse> logs = httpsLogService.getLogs(projectId, accessToken);
+        return ApiResponse.success(logs);
+    }
+
 }
