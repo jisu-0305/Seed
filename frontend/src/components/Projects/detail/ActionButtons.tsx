@@ -8,7 +8,7 @@ import { useThemeStore } from '@/stores/themeStore';
 import ManageMemberModal from '../Modal/ManageMemberModal';
 
 interface ActionButtonsProps {
-  projectId: string | undefined;
+  projectId: string | null;
 }
 
 export function ActionButtons({ projectId }: ActionButtonsProps) {

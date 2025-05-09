@@ -7,9 +7,3 @@ export interface MeResponse {
     profileImageUrl: string;
   };
 }
-
-export interface User {
-  id: number;
-  name: string;
-  profileImageUrl: string;
-}

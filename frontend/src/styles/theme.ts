@@ -297,6 +297,7 @@ export const lightColors = {
   MenuText: palette.White,
 
   AiReport: palette.Gray4,
+  ModalBg: palette.White,
 
   // 공통 색상
   Main_Carrot: palette.Main_Carrot,
@@ -356,6 +357,7 @@ export const darkColors = {
   MenuText: palette.Black,
 
   AiReport: palette.DarkGray0,
+  ModalBg: palette.DarkGray0,
 
   // 공통 색상
   Main_Carrot: palette.Main_Carrot,
