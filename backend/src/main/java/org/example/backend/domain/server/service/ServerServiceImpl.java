@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
-import org.example.backend.controller.request.server.InitServerRequest;
+import org.example.backend.controller.request.server.HttpsConvertRequest;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
@@ -20,8 +20,11 @@ import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectConfig;
 import org.example.backend.domain.project.repository.ProjectConfigRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
+import org.example.backend.domain.server.entity.HttpsLog;
+import org.example.backend.domain.server.repository.HttpsLogRepository;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
+import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -29,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,11 +43,15 @@ import java.util.stream.Stream;
 public class ServerServiceImpl implements ServerService {
 
     private final UserRepository userRepository;
+    private final UserProjectRepository userProjectRepository;
     private final ProjectRepository projectRepository;
     private final ProjectConfigRepository projectConfigRepository;
     private final RedisSessionManager redisSessionManager;
     private final GitlabService gitlabService;
     private final JenkinsInfoRepository jenkinsInfoRepository;
+    private final HttpsLogRepository httpsLogRepository;
+
+    private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
 
     @Override
     public void registerDeployment(
@@ -209,55 +217,55 @@ public class ServerServiceImpl implements ServerService {
 
     // 7. Nginx 설치
     private List<String> setNginx(String serverIp) {
-        String nginxConf =
-                "server {\n" +
-                        "    listen 80;\n" +
-                        "    server_name " + serverIp + ";\n" +
-
-                        "    location / {\n" +
-//                        "        try_files $uri $uri/ /index.html;\n" +
-                        "        proxy_pass http://localhost:3000;\n" +
-                        "        proxy_http_version 1.1;\n" +
-                        "        proxy_set_header Upgrade $http_upgrade;\n" +
-                        "        proxy_set_header Connection 'upgrade';\n" +
-                        "        proxy_set_header Host $host;\n" +
-                        "        proxy_cache_bypass $http_upgrade;\n" +
-                        "    }\n" +
-                        "\n" +
-                        "    location /api/ {\n" +
-                        "        proxy_pass http://localhost:8080/api/;\n" +
-                        "        proxy_set_header Host $host;\n" +
-                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
-                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
-                        "        proxy_set_header X-Forwarded-Proto $scheme;\n" +
-                        "    }\n" +
-                        "\n" +
-                        "    location /swagger-ui/ {\n" +
-                        "        proxy_pass http://localhost:8080/swagger-ui/;\n" +
-                        "        proxy_set_header Host $host;\n" +
-                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
-                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
-                        "    }\n" +
-                        "\n" +
-                        "    location /v3/api-docs {\n" +
-                        "        proxy_pass http://localhost:8080/v3/api-docs;\n" +
-                        "        proxy_set_header Host $host;\n" +
-                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
-                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
-                        "        add_header Access-Control-Allow-Origin *;\n" +
-                        "    }\n" +
-                        "\n" +
-                        "    location /ws {\n" +
-                        "        proxy_pass http://localhost:8080/ws;\n" +
-                        "        proxy_http_version 1.1;\n" +
-                        "        proxy_set_header Upgrade $http_upgrade;\n" +
-                        "        proxy_set_header Connection \"upgrade\";\n" +
-                        "        proxy_set_header Host $host;\n" +
-                        "        proxy_set_header X-Real-IP $remote_addr;\n" +
-                        "        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\n" +
-                        "        proxy_read_timeout 86400;\n" +
-                        "    }\n" +
-                        "}\n";
+        String nginxConf = String.format("""
+            server {
+                listen 80;
+                server_name %s;
+        
+                location / {
+                    proxy_pass http://localhost:3000;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                }
+        
+                location /api/ {
+                    proxy_pass http://localhost:8080/api/;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+        
+                location /swagger-ui/ {
+                    proxy_pass http://localhost:8080/swagger-ui/;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                }
+        
+                location /v3/api-docs {
+                    proxy_pass http://localhost:8080/v3/api-docs;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    add_header Access-Control-Allow-Origin *;
+                }
+        
+                location /ws {
+                    proxy_pass http://localhost:8080/ws;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_read_timeout 86400;
+                }
+            }
+            """, serverIp);
 
         return List.of(
                 // 7-1. Nginx 설치
@@ -804,36 +812,44 @@ public class ServerServiceImpl implements ServerService {
     }
 
 
-
-
-    // 서버 초기화
-    private List<String> serverResetCommands() {
-        return List.of(
-                ""
-        );
-    }
-
     @Override
-    public void resetServer(InitServerRequest request, MultipartFile pemFile) {
-        String host = request.getServerIp();
-        Session session = null;
+    public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Project project = projectRepository.findById(request.getProjectId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
+        ProjectConfig projectConfig = projectConfigRepository.findByProjectId(project.getId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_CONFIG_NOT_FOUND));
+
+        if (!userProjectRepository.existsByProjectIdAndUserId(project.getId(), user.getId())) {
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
+        }
+
+        String host = project.getServerIP();
+        Session sshSession = null;
 
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
-            session = createSessionWithPem(pemFile, host);
+            sshSession = createSessionWithPem(pemFile, host);
             log.info("세션 생성 성공");
 
             // 2) 명령어 실행
             log.info("초기화 명령 실행 시작");
-            for (String cmd : serverResetCommands()) {
+            for (String cmd : convertHttpToHttpsCommands(request)) {
                 log.info("명령 수행:\n{}", cmd);
-                String output = execCommand(session, cmd);
+                String output = execCommand(sshSession, cmd);
+                saveLog(project.getId(), cmd , "output");
                 log.info("명령 결과:\n{}", output);
             }
 
             // 3) 성공 로그
-            log.info("모든 인프라 설정 세팅을 초기화했습니다.");
+            log.info("Https 전환을 성공했습니다.");
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -843,10 +859,182 @@ public class ServerServiceImpl implements ServerService {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR);
 
         } finally {
-            if (session != null && !session.isConnected()) {
-                session.disconnect();
+            if (sshSession != null && !sshSession.isConnected()) {
+                sshSession.disconnect();
             }
         }
+    }
+
+    private List<String> convertHttpToHttpsCommands(HttpsConvertRequest request) {
+        return Stream.of(
+                installCertbot(),
+                overwriteDomainDefaultNginxConf(request.getDomain()),
+                reloadNginx(),
+                issueSslCertificate(request.getDomain(), request.getEmail()),
+                overwriteNginxConf(request.getDomain()),
+                reloadNginx()
+        ).flatMap(Collection::stream).toList();
+    }
+
+    private List<String> installCertbot() {
+        return List.of(
+                "sudo apt update",
+                "sudo apt install -y certbot python3-certbot-nginx"
+        );
+    }
+
+    private List<String> issueSslCertificate(String domain, String email) {
+        return List.of(
+                String.format("sudo certbot --nginx -d %s --email %s --agree-tos --redirect --non-interactive", domain, email)
+        );
+    }
+
+    private List<String> overwriteNginxConf(String domain) {
+        String conf = generateNginxConf(domain).replace("'", "'\"'\"'");
+        String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
+
+        return List.of(
+                cmd
+        );
+    }
+
+    private List<String> overwriteDomainDefaultNginxConf(String domain) {
+        String conf = generateDomainDefaultNginxConf(domain).replace("'", "'\"'\"'");
+        String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
+
+        return List.of(
+                cmd
+        );
+    }
+
+    private List<String> reloadNginx() {
+        return List.of(
+                "sudo systemctl reload nginx"
+        );
+    }
+
+    private String generateDomainDefaultNginxConf(String domain) {
+        return String.format("""
+            server {
+                listen 80;
+                server_name %s;
+        
+                location / {
+                    proxy_pass http://localhost:3000;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                }
+        
+                location /api/ {
+                    proxy_pass http://localhost:8080/api/;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+        
+                location /swagger-ui/ {
+                    proxy_pass http://localhost:8080/swagger-ui/;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                }
+        
+                location /v3/api-docs {
+                    proxy_pass http://localhost:8080/v3/api-docs;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    add_header Access-Control-Allow-Origin *;
+                }
+        
+                location /ws {
+                    proxy_pass http://localhost:8080/ws;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_read_timeout 86400;
+                }
+            }
+            """, domain);
+    }
+
+    private String generateNginxConf(String domain) {
+        return String.format("""
+            server {
+                listen 80;
+                server_name %s;
+                return 301 https://$host$request_uri;
+            }
+
+            server {
+                listen 443 ssl http2;
+                server_name %s;
+
+                ssl_certificate /etc/letsencrypt/live/%s/fullchain.pem;
+                ssl_certificate_key /etc/letsencrypt/live/%s/privkey.pem;
+                include /etc/letsencrypt/options-ssl-nginx.conf;
+                ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;
+
+                location / {
+                    proxy_pass http://localhost:3000;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_cache_bypass $http_upgrade;
+                }
+
+                location /api/ {
+                    proxy_pass http://localhost:8080/api/;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_set_header X-Forwarded-Proto $scheme;
+                }
+
+                location /swagger-ui/ {
+                    proxy_pass http://localhost:8080/swagger-ui/;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                }
+
+                location /v3/api-docs {
+                    proxy_pass http://localhost:8080/v3/api-docs;
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    add_header Access-Control-Allow-Origin *;
+                }
+
+                location /ws {
+                    proxy_pass http://localhost:8080/ws;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection "upgrade";
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_read_timeout 86400;
+                }
+            }
+        """, domain, domain, domain, domain);
+    }
+
+    private void saveLog(Long projectId, String stepName, String logContent) {
+        httpsLogRepository.save(HttpsLog.builder()
+                .projectId(projectId)
+                .stepName(stepName)
+                .logContent(logContent)
+                .createdAt(LocalDateTime.now())
+                .build());
     }
 
     private Session createSessionWithPem(MultipartFile pemFile, String host) throws JSchException, IOException {
