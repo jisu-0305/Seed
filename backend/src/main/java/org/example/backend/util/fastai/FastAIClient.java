@@ -1,19 +1,23 @@
 package org.example.backend.util.fastai;
 
-import org.example.backend.util.fastai.dto.InferAppRequest;
+import org.example.backend.domain.gitlab.dto.PatchedFile;
+import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
+import org.example.backend.util.fastai.dto.aireport.ReportResponseDto;
+import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponseDto;
+import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponseDto;
 
 import java.util.List;
 
 public interface FastAIClient {
     List<String> requestInferApplications(InferAppRequest request);
 
-    String requestSuspectFiles(String diffRaw, String tree, String log);
+    SuspectFileResponseDto requestSuspectFiles(String diffRaw, String tree, String log);
 
-    String requestResolveError(String errorSummary, String cause, String resolutionHint, String filesRawJson);
+    ResolveErrorResponseDto requestResolveError(String errorSummary, String cause, String resolutionHint, String filesRawJson);
 
     String requestPatchText(String originalCode, String instruction);
 
-    String requestPatchFile(String path, String originalCode, String instruction);
+    PatchedFile requestPatchFile(String path, String originalCode, String instruction);
 
-    String requestErrorReport(String jsonBody);
+    ReportResponseDto requestErrorReport(String jsonBody);
 }

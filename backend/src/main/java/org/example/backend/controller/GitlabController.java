@@ -168,7 +168,6 @@ public class GitlabController {
 
         List<GitlabTree> tree = gitlabService.getRepositoryTree(accessToken, projectId, request.path(), request.recursive());
         return ResponseEntity.ok(ApiResponse.success(tree));
-
     }
 
     /* 11. 파일 원본 조회  */

@@ -1,4 +1,4 @@
-package org.example.backend.util.fastai.dto;
+package org.example.backend.util.fastai.dto.suspectapp;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;

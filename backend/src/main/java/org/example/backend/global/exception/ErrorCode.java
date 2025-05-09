@@ -68,8 +68,20 @@ public enum ErrorCode {
     JENKINS_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6005, "젠킨스 응답 파싱에 실패했습니다."),
     COMMAND_EXECUTION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6006, "서버 명령어 실행에 실패했습니다."),
     CERTBOT_ISSUE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6007, "SSL 인증서 발급에 실패했습니다."),
-    NGINX_RELOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6008, "Nginx reload에 실패했습니다.");
+    NGINX_RELOAD_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6008, "Nginx reload에 실패했습니다."),
 
+    AI_INFER_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6009, "AI 추론 요청 직렬화에 실패했습니다."),
+    AI_INFER_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6010, "AI 추론 응답 파싱에 실패했습니다."),
+    AI_FILEPATH_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6011, "AI 파일 위치 추론 요청 실패"),
+    AI_FILEPATH_RESPONSE_VALIDATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6012, "AI 파일 위치 응답 필드 유효성 검사 실패"),
+    AI_RESOLVE_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6013, "AI 오류 해결 요청 실패"),
+    AI_RESOLVE_RESPONSE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, 6014, "AI 오류 해결 응답 파싱 또는 필드 검사 실패"),
+    AI_PATCH_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6015, "AI 패치 생성 요청 실패"),
+    AI_PATCH_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6016, "AI 패치 응답 파싱 실패"),
+    AI_REPORT_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6017, "AI 보고서 생성 요청 실패"),
+    AI_REPORT_RESPONSE_MALFORMED(HttpStatus.INTERNAL_SERVER_ERROR, 6018, "AI 보고서 응답 파싱 또는 필드 누락"),
+    AI_COMMUNICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6019, "AI API 요청간 에러 발생"),
+    AI_RESPONSE_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6020, "AI 응답 변환 과정 에러");
 
     private final HttpStatus status;
     private final int code;

@@ -2,8 +2,16 @@ package org.example.backend.util.backoffice;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.domain.gitlab.dto.PatchedFile;
+import org.example.backend.global.exception.BusinessException;
+import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.fastai.FastAIClientImpl;
 import org.example.backend.util.fastai.dto.*;
+import org.example.backend.util.fastai.dto.aireport.ReportResponseDto;
+import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponseDto;
+import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
+import org.example.backend.util.fastai.dto.suspectfile.FilepathRequest;
+import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponseDto;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -24,16 +32,15 @@ public class FastAITestController {
         return ResponseEntity.ok(response);
     }
 
-
     @PostMapping("/filepath")
-    public ResponseEntity<String> testFilepathRequest(@ModelAttribute FilepathRequest filepathRequest) {
+    public ResponseEntity<SuspectFileResponseDto> testFilepathRequest(@ModelAttribute FilepathRequest filepathRequest) {
         if (!StringUtils.hasText(filepathRequest.getDiffRaw()) ||
                 !StringUtils.hasText(filepathRequest.getTree()) ||
                 !StringUtils.hasText(filepathRequest.getLog())) {
-            return ResponseEntity.badRequest().body("All fields (diffRaw, tree, log) are required.");
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        String response = fastAIClientImpl.requestSuspectFiles(
+        SuspectFileResponseDto response = fastAIClientImpl.requestSuspectFiles(
                 filepathRequest.getDiffRaw(),
                 filepathRequest.getTree(),
                 filepathRequest.getLog()
@@ -42,8 +49,8 @@ public class FastAITestController {
     }
 
     @PostMapping("/resolve")
-    public ResponseEntity<String> testResolveRequest(@ModelAttribute ResolveRequest resolveRequest) {
-        String response = fastAIClientImpl.requestResolveError(
+    public ResponseEntity<ResolveErrorResponseDto> testResolveRequest(@ModelAttribute ResolveRequest resolveRequest) {
+        ResolveErrorResponseDto response = fastAIClientImpl.requestResolveError(
                 resolveRequest.getErrorSummary(),
                 resolveRequest.getCause(),
                 resolveRequest.getResolutionHint(),
@@ -54,27 +61,26 @@ public class FastAITestController {
 
     @PostMapping("/patch")
     public ResponseEntity<String> testPatchText(@ModelAttribute PatchTextRequest patchTextRequest) {
-        String response = fastAIClientImpl.requestPatchText(
+        String instruction = fastAIClientImpl.requestPatchText(
                 patchTextRequest.getOriginalCode(),
                 patchTextRequest.getInstruction()
         );
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(instruction);
     }
 
     @PostMapping("/patch/file")
-    public ResponseEntity<String> testPatchFile(@ModelAttribute PatchFileRequest patchFileRequest) {
-        String response = fastAIClientImpl.requestPatchFile(
+    public ResponseEntity<PatchedFile> testPatchFile(@ModelAttribute PatchFileRequest patchFileRequest) {
+        PatchedFile patchedFile = fastAIClientImpl.requestPatchFile(
                 patchFileRequest.getPath(),
                 patchFileRequest.getOriginalCode(),
                 patchFileRequest.getInstruction()
         );
-        System.out.println("patch file response: " + response);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(patchedFile);
     }
 
     @PostMapping("/report")
-    public ResponseEntity<String> testReport(@RequestBody String reportJson) {
-        String response = fastAIClientImpl.requestErrorReport(reportJson);
+    public ResponseEntity<ReportResponseDto> testReport(@RequestBody String reportJson) {
+        ReportResponseDto response = fastAIClientImpl.requestErrorReport(reportJson);
         return ResponseEntity.ok(response);
     }
 }
