@@ -132,8 +132,16 @@ export default function ProjectDetail() {
 
           <ProjectInfo
             folder={detail.structure}
-            clientDir={detail.frontendDirectoryName}
-            serverDir={detail.backendDirectoryName}
+            clientDir={
+              detail.structure === 'MONO'
+                ? detail.frontendDirectoryName
+                : detail.frontendBranchName
+            }
+            serverDir={
+              detail.structure === 'MONO'
+                ? detail.backendDirectoryName
+                : detail.backendBranchName
+            }
             nodeVersion={detail.nodejsVersion}
             jdkVersion={detail.jdkVersion}
             buildTool={detail.jdkBuildTool}
