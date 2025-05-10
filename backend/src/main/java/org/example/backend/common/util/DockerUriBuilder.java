@@ -63,22 +63,35 @@ public class DockerUriBuilder {
         return buildFilteredContainersUri("name", List.of(name));
     }
 
-    public URI buildContainerLogsUri(String containerId, Boolean stdout, Boolean stderr, String tail, Long since, Long until, Boolean timestamps, Boolean details, Boolean follow) {
+    public URI buildContainerLogsUri(
+            String containerId,
+            Boolean includeStdout,
+            Boolean includeStderr,
+            String tailLines,
+            Long sinceSeconds,
+            Long untilSeconds,
+            Boolean includeTimestamps,
+            Boolean includeDetails,
+            Boolean followStream
+    ) {
         UriComponentsBuilder uri = UriComponentsBuilder
                 .fromUriString(dockerEngineApiBaseUrl)
                 .path("/containers/{id}/logs")
-                .queryParam("stdout", stdout)
-                .queryParam("stderr", stderr)
-                .queryParam("tail", tail)
-                .queryParam("timestamps", timestamps)
-                .queryParam("details", details)
-                .queryParam("follow", follow);
+                .queryParam("stdout", includeStdout)
+                .queryParam("stderr", includeStderr)
+                .queryParam("tail", tailLines)
+                .queryParam("timestamps", includeTimestamps)
+                .queryParam("details", includeDetails)
+                .queryParam("follow", followStream);
 
-        if (since != null) {uri.queryParam("since", since);}
-        if (until != null) {uri.queryParam("until", until);}
+        if (sinceSeconds != null) {
+            uri.queryParam("since", sinceSeconds);
+        }
+        if (untilSeconds != null) {
+            uri.queryParam("until", untilSeconds);
+        }
 
         return uri.buildAndExpand(containerId).toUri();
-
     }
 
     private URI buildFilteredContainersUri(String key, List<String> values) {

@@ -145,20 +145,10 @@ public class DockerServiceImpl implements DockerService {
         }
         String containerId = containers.get(0).getId();
 
-        List<String> rawLines = dockerApiClient.getContainerLogs(
-                containerId,
-                request.stdout(),
-                request.stderr(),
-                request.tail(),
-                request.since(),
-                request.until(),
-                request.timestamps(),
-                request.details(),
-                request.follow()
-        );
+        List<String> rawLines = dockerApiClient.getContainerLogs(containerId, request);
 
         return rawLines.stream()
-                .map(line -> DockerContainerLogResponse.of(line, request.timestamps()))
+                .map(line -> DockerContainerLogResponse.of(line, request.includeTimestamps()))
                 .collect(Collectors.toList());
     }
 
