@@ -100,3 +100,13 @@ export interface PostMultiProjectInfo extends BaseProjectInfo {
 }
 
 export type PostProjectInfo = PostMonoProjectInfo | PostMultiProjectInfo;
+
+// 대시보드 프로젝트 카드
+export interface ProjectCardInfo {
+  id: number;
+  projectName: string;
+  httpsEnabled: boolean;
+  autoDeploymentEnabled: boolean;
+  buildStatus: BuildStatus;
+  lastBuildAt: string;
+}

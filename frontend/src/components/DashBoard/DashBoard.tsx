@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import { useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
+import { useProjectCards } from '@/apis/project';
 import { useVerticalDragScroll } from '@/hooks/Common/useVerticalDragScroll';
 
 import { ActivityCard } from './ActivityCard';
@@ -22,65 +23,60 @@ const createdDates = [new Date(2025, 4, 6), new Date(2025, 4, 22)];
 
 export default function HomePage() {
   const verticalDragRef = useVerticalDragScroll<HTMLDivElement>();
-
   const [selectedDate, setSelectedDate] = useState(new Date());
+
+  const { data: projectCards, isLoading } = useProjectCards();
 
   return (
     <PageWrapper>
       <WorkspaceSection>
         <SectionTitle>Workspace</SectionTitle>
-        <Swiper
-          spaceBetween={28}
-          slidesPerView={4}
-          grabCursor
-          style={{ paddingBottom: '1rem' }}
-        >
-          <SwiperSlide>
-            <ProjectCard
-              emoji="default"
-              title="S12P31A206"
-              time="03.20 10:02:75"
-              build
-              https
-            />
-          </SwiperSlide>
-          <SwiperSlide>
-            <ProjectCard
-              emoji="fail"
-              title="Project 2"
-              time="03.20 10:02:75"
-              build={false}
-              https={false}
-            />
-          </SwiperSlide>
-          <SwiperSlide>
-            <ProjectCard
-              emoji="success"
-              title="Project 3"
-              time="10일 전"
-              build
-              https
-            />
-          </SwiperSlide>
-          <SwiperSlide>
-            <ProjectCard
-              emoji="success"
-              title="Project 4"
-              time="10일 전"
-              build
-              https
-            />
-          </SwiperSlide>
-          <SwiperSlide>
-            <ProjectCard
-              emoji="success"
-              title="Project 4"
-              time="10일 전"
-              build
-              https
-            />
-          </SwiperSlide>
-        </Swiper>
+        {isLoading ? (
+          <p>로딩 중...</p>
+        ) : (
+          <Swiper
+            spaceBetween={28}
+            slidesPerView={4}
+            grabCursor
+            breakpoints={{
+              0: {
+                slidesPerView: 1,
+              },
+              480: {
+                slidesPerView: 3,
+              },
+              768: {
+                slidesPerView: 3,
+              },
+              1024: {
+                slidesPerView: 4,
+              },
+            }}
+            style={{ paddingBottom: '1rem' }}
+          >
+            {projectCards?.map((project, idx) => {
+              const emoji =
+                idx === 0
+                  ? 'default'
+                  : project.buildStatus === 'SUCCESS'
+                    ? 'success'
+                    : 'fail';
+
+              return (
+                <SwiperSlide key={project.id}>
+                  <ProjectCard
+                    id={project.id}
+                    emoji={emoji}
+                    title={project.projectName}
+                    time={project.lastBuildAt}
+                    build={project.buildStatus}
+                    https={project.httpsEnabled}
+                  />
+                </SwiperSlide>
+              );
+            })}
+          </Swiper>
+        )}
       </WorkspaceSection>
 
       <SectionTitle>Development</SectionTitle>
@@ -144,6 +140,11 @@ const WorkspaceSection = styled.section`
   margin-bottom: 4.8rem;
   width: 100%;
   overflow: hidden;
+
+  .swiper-slide {
+    display: flex;
+    justify-content: flex-start;
+  }
 `;
 
 const DevelopmentSection = styled.section`
