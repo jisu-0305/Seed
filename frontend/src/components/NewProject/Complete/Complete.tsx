@@ -19,7 +19,7 @@ export default function Complete() {
   function stepStatusToProjectRequest(): PostProjectInfo {
     const { gitlab, server, app, env } = stepStatus;
 
-    if (gitlab.structure === 'MONO') {
+    if (gitlab.structure === '모노') {
       return {
         structure: 'MONO',
         repositoryUrl: gitlab.repo,

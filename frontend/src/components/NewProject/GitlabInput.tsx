@@ -34,14 +34,13 @@ export default function GitlabInput() {
   // input 핸들러
   const handleRepoChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const url = e.target.value;
-    const repoName =
-      url
-        ?.split('/')
-        .pop()
-        ?.replace(/\.git$/, '') || '';
 
-    setGitlabStatus({ ...gitlab, repo: repoName });
+    setGitlabStatus({ ...gitlab, repo: url });
   };
+
+  // const handleInput = (e: ChangeEvent<HTMLInputElement>) => {
+  //   setGitlabStatus({ ...gitlab, repo: e.target.value });
+  // };
 
   const handleStructureSelect = (value: '모노' | '멀티') => {
     setGitlabStatus({
@@ -86,7 +85,8 @@ export default function GitlabInput() {
       <Title>GitLab 레포지토리 주소를 입력해주세요</Title>
       {/* <Input
         placeholder="https://lab.ssafy.com/s12-final/S12P31A206.git"
-        value={gitlabUrl || gitlab.repo}
+        value={gitlab.repo}
+        onChange={handleInput}
       /> */}
 
       <StSelectWrapper>
@@ -181,6 +181,8 @@ const Container = styled.div`
   width: 100%;
   padding: 4rem;
 `;
+
+// const Input = styled.input``;
 
 const Title = styled.h2`
   width: fit-content;
