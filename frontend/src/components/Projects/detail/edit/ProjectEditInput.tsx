@@ -7,17 +7,17 @@ import { useThemeStore } from '@/stores/themeStore';
 
 const dummyApps = [
   {
-    name: 'redis',
+    imageName: 'redis',
     tag: 'latest',
     port: 8081,
   },
   {
-    name: 'mysql',
+    imageName: 'mysql',
     tag: 'stable',
     port: 3306,
   },
   {
-    name: 'elastic search',
+    imageName: 'elastic search',
     tag: 'latest',
     port: 9200,
   },
@@ -121,11 +121,11 @@ export default function ProjectEditInput() {
         <RegisteredList>
           {apps.map((app, idx) => (
             <Tag
-              key={app.name}
+              key={app.imageName}
               selected={idx === selectedIndex}
               onClick={() => handleSelectApp(idx)}
             >
-              <AppName>{app.name} :</AppName>
+              <AppName>{app.imageName} :</AppName>
               {app.tag}
               <CloseButton onClick={() => handleDeleteApp(idx)}>x</CloseButton>
             </Tag>
@@ -145,7 +145,7 @@ export default function ProjectEditInput() {
             <Row>
               <Label>선택한 어플리케이션</Label>
               <SelectedApp>
-                {apps[selectedIndex].name}
+                {apps[selectedIndex].imageName}
                 <IcIcon src="/assets/icons/ic_official.svg" alt="lock" />
               </SelectedApp>
             </Row>
