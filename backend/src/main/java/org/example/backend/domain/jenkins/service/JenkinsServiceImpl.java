@@ -4,30 +4,45 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.example.backend.common.session.RedisSessionManager;
+import org.example.backend.common.session.dto.SessionInfoDto;
+import org.example.backend.common.util.JenkinsUriBuilder;
 import org.example.backend.controller.response.jenkins.*;
+import org.example.backend.domain.jenkins.entity.JenkinsInfo;
+import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
 import org.example.backend.domain.project.entity.ProjectExecution;
 import org.example.backend.domain.project.entity.ProjectStatus;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.repository.ProjectExecutionRepository;
 import org.example.backend.domain.project.repository.ProjectStatusRepository;
+import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
 import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class JenkinsServiceImpl implements JenkinsService {
 
     private final JenkinsClient jenkinsClient;
     private final ObjectMapper objectMapper;
     private ProjectStatusRepository projectStatusRepository;
     private ProjectExecutionRepository projectExecutionRepository;
+    private final JenkinsInfoRepository jenkinsInfoRepository;
+    private final UserProjectRepository userProjectRepository;
+    private final RedisSessionManager redisSessionManager;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault());
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
@@ -35,12 +50,11 @@ public class JenkinsServiceImpl implements JenkinsService {
             .withZone(ZoneId.systemDefault())
             .withLocale(Locale.KOREA);
 
-    @Value("${jenkins.job-name}")
-    private String jobName;
-
     @Override
-    public List<JenkinsBuildListResponse> getBuildList() {
-        JsonNode builds = safelyParseJson(jenkinsClient.fetchBuildInfo(jobName, "api/json?tree=builds[number,result,timestamp]"))
+    public List<JenkinsBuildListResponse> getBuildList(Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        JsonNode builds = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "api/json?tree=builds[number,result,timestamp]"))
                 .path("builds");
 
         List<JenkinsBuildListResponse> list = new ArrayList<>();
@@ -57,8 +71,10 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public JenkinsBuildListResponse getLastBuild() {
-        JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(jobName, "lastBuild/api/json"));
+    public JenkinsBuildListResponse getLastBuild(Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json"));
 
         return JenkinsBuildListResponse.builder()
                 .buildNumber(build.path("number").asInt())
@@ -70,37 +86,50 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public JenkinsBuildDetailResponse getBuildDetail(int buildNumber) {
-        JsonNode buildInfo = safelyParseJson(jenkinsClient.fetchBuildInfo(jobName, buildNumber + "/api/json"));
-        String consoleLog = jenkinsClient.fetchBuildLog(jobName, buildNumber);
+    public JenkinsBuildDetailResponse getBuildDetail(int buildNumber, Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+
+        String wfapiJson = jenkinsClient.fetchBuildInfo(info, buildNumber + "/wfapi/describe");
+        String consoleLog = jenkinsClient.fetchBuildLog(info, buildNumber);
+
+        List<JenkinsBuildStepResponse> steps = mergeStageStatusWithEchoes(wfapiJson, consoleLog);
+
+        JsonNode buildInfo = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
 
         return JenkinsBuildDetailResponse.builder()
                 .buildNumber(buildNumber)
                 .buildName("MR 빌드")
                 .overallStatus(buildInfo.path("result").asText())
-                .stepList(parseConsoleLog(consoleLog))
+                .stepList(steps)
                 .build();
     }
 
     @Override
-    public String getBuildLog(int buildNumber) {
-        return jenkinsClient.fetchBuildLog(jobName, buildNumber);
+    public String getBuildLog(int buildNumber, Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        return jenkinsClient.fetchBuildLog(getJenkinsInfo(projectId), buildNumber);
     }
 
     @Override
-    public String getBuildStatus(int buildNumber) {
-        JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(jobName, buildNumber + "/api/json"));
+    public String getBuildStatus(int buildNumber, Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
         return build.path("result").asText();
     }
 
     @Override
-    public void triggerBuild() {
-        jenkinsClient.triggerBuild(jobName);
+    public void triggerBuild(Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        jenkinsClient.triggerBuild(getJenkinsInfo(projectId));
     }
 
     @Override
-    public List<JenkinsBuildChangeResponse> getBuildChanges(int buildNumber) {
-        JsonNode root = safelyParseJson(jenkinsClient.fetchBuildInfo(jobName, buildNumber + "/api/json?tree=changeSets[items[commitId,author[fullName],msg,timestamp]]"));
+    public List<JenkinsBuildChangeResponse> getBuildChanges(int buildNumber, Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        JsonNode root = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json?tree=changeSets[items[commitId,author[fullName],msg,timestamp]]"));
         JsonNode changeSets = root.path("changeSets");
 
         List<JenkinsBuildChangeResponse> changes = new ArrayList<>();
@@ -118,8 +147,10 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public List<JenkinsBuildChangeSummaryResponse> getBuildChangesWithSummary(int buildNumber) {
-        JsonNode root = safelyParseJson(jenkinsClient.fetchBuildInfo(jobName, buildNumber + "/api/json?tree=changeSets[items[commitId,author[fullName],msg,timestamp,paths[file]]]"));
+    public List<JenkinsBuildChangeSummaryResponse> getBuildChangesWithSummary(int buildNumber, Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        JsonNode root = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json?tree=changeSets[items[commitId,author[fullName],msg,timestamp,paths[file]]]"));
         JsonNode changeSets = root.path("changeSets");
 
         if (changeSets.isMissingNode() || changeSets.isEmpty()) {
@@ -148,9 +179,11 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     @Transactional
-    public void logLastBuildResultToProject(Long projectId) {
+    public void logLastBuildResultToProject(Long projectId, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode lastBuild = safelyParseJson(
-                jenkinsClient.fetchBuildInfo(jobName, "lastBuild/api/json")
+                jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json")
         );
 
         int buildNumber = lastBuild.path("number").asInt();
@@ -171,81 +204,174 @@ public class JenkinsServiceImpl implements JenkinsService {
                 .build());
     }
 
-    private List<JenkinsBuildStepResponse> parseConsoleLog(String consoleLog) {
-        List<JenkinsBuildStepResponse> steps = new ArrayList<>();
+    @Override
+    public void issueAndSaveToken(Long projectId, String serverIp, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        try {
+            String jenkinsUrl = "http://" + serverIp + ":9090";
+            String jenkinsJobName = "seed-deployment";
+            String jenkinsUsername = "seed";
+            String jenkinsToken = generateTokenViaCurl(
+                    jenkinsUrl,
+                    jenkinsUsername,
+                    "seed0206!",
+                    jenkinsUsername
+            );
+
+            JenkinsInfo jenkinsInfo = JenkinsInfo.builder()
+                    .projectId(projectId)
+                    .baseUrl(jenkinsUrl)
+                    .username(jenkinsUsername)
+                    .apiToken(jenkinsToken)
+                    .jobName(jenkinsJobName)
+                    .build();
+
+            jenkinsInfoRepository.save(jenkinsInfo);
+
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.JENKINS_TOKEN_SAVE_FAILED);
+        }
+    }
+
+    @Override
+    public String getStepLogById(Long projectId, int buildNumber, String stepNumber, String accessToken) {
+        validateUserInProject(projectId, accessToken);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+
+        // 전체 콘솔 로그 조회
+        String consoleLog = jenkinsClient.fetchBuildLog(info, buildNumber);
         String[] lines = consoleLog.split("\n");
 
-        int stepNumber = 1;
-        int echoNumber = 1;
-        String currentStageName = null;
-        String currentStageStartTime = null;
-        List<JenkinsBuildEchoResponse> currentEchoes = new ArrayList<>();
+        int targetStepIndex;
+        try {
+            targetStepIndex = Integer.parseInt(stepNumber);
+        } catch (NumberFormatException e) {
+            throw new BusinessException(ErrorCode.INVALID_STEP_ID);
+        }
 
-        boolean expectingEchoContent = false;
+        int currentStepIndex = 0;
+        String currentStage = null;
+        List<String> collected = new ArrayList<>();
+        boolean insideTargetStage = false;
+
+        for (String line : lines) {
+            if (line.contains("[Pipeline] { (")) {
+                currentStepIndex++;
+                String stageName = line.substring(line.indexOf('(') + 1, line.indexOf(')'));
+
+                if (currentStepIndex == targetStepIndex) {
+                    insideTargetStage = true;
+                    currentStage = stageName;
+                    collected.add("=== Stage: " + stageName + " ===");
+                } else {
+                    insideTargetStage = false;
+                }
+                continue;
+            }
+
+            if (insideTargetStage) {
+                collected.add(line);
+            }
+        }
+
+        if (collected.isEmpty()) {
+            throw new BusinessException(ErrorCode.INVALID_STEP_ID);
+        }
+
+        return String.join("\n", collected);
+    }
+
+
+
+
+
+    private List<JenkinsBuildStepResponse> mergeStageStatusWithEchoes(String wfapiJson, String consoleLog) {
+        JsonNode wfapi = safelyParseJson(wfapiJson);
+        JsonNode stages = wfapi.path("stages");
+
+        Map<String, String> stageStatusMap = new LinkedHashMap<>();
+        for (JsonNode stage : stages) {
+            String name = stage.path("name").asText();
+            String status = stage.path("status").asText();
+            stageStatusMap.put(name, status);
+        }
+
+        Map<String, List<String>> echoMap = extractEchoesFromConsole(consoleLog);
+
+        List<JenkinsBuildStepResponse> stepList = new ArrayList<>();
+        int stepNumber = 1;
+
+        for (Map.Entry<String, String> entry : stageStatusMap.entrySet()) {
+            String stageName = entry.getKey();
+            String status = entry.getValue();
+
+            List<String> echoes = echoMap.getOrDefault(stageName, Collections.emptyList());
+            List<JenkinsBuildEchoResponse> echoDtos = new ArrayList<>();
+            int echoNumber = 1;
+            for (String echo : echoes) {
+                echoDtos.add(JenkinsBuildEchoResponse.builder()
+                        .echoNumber(echoNumber++)
+                        .echoContent(echo)
+                        .duration("-")
+                        .build());
+            }
+
+            stepList.add(JenkinsBuildStepResponse.builder()
+                    .stepNumber(stepNumber++)
+                    .stepName(stageName)
+                    .status(status)
+                    .duration("-")
+                    .echoList(echoDtos)
+                    .build());
+        }
+
+        return stepList;
+    }
+
+    private Map<String, List<String>> extractEchoesFromConsole(String consoleLog) {
+        Map<String, List<String>> stageEchoMap = new LinkedHashMap<>();
+        String[] lines = consoleLog.split("\n");
+
+        String currentStage = null;
+        List<String> currentEchoes = new ArrayList<>();
+        boolean expectingEcho = false;
 
         for (String rawLine : lines) {
             String line = rawLine.trim();
 
-            String timestamp = null;
-            if (line.matches("^\\[\\d{2}:\\d{2}:\\d{2}]\\s.*")) {
-                timestamp = line.substring(1, 9);
-                line = line.substring(10);
-            }
-
-            if (expectingEchoContent) {
-                if (!line.isBlank()) {
-                    currentEchoes.add(JenkinsBuildEchoResponse.builder()
-                            .echoNumber(echoNumber++)
-                            .echoContent(line.trim())
-                            .duration("-")
-                            .build());
-                }
-                expectingEchoContent = false;
-                continue;
-            }
-
-            if (line.startsWith("[Pipeline] echo")) {
-                expectingEchoContent = true;
-                continue;
-            }
-
             if (line.startsWith("[Pipeline] { (")) {
-                int startIdx = line.indexOf('(');
-                int endIdx = line.indexOf(')');
-                if (startIdx != -1 && endIdx != -1 && endIdx > startIdx) {
-                    if (currentStageName != null) {
-                        steps.add(createStep(stepNumber++, currentStageName, currentStageStartTime, timestamp, currentEchoes));
-                    }
-                    currentStageName = line.substring(startIdx + 1, endIdx).trim();
-                    currentStageStartTime = timestamp;
-                    currentEchoes.clear();
-                    echoNumber = 1;
+                if (currentStage != null) {
+                    stageEchoMap.put(currentStage, new ArrayList<>(currentEchoes));
                 }
+                int startIdx = line.indexOf('(');
+                int endIdx = line.indexOf(')', startIdx);
+                if (startIdx != -1 && endIdx != -1) {
+                    currentStage = line.substring(startIdx + 1, endIdx).trim();
+                    currentEchoes.clear();
+                }
+                continue;
+            }
+
+            if (line.contains("[Pipeline] echo")) {
+                expectingEcho = true;
+                continue;
+            }
+
+            if (expectingEcho && !line.startsWith("[Pipeline]") && !line.isBlank()) {
+                currentEchoes.add(line);
+                expectingEcho = false;
             }
         }
 
-        if (currentStageName != null) {
-            steps.add(createStep(stepNumber, currentStageName, currentStageStartTime, null, currentEchoes));
+        if (currentStage != null) {
+            stageEchoMap.put(currentStage, currentEchoes);
         }
 
-        return steps;
+        return stageEchoMap;
     }
 
-    private JenkinsBuildStepResponse createStep(int stepNumber, String stageName, String start, String end, List<JenkinsBuildEchoResponse> echoes) {
-        String duration = "-";
-        if (start != null && end != null) {
-            long durationSeconds = calculateDuration(start, end);
-            duration = formatDuration(durationSeconds);
-        }
 
-        return JenkinsBuildStepResponse.builder()
-                .stepNumber(stepNumber)
-                .stepName(stageName)
-                .duration(duration)
-                .status("SUCCESS")
-                .echoList(new ArrayList<>(echoes))
-                .build();
-    }
+
 
     private long calculateDuration(String start, String end) {
         try {
@@ -260,14 +386,6 @@ public class JenkinsServiceImpl implements JenkinsService {
         }
     }
 
-    private String formatDuration(long seconds) {
-        if (seconds < 0) {
-            return "-";
-        }
-        long minutes = seconds / 60;
-        long remainingSeconds = seconds % 60;
-        return (minutes > 0 ? minutes + "m " : "") + remainingSeconds + "s";
-    }
 
     private String formatJenkinsTimestamp(long timestampMillis) {
         return FULL_TIME_FORMATTER.format(Instant.ofEpochMilli(timestampMillis));
@@ -281,7 +399,94 @@ public class JenkinsServiceImpl implements JenkinsService {
         }
     }
 
-    private BuildStatus convertToBuildStatus(String result) {
-        return BuildStatus.valueOf(result);
+
+    private String generateTokenViaCurl(String jenkinsUrl, String username, String password, String tokenName) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            // 쿠키 저장용 임시 파일 생성
+            File cookieFile = File.createTempFile("jenkins_cookie", ".txt");
+            String cookiePath = cookieFile.getAbsolutePath().replace("\\", "/");
+
+            // 1. Crumb + 쿠키 요청
+            List<String> crumbCommand = Arrays.asList(
+                    "curl",
+                    "-u", username + ":" + password,
+                    "-c", cookiePath,
+                    "-s",
+                    jenkinsUrl + "/crumbIssuer/api/json"
+            );
+
+            Process crumbProcess = new ProcessBuilder(crumbCommand)
+                    .redirectErrorStream(true).start();
+
+            String crumbResponse = new BufferedReader(new InputStreamReader(crumbProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+            if (!crumbResponse.trim().startsWith("{")) {
+                throw new BusinessException(ErrorCode.JENKINS_CRUMB_REQUEST_FAILED);
+            }
+
+            JsonNode crumbJson = mapper.readTree(crumbResponse);
+            String crumb = crumbJson.get("crumb").asText();
+            String crumbField = crumbJson.get("crumbRequestField").asText();
+
+            // 2️. 토큰 요청
+            String tokenUrl = jenkinsUrl + "/user/" + username + "/descriptorByName/jenkins.security.ApiTokenProperty/generateNewToken";
+            String tokenJsonPayload = "{\"newTokenName\":\"" + tokenName + "\"}";
+
+            List<String> curlCommand = Arrays.asList(
+                    "curl",
+                    "-u", username + ":" + password,
+                    "-b", cookiePath,
+                    "-c", cookiePath,
+                    "-s",
+                    "-X", "POST",
+                    tokenUrl,
+                    "-H", crumbField + ":" + crumb,
+                    "-H", "Content-Type: application/json",
+                    "-H", "Referer: " + jenkinsUrl + "/",
+                    "-d", tokenJsonPayload
+            );
+
+
+            Process tokenProcess = new ProcessBuilder(curlCommand)
+                    .redirectErrorStream(true).start();
+
+            String tokenResponse = new BufferedReader(new InputStreamReader(tokenProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+
+            if (!tokenResponse.trim().startsWith("{")) {
+                throw new BusinessException(ErrorCode.JENKINS_TOKEN_RESPONSE_INVALID);
+            }
+
+            JsonNode tokenJson = mapper.readTree(tokenResponse);
+            String token = tokenJson.path("data").path("tokenValue").asText();
+
+            if (token == null || token.isBlank()) {
+                throw new BusinessException(ErrorCode.JENKINS_TOKEN_PARSE_FAILED);
+            }
+
+            return token;
+
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.JENKINS_TOKEN_REQUEST_FAILED);
+        }
+
+    }
+
+    private JenkinsInfo getJenkinsInfo(Long projectId) {
+        return jenkinsInfoRepository.findByProjectId(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+    }
+
+    private void validateUserInProject(Long projectId, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
+        }
     }
 }

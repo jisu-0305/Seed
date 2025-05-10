@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 
-import { User } from '@/types/user';
+import { ProjectMember } from '@/types/project';
 import { getCardColor } from '@/utils/getColor';
 
 import { AvatarList } from './AvatarList';
@@ -13,7 +13,7 @@ interface ProjectCardProps {
   time: string;
   https: boolean;
   status: string;
-  users: User[];
+  users: ProjectMember[];
 }
 
 export const ProjectCard = ({

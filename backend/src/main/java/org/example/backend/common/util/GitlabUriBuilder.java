@@ -77,13 +77,21 @@ public class GitlabUriBuilder {
         );
     }
 
-    public URI buildRepositoryTreeUri(Long projectId, String path, boolean recursive, int page, int perPage) {
+    public URI buildRepositoryTreeUri(
+            Long projectId,
+            String path,
+            boolean recursive,
+            int page,
+            int perPage,
+            String branchName
+    ) {
         return toUri(
                 builder("projects", projectId.toString(), "repository", "tree")
                         .queryParam("path", path)
                         .queryParam("recursive", recursive)
                         .queryParam("page", page)
                         .queryParam("per_page", perPage)
+                        .queryParam("ref", branchName)
         );
     }
 

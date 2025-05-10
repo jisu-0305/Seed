@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.controller.request.log.DockerLogRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
 import org.example.backend.controller.response.log.DockerLogResponse;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
@@ -59,8 +60,9 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 진행 로직: 해당 DNS 또는 apiClient를 이용해서 buildNumber의 log가져오기(최대한 에러부분만 도려냈으면 좋겠음. 길게말고)
          * 담당자: 강승엽
          */
-//        String jenkinsErrorLog = jenkinsService.getBuildLog(project.getServerIP(), buildNumber);
-        String jenkinsErrorLog = "";
+        JenkinsBuildListResponse lastBuild = jenkinsService.getLastBuild(projectId, accessToken);
+        int buildNumber = lastBuild.getBuildNumber();
+        String jenkinsErrorLog = jenkinsService.getBuildLog(buildNumber, projectId, accessToken);
 
         // 1-2. 해당 프로젝트의 어플리케이션 목록 조회
         List<Application> apps = applicationRepository.findAllByProjectId(project.getId());
@@ -215,7 +217,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         /**
          * 4-3. Jenkins 재빌드 트리거
          * 내용: 기존 gitlabService.triggerPushEvent가 불가능한 이유 -> 결국 여기서 발생한 pushevent를 jenkins쪽에서 계속 받도록 정규식 처리해야함, 그말인 즉슨 commit남길때 이미 자동배포 자꾸 돌아가게됨
-         *      따라서 모든 내용 적용나고 한번 트리거 작동시켜야하므로 jenkins.tirggerBuild가 맞음
+         *      따라서 모든 내용 적용나고 한번 트리거 작동시켜야하므로 jenkins.triggerBuild가 맞음
          * 문제점: triggerBuild의 파라미터에 사용자 프로젝트의 jenkins ip or DNS를 줘야함 -> 추가 파라미터, 로직 필요
          * 담당자: 강승엽
          * */
@@ -227,7 +229,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 내용: 마지막으로 jenkins의 해당 job에서 build된 내용 결과 가져오기
          * 담당자: 강승엽
          */
-//        boolean buildSucceeded = jenkinsService.getLastBuild(project.getServerIP()); // 구현 필요
+        String status = jenkinsService.getLastBuild(projectId, accessToken).getStatus();
+        boolean buildSucceeded = "SUCCESS".equalsIgnoreCase(status);
 //
 //        String summary = buildSucceeded ? "AI가 수정한 코드를 기반으로 정상 작동합니다." : "빌드 실패: AI 수정 코드 반영 후에도 문제가 발생했습니다.";
 //

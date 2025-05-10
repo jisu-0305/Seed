@@ -2,6 +2,7 @@ package org.example.backend.domain.fcm.dto;
 
 import lombok.Builder;
 import lombok.Getter;
+import org.example.backend.domain.fcm.enums.NotificationType;
 
 import java.time.LocalDateTime;
 
@@ -13,4 +14,5 @@ public class NotificationDto {
     private String notificationContent;
     private boolean isRead;
     private LocalDateTime createdAt;
+    private NotificationType notificationType;
 }

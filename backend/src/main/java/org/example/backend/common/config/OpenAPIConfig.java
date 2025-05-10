@@ -28,15 +28,23 @@ public class OpenAPIConfig {
                 .in(SecurityScheme.In.HEADER)
                 .name("Authorization");
 
+        SecurityScheme patScheme = new SecurityScheme()
+                .type(SecurityScheme.Type.APIKEY)
+                .in(SecurityScheme.In.HEADER)
+                .name("PAT_Authorization");
+
         SecurityRequirement securityRequirement = new SecurityRequirement()
-                .addList("JWT");
+                .addList("JWT")
+                .addList("PAT");
 
         Server httpsServer = new Server()
                 .url(domainName)
                 .description("Production HTTPS server");
 
         return new OpenAPI()
-                .components(new Components().addSecuritySchemes("JWT", jwtScheme))
+                .components(new Components()
+                        .addSecuritySchemes("JWT", jwtScheme)
+                        .addSecuritySchemes("PAT", patScheme))
                 .addSecurityItem(securityRequirement)
                 .servers(List.of(httpsServer))
                 .info(new Info()

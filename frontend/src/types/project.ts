@@ -1,5 +1,3 @@
-import { User } from './user';
-
 export interface ProjectInfo {
   gitlab: {
     repo: string;
@@ -31,9 +29,52 @@ export type BuildStatus = 'SUCCESS' | 'FAILURE' | null;
 export interface ProjectSummary {
   id: number;
   projectName: string;
+  createdAt: string;
+  memberList: ProjectMember[];
+  autoDeploymentEnabled: boolean;
   httpsEnabled: boolean;
-  autoDeployEnabled: boolean;
-  lastBuildStatus: BuildStatus;
+  buildStatus: BuildStatus;
   lastBuildAt: string | null;
-  users: User[];
+}
+
+export interface ProjectMember {
+  userId: number;
+  userName: string;
+  userIdentifyId: string;
+  profileImageUrl: string;
+  status: 'accepted' | 'pending' | 'rejected';
+}
+
+export interface Application {
+  imageName: string;
+  tag: string;
+  port: number;
+}
+
+export interface ProjectDetailData {
+  id: number;
+  ownerId: number;
+  projectName: string;
+  createdAt: string;
+  serverIP: string;
+  repositoryUrl: string;
+  structure: 'MONO' | string;
+  frontendDirectoryName: string;
+  backendDirectoryName: string;
+  frontendBranchName: string;
+  backendBranchName: string;
+  frontendFramework: string;
+  frontendEnvFilePath: string;
+  nodejsVersion: string;
+  jdkVersion: string;
+  jdkBuildTool: string;
+  backendEnvFilePath: string;
+  applicationList: Application[];
+  pemFilePath: string;
+}
+
+export interface ProjectDetailResponse {
+  success: boolean;
+  message: string;
+  data: ProjectDetailData;
 }

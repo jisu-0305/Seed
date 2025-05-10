@@ -12,6 +12,7 @@
     import org.example.backend.domain.userproject.dto.UserInProject;
     import org.example.backend.domain.userproject.entity.Invitation;
     import org.example.backend.domain.userproject.entity.UserProject;
+    import org.example.backend.domain.userproject.enums.InvitationStateType;
     import org.example.backend.domain.userproject.mapper.InvitationMapper;
     import org.example.backend.domain.userproject.repository.InvitationRepository;
     import org.example.backend.domain.userproject.repository.UserProjectRepository;
@@ -19,6 +20,7 @@
     import org.example.backend.global.exception.ErrorCode;
     import org.springframework.stereotype.Service;
     import org.springframework.transaction.annotation.Transactional;
+    import org.example.backend.domain.fcm.enums.NotificationType;
 
     import java.time.LocalDateTime;
     import java.util.List;
@@ -55,7 +57,7 @@
                     .filter(receiverId -> !invitationRepository.existsByProjectIdAndReceiverId(request.getProjectId(), receiverId))
                     .map(receiverId -> {
                         Invitation invitation = Invitation.create(
-                                request.getProjectId(), senderId, receiverId
+                                request.getProjectId(), senderId, receiverId, InvitationStateType.PENDING
                         );
                         Invitation saved = invitationRepository.save(invitation);
 
@@ -65,7 +67,7 @@
                                 projectName
                         );
 
-                        return toResponse(saved);
+                        return toResponse(saved, NotificationType.INVITATION_CREATED_TYPE);
                     })
                     .toList();
         }
@@ -89,7 +91,9 @@
 
             UserProject userProject = UserProject.create(invitation.getProjectId(), userId);
             userProjectRepository.save(userProject);
-            invitationRepository.delete(invitation);
+
+            invitation.accept();
+            invitationRepository.save(invitation);
 
             String projectName = projectRepository.findProjectNameById(invitation.getProjectId());
             List<Long> otherUserIdList = userProjectRepository.findUserIdsByProjectId(invitation.getProjectId()).stream()
@@ -124,7 +128,10 @@
             return invitationRepository
                     .findByReceiverIdAndExpiresAtAfter(receiverId, LocalDateTime.now())
                     .stream()
-                    .map(InvitationMapper::toResponse)
+                    .map(invitation -> InvitationMapper.toResponse(
+                            invitation,
+                            NotificationType.INVITATION_CREATED_TYPE
+                    ))
                     .toList();
         }
 

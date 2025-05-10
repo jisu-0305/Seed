@@ -63,7 +63,38 @@ public class DockerUriBuilder {
         return buildFilteredContainersUri("name", List.of(name));
     }
 
-    public URI buildFilteredContainersUri(String key, List<String> values) {
+    public URI buildContainerLogsUri(
+            String containerId,
+            Boolean includeStdout,
+            Boolean includeStderr,
+            String tailLines,
+            Long sinceSeconds,
+            Long untilSeconds,
+            Boolean includeTimestamps,
+            Boolean includeDetails,
+            Boolean followStream
+    ) {
+        UriComponentsBuilder uri = UriComponentsBuilder
+                .fromUriString(dockerEngineApiBaseUrl)
+                .path("/containers/{id}/logs")
+                .queryParam("stdout", includeStdout)
+                .queryParam("stderr", includeStderr)
+                .queryParam("tail", tailLines)
+                .queryParam("timestamps", includeTimestamps)
+                .queryParam("details", includeDetails)
+                .queryParam("follow", followStream);
+
+        if (sinceSeconds != null) {
+            uri.queryParam("since", sinceSeconds);
+        }
+        if (untilSeconds != null) {
+            uri.queryParam("until", untilSeconds);
+        }
+
+        return uri.buildAndExpand(containerId).toUri();
+    }
+
+    private URI buildFilteredContainersUri(String key, List<String> values) {
         String json = String.format(
                 "{\"%s\":[%s]}",
                 key,
@@ -74,5 +105,6 @@ public class DockerUriBuilder {
         String uriString = dockerEngineApiBaseUrl + "/containers/json?all=true&filters=" + encoded;
         return URI.create(uriString);
     }
+
 
 }

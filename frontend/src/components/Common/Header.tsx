@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import React from 'react';
 
 import LoginModal from '@/components/Common/LoginModal';
+import NotificationModal from '@/components/Common/NotificationModal';
 import { useModal } from '@/hooks/Common';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserStore } from '@/stores/userStore';
@@ -12,10 +13,11 @@ interface HeaderProps {
 
 export default function Header({ title }: HeaderProps) {
   const user = useUserStore((s) => s.user);
-  const loading = useUserStore((s) => s.loading);
   const hasHydrated = useUserStore((s) => s.hasHydrated);
 
-  const { isShowing, toggle } = useModal();
+  const login = useModal();
+  const notif = useModal();
+
   const { mode, toggleMode } = useThemeStore();
 
   if (!hasHydrated) {
@@ -37,15 +39,20 @@ export default function Header({ title }: HeaderProps) {
           src={`/assets/icons/ic_${mode}.svg`}
           alt="light mode"
         />
-        <Alarm src={`/assets/icons/ic_alarm_${mode}.svg`} alt="alarm" />
-        <Profile onClick={toggle}>
+        <Alarm
+          onClick={notif.toggle}
+          src={`/assets/icons/ic_alarm_${mode}.svg`}
+          alt="alarm"
+        />
+        <Profile onClick={login.toggle}>
           <ProfileImg
             src={user?.profileImageUrl || '/assets/user.png'}
             alt="profile"
           />
-          {loading ? '...' : user?.userName || 'SSAFY'}
+          {user?.userName || 'SSAFY'}
         </Profile>
-        {isShowing && <LoginModal onClose={toggle} />}
+        {notif.isShowing && <NotificationModal onClose={notif.toggle} />}
+        {login.isShowing && <LoginModal onClose={login.toggle} />}
       </MenuWrapper>
     </HeaderWrapper>
   );
