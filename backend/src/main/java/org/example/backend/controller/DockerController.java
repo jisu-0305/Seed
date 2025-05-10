@@ -6,13 +6,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.backend.controller.response.docker.AppHealthyCheckResponse;
-import org.example.backend.controller.response.docker.ImageResponse;
-import org.example.backend.controller.response.docker.TagResponse;
-import org.example.backend.controller.response.docker.DemonHealthyCheckResponse;
+import org.example.backend.controller.request.docker.DockerContainerLogRequest;
+import org.example.backend.controller.response.docker.*;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -47,8 +46,7 @@ public class DockerController {
     @GetMapping("/healthy")
     @Operation(
             summary = "도커 전체 헬스 체크",
-            description = "ContainersPaused 또는 ContainersStopped 값이 0보다 크면 해당 컨테이너 정보 반환함",
-            security = @SecurityRequirement(name = "JWT")
+            description = "ContainersPaused 또는 ContainersStopped 값이 0보다 크면 해당 컨테이너 정보 반환함"
     )
     public ResponseEntity<ApiResponse<List<DemonHealthyCheckResponse>>> checkDockerDemonHealth() {
         List<DemonHealthyCheckResponse> unhealthy = dockerService.checkHealth();
@@ -61,5 +59,13 @@ public class DockerController {
             @PathVariable("appName") String appName) {
         List<AppHealthyCheckResponse> statuses = dockerService.getAppStatus(appName);
         return ResponseEntity.ok(ApiResponse.success(statuses));
+    }
+
+    @GetMapping("/logs/{appName}")
+    public ResponseEntity<ApiResponse<List<DockerContainerLogResponse>>> getContainerLogs(
+            @PathVariable("appName") String appName,
+            @Validated @ModelAttribute DockerContainerLogRequest request){
+        List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(appName, request);
+        return ResponseEntity.ok(ApiResponse.success(logs));
     }
 }

@@ -20,7 +20,7 @@ public class LogUtil {
             session.connect();
 
             ChannelExec channel = (ChannelExec) session.openChannel("exec");
-            String command = String.format("docker logs --since %s %s", sinceDuration, containerName);
+            String command = String.format("docker logs --sinceSeconds %s %s", sinceDuration, containerName);
             channel.setCommand(command);
 
             InputStream input = channel.getInputStream();

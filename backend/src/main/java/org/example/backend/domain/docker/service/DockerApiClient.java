@@ -1,5 +1,6 @@
 package org.example.backend.domain.docker.service;
 
+import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.DemonContainerStateCountResponse;
 import org.example.backend.controller.response.docker.ImageResponse;
 import org.example.backend.domain.docker.dto.ContainerDto;
@@ -13,4 +14,5 @@ public interface DockerApiClient {
     DemonContainerStateCountResponse getInfo();
     List<ContainerDto> getContainersByStatus(List<String> statuses);
     List<ContainerDto> getContainersByName(String nameFilter);
+    List<String> getContainerLogs(String containerId, DockerContainerLogRequest filter);
 }
