@@ -98,8 +98,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             String folder = appToFolderMap.getOrDefault(appName, appName);
             String appPath = folder + "/";
 
-            List<GitlabTree> appTree = gitlabService.getRepositoryTree(accessToken, project.getId(), appPath, true);
-            appTrees.put(appName, appTree);
+//            List<GitlabTree> appTree = gitlabService.getRepositoryTree(accessToken, project.getId(), appPath, true);
+//            appTrees.put(appName, appTree);
         }
 
         /**
