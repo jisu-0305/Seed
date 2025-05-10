@@ -58,8 +58,9 @@ public class CICDResolverController {
 
     @PostMapping("/simulate")
     public ResponseEntity<ApiResponse<List<PatchedFile>>> simulateSelfHealing(
-            @RequestBody SimulationRequestDto request, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String accessToken
+            @RequestBody SimulationRequestDto request
     ) {
+        String accessToken = request.getAccessToken();
         Long projectId = request.getProjectId();
         String jenkinsErrorLog = request.getJenkinsErrorLog();
 

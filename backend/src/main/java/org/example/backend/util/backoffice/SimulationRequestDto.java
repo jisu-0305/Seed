@@ -10,6 +10,7 @@ import java.util.Map;
 
 @Data
 public class SimulationRequestDto {
+    private String accessToken;
     private Long projectId;
     private String jenkinsErrorLog;
     private List<String> applicationNames;
