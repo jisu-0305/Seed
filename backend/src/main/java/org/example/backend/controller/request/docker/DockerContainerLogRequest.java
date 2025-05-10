@@ -7,15 +7,15 @@ import jakarta.validation.constraints.Min;
 public record DockerContainerLogRequest(
 
         @Min(0)
-        String tailLines, // 가져올 마지막 라인 수 (숫자 또는 all)
+        String tailLines,
 
-        Boolean includeStdout, // 표준 출력 포함 여부
-        Boolean includeStderr, // 표준 에러 포함 여부
-        Long sinceSeconds, // 조회 시작 시각 (Unix epoch seconds)
-        Long untilSeconds, //조회 종료 시각 (Unix epoch seconds)
-        Boolean includeTimestamps, // 타임스탬프 포함 여부
-        Boolean includeDetails, // 메타정보 포함 여부(includeDetails)
-        Boolean followStream // 실시간 스트리밍 모드(followStream)
+        Boolean includeStdout,
+        Boolean includeStderr,
+        Long sinceSeconds,
+        Long untilSeconds,
+        Boolean includeTimestamps,
+        Boolean includeDetails,
+        Boolean followStream
 
 ) {
     public DockerContainerLogRequest {
