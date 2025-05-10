@@ -1,7 +1,6 @@
 package org.example.backend.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -59,9 +58,8 @@ public class CICDResolverController {
 
     @PostMapping("/simulate")
     public ResponseEntity<ApiResponse<List<PatchedFile>>> simulateSelfHealing(
-            @RequestBody SimulationRequestDto request
+            @RequestBody SimulationRequestDto request, @RequestHeader(name = HttpHeaders.AUTHORIZATION) String accessToken
     ) {
-        String accessToken = request.getAccessToken();
         Long projectId = request.getProjectId();
         String jenkinsErrorLog = request.getJenkinsErrorLog();
 
@@ -115,15 +113,10 @@ public class CICDResolverController {
             String treeJson;
             try {
                 diffJson = objectMapper.writeValueAsString(diffRawPayload);
-                treeJson = objectMapper.writeValueAsString(
-                        tree.stream().flatMap(Stream::of).collect(Collectors.toList())
-                );
+                treeJson = objectMapper.writeValueAsString(tree);
             } catch (JsonProcessingException e) {
                 throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
             }
-
-            log.debug(">>>> TREE_JSON: {}", treeJson);
-            log.debug(">>>> APP_LOG: {}", appLog);
 
             SuspectFileResponse suspectDto = fastAIClient.requestSuspectFiles(diffJson, treeJson, appLog);
             log.debug(">>>>>>>>>>>>>의심파일 찾기"+suspectDto.getResponse().getSuspectFiles().toString());

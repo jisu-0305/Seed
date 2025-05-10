@@ -41,7 +41,7 @@ public class FastAITestController {
                 !StringUtils.hasText(filepathRequest.getLog())) {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
-
+        log.debug(">>>> diff_통과버전: {}", filepathRequest.getDiffRaw());
         SuspectFileResponse response = fastAIClientImpl.requestSuspectFiles(
                 filepathRequest.getDiffRaw(),
                 filepathRequest.getTree(),

@@ -75,7 +75,7 @@ public class FastAIClientImpl implements FastAIClient{
         formData.add("tree", tree);
         formData.add("log", appLog);
 
-        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", formData);
+//        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", formData);
         String response = webClient.post()
                 .uri(fastApiBaseUrl + "/ai/filepath")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
