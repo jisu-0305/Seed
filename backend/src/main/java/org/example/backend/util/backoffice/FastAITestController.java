@@ -6,6 +6,7 @@ import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.fastai.FastAIClientImpl;
+import org.example.backend.util.fastai.dto.aireport.AIReportRequest;
 import org.example.backend.util.fastai.dto.aireport.ReportResponse;
 import org.example.backend.util.fastai.dto.patchfile.PatchFileRequest;
 import org.example.backend.util.fastai.dto.patchfile.PatchTextRequest;
@@ -81,8 +82,8 @@ public class FastAITestController {
     }
 
     @PostMapping("/report")
-    public ResponseEntity<ReportResponse> testReport(@RequestBody String reportJson) {
-        ReportResponse response = fastAIClientImpl.requestErrorReport(reportJson);
+    public ResponseEntity<ReportResponse> testReport(@RequestBody AIReportRequest reportRequest) {
+        ReportResponse response = fastAIClientImpl.requestErrorReport(reportRequest);
         return ResponseEntity.ok(response);
     }
 }

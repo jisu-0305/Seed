@@ -1,6 +1,7 @@
 package org.example.backend.util.fastai;
 
 import org.example.backend.domain.gitlab.dto.PatchedFile;
+import org.example.backend.util.fastai.dto.aireport.AIReportRequest;
 import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
 import org.example.backend.util.fastai.dto.aireport.ReportResponse;
 import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponse;
@@ -19,5 +20,5 @@ public interface FastAIClient {
 
     PatchedFile requestPatchFile(String path, String originalCode, String instruction);
 
-    ReportResponse requestErrorReport(String jsonBody);
+    ReportResponse requestErrorReport(AIReportRequest request);
 }
