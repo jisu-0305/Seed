@@ -3,11 +3,12 @@ package org.example.backend.common.cache;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.cache.dto.TokenResponse;
-import org.example.backend.common.session.RedisSessionManager;
+import org.example.backend.common.util.DockerUriBuilder;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,8 +23,10 @@ public class DockerTokenCacheManager {
 
     @Value("${docker.token.prefix}")
     private String tokenPrefix;
+
     private final RedisTemplate<String, String> redisTemplate;
     private final WebClient dockerAuthWebClient;
+    private final DockerUriBuilder uriBuilder;
 
     public String getAnonymousToken(String namespace, String repo) {
         String key = tokenPrefix + namespace + "/" + repo;
@@ -51,15 +54,11 @@ public class DockerTokenCacheManager {
             log.debug("Requesting anonymous Docker token for {}/{}", namespace, repo);
 
             return dockerAuthWebClient.get()
-                    .uri(uri -> uri
-                            .path("/token")
-                            .queryParam("service", "registry.docker.io")
-                            .queryParam("scope", "repository:" + namespace + "/" + repo + ":pull")
-                            .build())
+                    .uri(uriBuilder.buildRegistryAuthUri(namespace, repo))
                     .accept(MediaType.APPLICATION_JSON)
                     .retrieve()
                     .onStatus(
-                            status -> status.isError(),
+                            HttpStatusCode::isError,
                             clientRes -> clientRes.bodyToMono(String.class)
                                     .flatMap(body -> {
                                         log.error("Failed to fetch Docker token: {} for {}/{} → {}", clientRes.statusCode(), namespace, repo, body);

@@ -129,21 +129,21 @@ public class DockerApiClientImpl implements DockerApiClient {
      *  - namespace, imageName, tag에 해당하는 도커 이미지의 디폴트 포트 목록 가져옴
      *
      *  <br><br>
-     *  - (인증 -> 매니페스트 조회 -> digest 결정 -> 설정 blob 조회 -> 포트 추출)
+     *  - (인증 -> 매니페스트(이미지_컨테이너 의 메타데이터) 조회 -> digest(컨테이너 메타데이터에 있는 id값) 결정 -> blob 조회 -> 포트 추출)
      *
      * @param namespace
      * @param imageName
      * @param tag
-     * @return
+     * @return : imageBlob
      */
     @Override
     public List<String> getImageDefaultPorts(String namespace, String imageName, String tag) {
         try {
-            WebClient client = buildRegistryClient(namespace, imageName);
-            RegistryManifest manifest = fetchManifest(client, namespace, imageName, tag);
-            String configDigest = resolveConfigDigest(client, namespace, imageName, manifest);
-            RegistryConfig registryConfig = fetchConfigBlob(client, namespace, imageName, configDigest);
-            return extractPorts(registryConfig);
+            WebClient dockerAuthClient = makeDockerAuthClient(namespace, imageName);
+            ImageMetaData imageMetaData = fetchImageMetaData(dockerAuthClient, namespace, imageName, tag);
+            String blobHashId = fetchImageBlobHashId(dockerAuthClient, namespace, imageName, imageMetaData);
+            BlobMetaData blobMetaData = fetchBlobMetaData(dockerAuthClient, namespace, imageName, blobHashId);
+            return extractPorts(blobMetaData);
         } catch (Exception ex) {
             log.warn("Registry 접근/인증 실패 ({}), 빈 리스트 반환합니다.", ex.getMessage());
             return Collections.emptyList();
@@ -157,120 +157,117 @@ public class DockerApiClientImpl implements DockerApiClient {
      * - 도커에서는 익명 자격으로 pull 권한만 가진 짧은 수명의 토큰을 발급해 주는데, 이걸로 공식 이미지 정보 가져올 수 있음.
      *
      * @param namespace
-     * @param repo
+     * @param image
      * @return
      */
-    private WebClient buildRegistryClient(String namespace, String repo) {
+    private WebClient makeDockerAuthClient(String namespace, String image) {
 
         // 1) 레디스 캐싱으로 토큰 관리.
-        String token = tokenCache.getAnonymousToken(namespace, repo);
+        String dockerAuthToken = tokenCache.getAnonymousToken(namespace, image);
 
         // 2) webClient 만들기
         return dockerRegistryWebClient.mutate()
                 .clientConnector(new ReactorClientHttpConnector(REDIRECTING_HTTP_CLIENT))
-                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + dockerAuthToken)
                 .build();
     }
 
     /**
-     * - 인증된 WebClient 를 사용해 특정 이미지·태그의 매니페스트(JSON)를 조회함.
+     * - 인증된 WebClient 를 사용해 특정 이미지·태그의 매니페스트(JSON_메타데이터)를 조회함.
      *
-     * @param client
-     * @param ns
-     * @param repo
+     * @param dockerAuthClient
+     * @param namespace
+     * @param imageName
      * @param tag
      * @return
      */
-    private RegistryManifest fetchManifest(WebClient client, String ns, String repo, String tag) {
-        return client.get()
-                .uri(uriBuilder.buildRegistryManifestUri(ns, repo, tag))
+    private ImageMetaData fetchImageMetaData(WebClient dockerAuthClient, String namespace, String imageName, String tag) {
+        return dockerAuthClient.get()
+                .uri(uriBuilder.buildRegistryManifestUri(namespace, imageName, tag))
                 .header(HttpHeaders.ACCEPT,
                         "application/vnd.docker.distribution.manifest.list.v2+json," +
                                 "application/vnd.docker.distribution.manifest.v2+json")
                 .retrieve()
-                .bodyToMono(RegistryManifest.class)
+                .bodyToMono(ImageMetaData.class)
                 .block();
     }
 
     /**
-     * - 매니페스트에서 이미지 설정(config) blob의 digest를 결정. <br>
+     * - 매니페스트에서 이미지 설정(config) blob의 digest(id)를 결정. <br>
+     * - 즉, 이미지 메타데이터들 중, port정보를 조회할 수 있게 해주는 id값.
      *
      * <h4>상세 설명</h4>
-     * 1. 매니페스트에 config.digest 필드가 이미 있으면 그대로 반환 <br>
+     * 1. 매니페스트에 ImageBlobDetail.imageBlobHashId(도커 api에서는 config.digest임.) 필드가 이미 있으면 그대로 반환 <br>
      * 2. 없으면(멀티 아키 매니페스트라는 의미)<br>
      *      -> manifests 리스트를 순회하면서 linux/amd64 플랫폼 항목을 찾기 <br>
-     *      -> 찾은 항목의 digest를 기반으로 다시 fetchManifest(...) 호출 <br>
-     *      -> 해당 manifest의 config.digest 반환 <br>
+     *      -> 찾은 항목의 id를 기반으로 다시 fetchImageMetaData(...) 호출 <br>
+     *      -> 해당 manifest의 imageBlobHashInfo.imageBlobHashId 반환 <br>
      *
-     * @param client
-     * @param ns
-     * @param repo
-     * @param manifest
+     * @param dockerAuthClient
+     * @param namespace
+     * @param image
+     * @param imageMetaData
      * @return
      */
-    private String resolveConfigDigest(WebClient client, String ns, String repo, RegistryManifest manifest) {
-
-        return Optional.ofNullable(manifest.getConfig())
-                .map(ConfigDescriptor::getDigest)
+    private String fetchImageBlobHashId(WebClient dockerAuthClient, String namespace, String image, ImageMetaData imageMetaData) {
+        return Optional.ofNullable(imageMetaData.getImageBlobHashInfo())
+                .map(ImageBlobDetail::getImageBlobHashId)
                 .orElseGet(() -> {
-                    String platformDigest = manifest.getManifests().stream()
+                    String additionalPlatformId = imageMetaData.getAdditionalImagePlatformAndId().stream()
                             .filter(this::isTargetPlatform)
                             .findFirst()
-                            .orElseThrow(() -> new BusinessException(
-                                    ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED,
-                                    "해당 플랫폼의 manifest를 찾을 수 없습니다."))
-                            .getDigest();
+                            .orElseThrow(() -> new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "해당 플랫폼의 manifest를 찾을 수 없습니다."))
+                            .getImageHashId();
 
-                    RegistryManifest pm = fetchManifest(client, ns, repo, platformDigest);
-                    return pm.getConfig().getDigest();
+                    ImageMetaData pm = fetchImageMetaData(dockerAuthClient, namespace, image, additionalPlatformId);
+                    return pm.getImageBlobHashInfo().getImageBlobHashId();
                 });
     }
 
     /**
-     * - ManifestDescriptor 의 플랫폼 정보가 우리가 원하는(linux + amd64) 조합인지 검사
+     * - 멀티 아키일 경우, 플랫폼 정보가 우리가 원하는(linux + amd64) 조합인지 검사
      *
-     * @param desc
+     * @param imagePlatformAndId
      * @return
      */
-    private boolean isTargetPlatform(ManifestDescriptor desc) {
-        Platform p = desc.getPlatform();
-        return "linux".equals(p.getOs())
-                && "amd64".equals(p.getArchitecture());
+    private boolean isTargetPlatform(ImagePlatformAndId imagePlatformAndId) {
+        Platform platform = imagePlatformAndId.getImagePlatform();
+        return "linux".equals(platform.getOs())
+                && "amd64".equals(platform.getCpuArchitecture());
     }
 
     /**
      * - 최종적으로 얻은 configDigest 를 사용해서 이미지 설정 blob을 바이너리(byte[])로 다운로드 <br>
      * -> json으로 파싱해서 RegistryConfig 객체로 반환한다.
      *
-     * @param client
-     * @param ns
-     * @param repo
-     * @param configDigest
+     * @param dockerAuthClient
+     * @param namespace
+     * @param imageName
+     * @param blobHashId
      * @return
      */
-    private RegistryConfig fetchConfigBlob(WebClient client, String ns, String repo, String configDigest) {
-        byte[] data = client.get()
-                .uri(uriBuilder.buildRegistryBlobUri(ns, repo, configDigest))
+    private BlobMetaData fetchBlobMetaData(WebClient dockerAuthClient, String namespace, String imageName, String blobHashId) {
+        byte[] blobData = dockerAuthClient.get()
+                .uri(uriBuilder.buildRegistryBlobUri(namespace, imageName, blobHashId))
                 .accept(MediaType.APPLICATION_OCTET_STREAM)
                 .retrieve()
                 .bodyToMono(byte[].class)
                 .block();
 
-        if (data == null) {
+        if (blobData == null) {
             throw new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "Config blob을 가져오지 못했습니다.");
         }
 
         try {
-            return objectMapper.readValue(data, RegistryConfig.class);
+            return objectMapper.readValue(blobData, BlobMetaData.class);
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "Config blob 파싱에 실패했습니다.", e);
         }
     }
 
-    private List<String> extractPorts(RegistryConfig cfg) {
-
-        Map<String, ?> portsMap = Optional.ofNullable(cfg.getConfig())
-                .map(InnerConfig::getExposedPorts)
+    private List<String> extractPorts(BlobMetaData blobMetaData) {
+        Map<String, ?> portsMap = Optional.ofNullable(blobMetaData.getBlobMetaDataInfo())
+                .map(BlobMetaDataInfo::getDefaultPorts)
                 .orElse(Collections.emptyMap());
 
         return new ArrayList<>(portsMap.keySet());

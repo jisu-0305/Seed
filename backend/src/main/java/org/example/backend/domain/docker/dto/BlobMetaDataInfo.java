@@ -6,11 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class RegistryConfig {
-    @JsonProperty("config")
-    private InnerConfig config;
+public class BlobMetaDataInfo {
+    @JsonProperty("ExposedPorts")
+    private Map<String, ?> defaultPorts;
 }

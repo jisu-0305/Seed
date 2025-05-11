@@ -105,14 +105,29 @@ public class DockerUriBuilder {
 
     /**
      * 블랍(config) 조회용 URI
-     * GET /v2/{namespace}/{imageName}/blobs/{digest}
+     * GET /v2/{namespace}/{imageName}/blobs/{blobHashId}
+     *
      */
-    public URI buildRegistryBlobUri(String namespace, String imageName, String digest) {
+    public URI buildRegistryBlobUri(String namespace, String imageName, String blobHashId) {
         return UriComponentsBuilder
                 .fromUriString(registryApiBaseUrl)
-                .pathSegment(namespace, imageName, "blobs", digest)
+                .pathSegment(namespace, imageName, "blobs", blobHashId)
                 .build()
                 .encode()
+                .toUri();
+    }
+
+    /**
+     * Docker Hub 토큰 발급용 URI 생성
+     * GET {docker.auth.api.base-url}/token?service=registry.docker.io&scope=repository:{namespace}/{imageName}:pull
+     */
+    public URI buildRegistryAuthUri(String namespace, String imageName) {
+        return UriComponentsBuilder
+                .fromUriString(dockerAuthApiBaseUrl)
+                .path("/token")
+                .queryParam("service", "registry.docker.io")
+                .queryParam("scope", "repository:" + namespace + "/" + imageName + ":pull")
+                .build()
                 .toUri();
     }
 

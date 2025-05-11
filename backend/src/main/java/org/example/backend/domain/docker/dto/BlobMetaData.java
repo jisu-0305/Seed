@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ConfigDescriptor {
-    @JsonProperty("digest")
-    private String digest;
+public class BlobMetaData {
+    @JsonProperty("config")
+    private BlobMetaDataInfo blobMetaDataInfo;
 }

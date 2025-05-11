@@ -6,16 +6,11 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class RegistryManifest {
-    @JsonProperty("config")
-    private ConfigDescriptor config;
-
-    @JsonProperty("manifests")
-    private List<ManifestDescriptor> manifests;
+public class ImageBlobDetail {
+    @JsonProperty("digest")
+    private String imageBlobHashId;
 }

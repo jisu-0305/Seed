@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ManifestDescriptor {
+public class ImagePlatformAndId {
     @JsonProperty("digest")
-    private String digest;
+    private String imageHashId;
 
     @JsonProperty("platform")
-    private Platform platform;
+    private Platform imagePlatform;
 }

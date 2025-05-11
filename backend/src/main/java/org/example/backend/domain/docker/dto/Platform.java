@@ -12,7 +12,7 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Platform {
     @JsonProperty("architecture")
-    private String architecture;
+    private String cpuArchitecture;
 
     @JsonProperty("os")
     private String os;

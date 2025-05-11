@@ -6,13 +6,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Map;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class InnerConfig {
-    @JsonProperty("ExposedPorts")
-    private Map<String, ?> exposedPorts;
+public class ImageMetaData {
+    @JsonProperty("config")
+    private ImageBlobDetail imageBlobHashInfo;
+
+    @JsonProperty("manifests")
+    private List<ImagePlatformAndId> additionalImagePlatformAndId;
 }
