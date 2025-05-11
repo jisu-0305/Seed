@@ -93,7 +93,7 @@ public class ServerServiceImpl implements ServerService {
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
             // jenkins api token 생성 및 저장
-            issueAndSaveToken(project.getId(), project.getServerIP());
+            //issueAndSaveToken(project.getId(), project.getServerIP());
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -124,7 +124,7 @@ public class ServerServiceImpl implements ServerService {
 
         return Stream.of(
                 updatePackageManager(),
-                //setSwapMemory(),
+                setSwapMemory(),
                 setJDK(),
                 setNodejs(),
                 setDocker(),
@@ -136,7 +136,7 @@ public class ServerServiceImpl implements ServerService {
                 makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, projectConfig, project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig, project),
-                runApplicationList(applicationList),
+                //runApplicationList(applicationList),
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
