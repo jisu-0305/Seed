@@ -942,11 +942,20 @@ public class ServerServiceImpl implements ServerService {
             // 2) 명령어 실행
             log.info("초기화 명령 실행 시작");
             for (Map.Entry<String, String> entry : convertHttpToHttpsCommands(request)) {
-                log.info("명령 수행:\n{}", entry.getValue());
-                String output = execCommand(sshSession, entry.getValue());
-                saveLog(project.getId(), entry.getKey() , output);
-                log.info("명령 결과:\n{}", output);
+                String stepName = entry.getKey();
+                String command = entry.getValue();
+                try {
+                    log.info("명령 수행:\n{}", command);
+                    String output = execCommand(sshSession, command);
+                    saveLog(project.getId(), stepName, output, "SUCCESS");
+                    log.info("명령 결과:\n{}", output);
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage();
+                    log.error("명령 실패: {}", errorMsg);
+                    saveLog(project.getId(), stepName, errorMsg, "FAIL");
+                }
             }
+
 
             // 3) 성공 로그
             log.info("Https 전환을 성공했습니다.");
@@ -1130,11 +1139,12 @@ public class ServerServiceImpl implements ServerService {
         """, domain, domain, domain, domain);
     }
 
-    private void saveLog(Long projectId, String stepName, String logContent) {
+    private void saveLog(Long projectId, String stepName, String logContent, String status) {
         httpsLogRepository.save(HttpsLog.builder()
                 .projectId(projectId)
                 .stepName(stepName)
                 .logContent(logContent)
+                .status(status)
                 .createdAt(LocalDateTime.now())
                 .build());
     }
