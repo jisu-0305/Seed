@@ -15,4 +15,5 @@ public interface DockerApiClient {
     List<ContainerDto> getContainersByStatus(List<String> statuses);
     List<ContainerDto> getContainersByName(String nameFilter);
     List<String> getContainerLogs(String containerId, DockerContainerLogRequest filter);
+    List<String> getImageDefaultPorts(String namespace, String imageName, String tag);
 }

@@ -6,14 +6,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Platform {
-    @JsonProperty("architecture")
-    private String architecture;
+public class RegistryManifest {
+    @JsonProperty("config")
+    private ConfigDescriptor config;
 
-    @JsonProperty("os")
-    private String os;
+    @JsonProperty("manifests")
+    private List<ManifestDescriptor> manifests;
 }

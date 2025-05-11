@@ -10,10 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Platform {
-    @JsonProperty("architecture")
-    private String architecture;
-
-    @JsonProperty("os")
-    private String os;
+public class ConfigDescriptor {
+    @JsonProperty("digest")
+    private String digest;
 }

@@ -1,25 +1,30 @@
 package org.example.backend.domain.docker.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.common.cache.DockerTokenCacheManager;
 import org.example.backend.common.util.DockerUriBuilder;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.DemonContainerStateCountResponse;
 import org.example.backend.controller.response.docker.ImageResponse;
-import org.example.backend.domain.docker.dto.ContainerDto;
-import org.example.backend.domain.docker.dto.DockerTag;
+import org.example.backend.domain.docker.dto.*;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.netty.http.client.HttpClient;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @Component
 @Slf4j
@@ -28,7 +33,11 @@ public class DockerApiClientImpl implements DockerApiClient {
 
     private final WebClient dockerHubWebClient;
     private final WebClient dockerWebClient;
+    private final WebClient dockerRegistryWebClient;
     private final DockerUriBuilder uriBuilder;
+    private final ObjectMapper objectMapper;
+    private final DockerTokenCacheManager tokenCache;
+    private static final HttpClient REDIRECTING_HTTP_CLIENT = HttpClient.create().followRedirect(true);
 
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {
@@ -114,7 +123,160 @@ public class DockerApiClientImpl implements DockerApiClient {
 
     }
 
-    /* 공통 로짘 */
+    /**
+     * 디폴트 포트 처리 로직
+     * <br>
+     *  - namespace, imageName, tag에 해당하는 도커 이미지의 디폴트 포트 목록 가져옴
+     *
+     *  <br><br>
+     *  - (인증 -> 매니페스트 조회 -> digest 결정 -> 설정 blob 조회 -> 포트 추출)
+     *
+     * @param namespace
+     * @param imageName
+     * @param tag
+     * @return
+     */
+    @Override
+    public List<String> getImageDefaultPorts(String namespace, String imageName, String tag) {
+        try {
+            WebClient client = buildRegistryClient(namespace, imageName);
+            RegistryManifest manifest = fetchManifest(client, namespace, imageName, tag);
+            String configDigest = resolveConfigDigest(client, namespace, imageName, manifest);
+            RegistryConfig registryConfig = fetchConfigBlob(client, namespace, imageName, configDigest);
+            return extractPorts(registryConfig);
+        } catch (Exception ex) {
+            log.warn("Registry 접근/인증 실패 ({}), 빈 리스트 반환합니다.", ex.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    /**
+     * - 레지스트리 인증 api를 먼저 호출해서 Bearer 토큰을 얻고, 그 토큰을 헤더에 담아 이미지를 조회할 WebClient를 구성 <br>
+     * - 토큰이 있어야 레지스트리 api 사용 가능하기 때문.  <br>
+     * - (우리는 공식 이미지만 지원할 것이므로 사용자가 계정 없어도 접근 가능함)  <br>
+     * - 도커에서는 익명 자격으로 pull 권한만 가진 짧은 수명의 토큰을 발급해 주는데, 이걸로 공식 이미지 정보 가져올 수 있음.
+     *
+     * @param namespace
+     * @param repo
+     * @return
+     */
+    private WebClient buildRegistryClient(String namespace, String repo) {
+
+        // 1) 레디스 캐싱으로 토큰 관리.
+        String token = tokenCache.getAnonymousToken(namespace, repo);
+
+        // 2) webClient 만들기
+        return dockerRegistryWebClient.mutate()
+                .clientConnector(new ReactorClientHttpConnector(REDIRECTING_HTTP_CLIENT))
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + token)
+                .build();
+    }
+
+    /**
+     * - 인증된 WebClient 를 사용해 특정 이미지·태그의 매니페스트(JSON)를 조회함.
+     *
+     * @param client
+     * @param ns
+     * @param repo
+     * @param tag
+     * @return
+     */
+    private RegistryManifest fetchManifest(WebClient client, String ns, String repo, String tag) {
+        return client.get()
+                .uri(uriBuilder.buildRegistryManifestUri(ns, repo, tag))
+                .header(HttpHeaders.ACCEPT,
+                        "application/vnd.docker.distribution.manifest.list.v2+json," +
+                                "application/vnd.docker.distribution.manifest.v2+json")
+                .retrieve()
+                .bodyToMono(RegistryManifest.class)
+                .block();
+    }
+
+    /**
+     * - 매니페스트에서 이미지 설정(config) blob의 digest를 결정. <br>
+     *
+     * <h4>상세 설명</h4>
+     * 1. 매니페스트에 config.digest 필드가 이미 있으면 그대로 반환 <br>
+     * 2. 없으면(멀티 아키 매니페스트라는 의미)<br>
+     *      -> manifests 리스트를 순회하면서 linux/amd64 플랫폼 항목을 찾기 <br>
+     *      -> 찾은 항목의 digest를 기반으로 다시 fetchManifest(...) 호출 <br>
+     *      -> 해당 manifest의 config.digest 반환 <br>
+     *
+     * @param client
+     * @param ns
+     * @param repo
+     * @param manifest
+     * @return
+     */
+    private String resolveConfigDigest(WebClient client, String ns, String repo, RegistryManifest manifest) {
+
+        return Optional.ofNullable(manifest.getConfig())
+                .map(ConfigDescriptor::getDigest)
+                .orElseGet(() -> {
+                    String platformDigest = manifest.getManifests().stream()
+                            .filter(this::isTargetPlatform)
+                            .findFirst()
+                            .orElseThrow(() -> new BusinessException(
+                                    ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED,
+                                    "해당 플랫폼의 manifest를 찾을 수 없습니다."))
+                            .getDigest();
+
+                    RegistryManifest pm = fetchManifest(client, ns, repo, platformDigest);
+                    return pm.getConfig().getDigest();
+                });
+    }
+
+    /**
+     * - ManifestDescriptor 의 플랫폼 정보가 우리가 원하는(linux + amd64) 조합인지 검사
+     *
+     * @param desc
+     * @return
+     */
+    private boolean isTargetPlatform(ManifestDescriptor desc) {
+        Platform p = desc.getPlatform();
+        return "linux".equals(p.getOs())
+                && "amd64".equals(p.getArchitecture());
+    }
+
+    /**
+     * - 최종적으로 얻은 configDigest 를 사용해서 이미지 설정 blob을 바이너리(byte[])로 다운로드 <br>
+     * -> json으로 파싱해서 RegistryConfig 객체로 반환한다.
+     *
+     * @param client
+     * @param ns
+     * @param repo
+     * @param configDigest
+     * @return
+     */
+    private RegistryConfig fetchConfigBlob(WebClient client, String ns, String repo, String configDigest) {
+        byte[] data = client.get()
+                .uri(uriBuilder.buildRegistryBlobUri(ns, repo, configDigest))
+                .accept(MediaType.APPLICATION_OCTET_STREAM)
+                .retrieve()
+                .bodyToMono(byte[].class)
+                .block();
+
+        if (data == null) {
+            throw new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "Config blob을 가져오지 못했습니다.");
+        }
+
+        try {
+            return objectMapper.readValue(data, RegistryConfig.class);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "Config blob 파싱에 실패했습니다.", e);
+        }
+    }
+
+    private List<String> extractPorts(RegistryConfig cfg) {
+
+        Map<String, ?> portsMap = Optional.ofNullable(cfg.getConfig())
+                .map(InnerConfig::getExposedPorts)
+                .orElse(Collections.emptyMap());
+
+        return new ArrayList<>(portsMap.keySet());
+    }
+
+    /* 공통 로직 */
     private <T> T fetchMono(WebClient client, URI uri, Class<T> clazz, ErrorCode errorCode) {
         try {
             return client.get()

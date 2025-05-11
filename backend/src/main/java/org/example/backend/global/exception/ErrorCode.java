@@ -56,6 +56,7 @@ public enum ErrorCode {
     GITLAB_NO_MERGE_REQUESTS(HttpStatus.NOT_FOUND,  3229, "해당 프로젝트에 Merge Request가 없습니다."),
     GITLAB_BAD_CREATE_COMMIT(HttpStatus.BAD_REQUEST, 3230, "깃랩 커밋 생성에 실패했습니다."),
     DOCKER_LOGS_API_FAILED(HttpStatus.BAD_REQUEST, 3231, "도커 로그 조회에 실패했습니다."),
+    DOCKER_DEFAULT_PORT_API_FAILED(HttpStatus.BAD_REQUEST, 3232, "도커 default port 조회에 실패했습니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
