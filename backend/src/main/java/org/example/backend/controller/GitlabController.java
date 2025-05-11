@@ -174,7 +174,6 @@ public class GitlabController {
         );
 
         return ResponseEntity.ok(ApiResponse.success(tree));
-
     }
 
     /* 11. 파일 원본 조회  */

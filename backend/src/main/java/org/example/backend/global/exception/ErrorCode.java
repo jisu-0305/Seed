@@ -52,9 +52,10 @@ public enum ErrorCode {
     DOCKER_HEALTH_FAILED(HttpStatus.BAD_REQUEST, 3226, "도커 소켓 연결에 실패했습니다."),
 
     GITLAB_BAD_MERGE_REQUESTS(HttpStatus.BAD_REQUEST, 3227, "깃랩 Merge Requests 조회에 실패했습니다."),
-    GITLAB_MR_NOT_FOUND    (HttpStatus.NOT_FOUND, 3228, "해당 Merge Request를 찾을 수 없습니다."),
-    GITLAB_NO_MERGE_REQUESTS   (HttpStatus.NOT_FOUND,  3229, "해당 프로젝트에 Merge Request가 없습니다."),
+    GITLAB_MR_NOT_FOUND(HttpStatus.NOT_FOUND, 3228, "해당 Merge Request를 찾을 수 없습니다."),
+    GITLAB_NO_MERGE_REQUESTS(HttpStatus.NOT_FOUND,  3229, "해당 프로젝트에 Merge Request가 없습니다."),
     GITLAB_BAD_CREATE_COMMIT(HttpStatus.BAD_REQUEST, 3230, "깃랩 커밋 생성에 실패했습니다."),
+    DOCKER_LOGS_API_FAILED(HttpStatus.BAD_REQUEST, 3231, "도커 로그 조회에 실패했습니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
@@ -80,9 +81,19 @@ public enum ErrorCode {
     JENKINS_TOKEN_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR,6014, "Jenkins Token 요청 실패"),
     JENKINS_INFO_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6015, "해당 프로젝트의 Jenkins 정보가 존재하지 않습니다."),
     JENKINS_STEP_NOT_FOUND(HttpStatus.INTERNAL_SERVER_ERROR,6016, "해당 step 번호에 대한 로그를 찾을 수 없습니다."),
-    HTTPS_ALREADY_ENABLED(HttpStatus.INTERNAL_SERVER_ERROR,6017, "이미 HTTPS가 활성화된 프로젝트입니다.");
-
-
+    HTTPS_ALREADY_ENABLED(HttpStatus.INTERNAL_SERVER_ERROR,6017, "이미 HTTPS가 활성화된 프로젝트입니다."),
+    AI_INFER_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6018, "AI 추론 요청 직렬화에 실패했습니다."),
+    AI_INFER_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6019, "AI 추론 응답 파싱에 실패했습니다."),
+    AI_FILEPATH_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6020, "AI 파일 위치 추론 요청 실패"),
+    AI_FILEPATH_RESPONSE_VALIDATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6021, "AI 파일 위치 응답 필드 유효성 검사 실패"),
+    AI_RESOLVE_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6022, "AI 오류 해결 요청 실패"),
+    AI_RESOLVE_RESPONSE_INVALID(HttpStatus.INTERNAL_SERVER_ERROR, 6023, "AI 오류 해결 응답 파싱 또는 필드 검사 실패"),
+    AI_PATCH_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6024, "AI 패치 생성 요청 실패"),
+    AI_PATCH_RESPONSE_PARSING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6025, "AI 패치 응답 파싱 실패"),
+    AI_REPORT_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6026, "AI 보고서 생성 요청 실패"),
+    AI_REPORT_RESPONSE_MALFORMED(HttpStatus.INTERNAL_SERVER_ERROR, 6027, "AI 보고서 응답 파싱 또는 필드 누락"),
+    AI_COMMUNICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6028, "AI API 요청간 에러 발생"),
+    AI_RESPONSE_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6029, "AI 응답 변환 과정 에러");
 
     private final HttpStatus status;
     private final int code;

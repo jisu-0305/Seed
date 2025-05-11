@@ -1,5 +1,6 @@
 package org.example.backend.domain.selfcicd.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.controller.request.log.DockerLogRequest;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
@@ -7,7 +8,6 @@ import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
 import org.example.backend.controller.response.log.DockerLogResponse;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
-import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.service.JenkinsService;
 import org.example.backend.domain.project.entity.Application;
@@ -17,14 +17,13 @@ import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.fastai.FastAIClient;
+import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
 import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
-
-import static org.example.backend.domain.project.enums.ProjectStructure.MONO;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +34,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final GitlabService gitlabService;
     private final ProjectRepository projectRepository;
     private final ApplicationRepository applicationRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public DockerLogResponse getRecentDockerLogs(DockerLogRequest request) {
@@ -77,60 +77,107 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             ref = gitlabCompareResponse.getCommit().getId();
         }
 
-        /**
-         * 1-4. AI API 호출: 1~3의 재료주고 의심되는 애플리케이션 추론 요청
-         * 내용: 문제가 있는 어플리케이션 이름 목록 반환 필요
-         * 파라미터: jenkins log, appNames, gitDiff
-         * 담당자: 공예슬, 김지수
-         * */
-//        SuspectFileRequest suspectRequest = SuspectFileRequest.builder()
-//                .gitDiff(gitlabCompareResponse.getDiffs())
-//                .jenkinsLog(jenkinsErrorLog)
-//                .applicationNames(appNames)
-//                .build();
-//
-//        List<String> suspectedApplications = fastAIClient.getSuspectedApplications(suspectRequest);
+        //1-4. AI API 호출: 1~3의 재료주고 의심되는 애플리케이션 추론 요청
+        InferAppRequest inferAppRequest = InferAppRequest.builder()
+                .gitDiff(gitlabCompareResponse.getDiffs())
+                .jenkinsLog(jenkinsErrorLog)
+                .applicationNames(appNames)
+                .build();
 
-        /**
-         * 2-1. 해당 어플리케이션들의 트리 구조 가져오기
-         * 문제점1: 현재 Project에는 backendDirectoryName, frontendDirectoryName 2가지 존재 결국 Nginx를 수정해야한다면? 관련된 코드는 어디서.
-         *         추가로 log가져올때도 docker log 사용해야할거같은데 nginx는 별도의 log찾아야하는거 아닌가 싶음(결국 서버 접속 필요...? -> keypem저장?)
-         * 담당자: 엔티티 - 강승엽, nginx 소스코드 저장 - 이재훈
-         *
-         * 문제점2: 폴더 트리 구조 다 가져오면 너무 내용이 많음, 서버면 트리구조의 depth 제한 가능 하지만 api는 불가능
-         * 담당자: 박유진, 김지수, (Ai엮이면 공예슬 추가)
-         * */
-//        for (String appFolderName : suspectedApplications) {
-//            String appPath = appFolderName+"/";
-//            List<GitlabTree> appTree = gitlabService.getTree(accessToken, project.getId(), appPath, true);
-//            // 필요한 경우 → 트리 구조로 가공
-//        }
+        List<String> suspectedApps= fastAIClient.requestInferApplications(inferAppRequest);
+
+        //2-1. 해당 어플리케이션들의 트리 구조 가져오기
+        Map<String, String> appToFolderMap = Map.of(
+                "spring", "backend",
+                "react", "frontend"
+        );
+
+        Map<String, List<GitlabTree>> appTrees = new HashMap<>();
+
+        for (String appName : suspectedApps) {
+            String folder = appToFolderMap.getOrDefault(appName, appName);
+            String appPath = folder + "/";
+
+//            List<GitlabTree> appTree = gitlabService.getRepositoryTree(accessToken, project.getId(), appPath, true);
+//            appTrees.put(appName, appTree);
+        }
 
         /**
          * 2-2. 해당 어플리케이션들의 log가져오기
          * 문제점: docker log 관련된 요청 해야하지않을까? 근데 nginx라면? + 현재 위에 내가 만든 서버에 직접 요청 방식 or dockerService의 요청 방식 2개 중 고민 필요
          * 담당자: 박유진, 김지수
+         *
+         * 문제점2: 현재 Project에는 backendDirectoryName, frontendDirectoryName 2가지 존재 결국 Nginx를 수정해야한다면? 관련된 코드는 어디서.
+         *         추가로 log가져올때도 docker log 사용해야할거같은데 nginx는 별도의 log찾아야하는거 아닌가 싶음(결국 서버 접속 필요...? -> keypem저장?)
+         * 담당자: 엔티티 - 강승엽, nginx 소스코드 저장 - 이재훈
          * */
-//        Map<String, String> appLogs = new HashMap<>();
-//        for (String appName : suspectedApplications) {
-//            String logs = dockerService.getRecentLog(project, appName);
+        Map<String, String> appLogs = new HashMap<>();
+//        for (String appName : suspectedApps) {
+//            String logs = dockerService.getRecentLog(project, appName); // 도커 기반 로그 수집
 //            appLogs.put(appName, logs);
 //        }
 
-        // 2-3. AI API 호출: 문제 있는 파일 path 추론 요청
-//        List<String> filePaths = fastAIClient.requestSuspectFiles(
-//                gitlabCompareResponse.getDiffs(),
-//                appTree,
-//                appLogs
-//        );
-
-        // 3-1. AI API 호출: 문제 있는 파일들 소스코드, ?, ? 제공 -> 수정된 코드들 받기
+//        // 3. AI호출 로직 작성
 //        List<PatchedFile> patchedFiles = new ArrayList<>();
-//        for (String path : filePaths) {
-//            String originalCode = gitlabService.getFile(accessToken, projectId, path, ref);
-//            String instruction = fastAIClient.requestFixInstruction(jenkinsErrorLog, path, originalCode);
-//            PatchedFile patchedFile = fastAIClient.requestPatchFile(path, originalCode, instruction);
-//            patchedFiles.add(patchedFile);
+//
+//        for (String appName : suspectedApps) {
+//            List<GitlabTree> tree = appTrees.get(appName);
+//            String appLog = appLogs.get(appName);
+//
+//            // 3-1: 의심 파일 및 오류 요약 추론
+//            JsonNode response;
+//            try {
+//                String diffJson = objectMapper.writeValueAsString(gitlabCompareResponse.getDiffs());
+//                String aiRawResponse = fastAIClient.requestSuspectFiles(diffJson, tree.toString(), appLog);
+//                response = objectMapper.readTree(aiRawResponse).get("response");
+//            } catch (JsonProcessingException e) {
+//                throw new BusinessException(ErrorCode.AI_JSON_PROCESSING_FAILED);
+//            }
+//
+//            String errorSummary = response.get("errorSummary").asText();
+//            String cause = response.get("cause").asText();
+//            String resolutionHint = response.get("resolutionHint").asText();
+//
+//            // suspectFiles path/code 추출
+//            List<Map<String, String>> filesRaw = new ArrayList<>();
+//            for (JsonNode fileNode : response.get("suspectFiles")) {
+//                String path = fileNode.get("path").asText();
+//                String code = gitlabService.getRawFileContent(accessToken, projectId, path, ref);
+//                filesRaw.add(Map.of("path", path, "code", code));
+//            }
+//
+//            String filesRawJson;
+//            try {
+//                filesRawJson = objectMapper.writeValueAsString(filesRaw);
+//            } catch (JsonProcessingException e) {
+//                throw new BusinessException(ErrorCode.AI_JSON_PROCESSING_FAILED);
+//            }
+//            // 3-2: 수정 지시 요청
+//            String resolveResponse = fastAIClient.requestResolveError(
+//                    errorSummary, cause, resolutionHint, filesRawJson
+//            );
+//
+//            // 3-3: 지시 기반 패치
+//            JsonNode fileFixes;
+//            try {
+//                fileFixes = objectMapper.readTree(resolveResponse).get("fileFixes");
+//            } catch (JsonProcessingException e) {
+//                throw new BusinessException(ErrorCode.AI_JSON_PROCESSING_FAILED);
+//            }
+//
+//            for (JsonNode fix : fileFixes) {
+//                String path = fix.get("path").asText();
+//                String instruction = fix.get("instruction").asText();
+//
+//                String originalCode = filesRaw.stream()
+//                        .filter(f -> f.get("path").equals(path))
+//                        .findFirst()
+//                        .map(f -> f.get("code"))
+//                        .orElse("");
+//
+//                PatchedFile patch = fastAIClient.requestPatchFile(path, originalCode, instruction);
+//                patchedFiles.add(patch);
+//            }
 //        }
 
         /**
@@ -142,12 +189,12 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 내용2: 새로운 branch에 대해서 webhook에 추가되야하므로 "ai/fix/*"내용 프로젝트 1번기능때 넣어줘야함!
          * 담당자: 이재훈
          * */
-        String targetBranch ="";
-        if(project.getStructure().equals(MONO)) targetBranch = "master";
-//        else BackendBranch ? FrontBranch
-
-        String newBranch = "ai/fix/" + System.currentTimeMillis();
-        gitlabService.createBranch(accessToken, project.getId(), newBranch, targetBranch);
+//        String targetBranch ="";
+//        if(project.getStructure().equals(MONO)) targetBranch = "master";
+////        else BackendBranch ? FrontBranch
+//
+//        String newBranch = "ai/fix/" + System.currentTimeMillis();
+//        gitlabService.createBranch(accessToken, project.getId(), newBranch, targetBranch);
 
         /**
          * 4-2. GitLab에 수정된 파일들 커밋
