@@ -16,8 +16,10 @@ import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
+import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectConfig;
+import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectConfigRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.server.entity.HttpsLog;
@@ -50,6 +52,7 @@ public class ServerServiceImpl implements ServerService {
     private final GitlabService gitlabService;
     private final JenkinsInfoRepository jenkinsInfoRepository;
     private final HttpsLogRepository httpsLogRepository;
+    private final ApplicationRepository applicationRepository;
 
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
 
@@ -86,12 +89,11 @@ public class ServerServiceImpl implements ServerService {
                 log.info("명령 결과:\n{}", output);
             }
 
-
             // 3) 성공 로그
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
             // jenkins api token 생성 및 저장
-            //issueAndSaveToken(project.getId(), project.getServerIP());
+            issueAndSaveToken(project.getId(), project.getServerIP());
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -117,9 +119,12 @@ public class ServerServiceImpl implements ServerService {
 
         log.info(gitlabProject.toString());
 
+        // 어플리케이션 목록
+         List<Application> applicationList = applicationRepository.findAllByProjectId(project.getId());
+
         return Stream.of(
                 updatePackageManager(),
-                setSwapMemory(),
+                //setSwapMemory(),
                 setJDK(),
                 setNodejs(),
                 setDocker(),
@@ -131,6 +136,7 @@ public class ServerServiceImpl implements ServerService {
                 makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, projectConfig, project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig, project),
+                runApplicationList(applicationList),
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
@@ -319,7 +325,7 @@ public class ServerServiceImpl implements ServerService {
                         "  <fullName>admin</fullName>\n" +
                         "  <properties>\n" +
                         "    <hudson.security.HudsonPrivateSecurityRealm_-Details>\n" +
-                        "      <passwordHash>#jbcrypt:$2a$10$Dow1v0zN88bGyfprxqO2ZuhT8Vlfk7q/EGp8Hznh5CZmj1mHndOFK</passwordHash>\n" +
+                        "      <passwordHash>#jbcrypt:$2b$12$6CPsRl/Dz/hQRDDoMCyUyuk.q3QsYwnsH8cSzi/43H1ybVsn4yBva</passwordHash>\n" +
                         "    </hudson.security.HudsonPrivateSecurityRealm_-Details>\n" +
                         "  </properties>\n" +
                         "</user>\n" +
@@ -717,13 +723,34 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
+    private List<String> runApplicationList(List<Application> applicationList) {
+        return applicationList.stream()
+                .flatMap(app -> Stream.of(
+
+                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
+
+                        "docker stop " + app.getImageName() + " || true",
+
+                        "docker rm " + app.getImageName() + " || true",
+
+                        // [중요] 환경 변수 동적으로 넣어줘야함
+                        "docker run -d " +
+                                "--restart unless-stopped " +
+                                "--name " + app.getImageName() + " " +
+                                "-p " + app.getPort() + ":" + app.getPort() + " " +
+                                app.getImageName() + ":" + app.getTag()
+                ))
+                .toList();
+    }
+
     private List<String> makeGitlabWebhook(String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
         String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
 
         gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
 
         //최초 실행 로직 한번 필요 그래야 아래 777의미가 있음
-        return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
+        //return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
+        return List.of();
     }
 
     private void issueAndSaveToken(Long projectId, String serverIp) {
