@@ -33,4 +33,7 @@ public class GitlabCompareDiff {
 
     @JsonProperty("deleted_file")
     private boolean deletedFile;
+
+    @JsonProperty("generated_file")
+    private final Object generatedFile = null;
 }

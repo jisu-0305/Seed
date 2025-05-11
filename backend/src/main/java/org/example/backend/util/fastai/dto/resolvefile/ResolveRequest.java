@@ -1,4 +1,4 @@
-package org.example.backend.util.fastai.dto;
+package org.example.backend.util.fastai.dto.resolvefile;
 
 import lombok.Builder;
 import lombok.Getter;
