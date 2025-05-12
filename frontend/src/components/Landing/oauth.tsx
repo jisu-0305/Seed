@@ -16,7 +16,7 @@ export default function OAuthCallback() {
         localStorage.setItem('refreshToken', refresh);
 
         const ok = await fetchUserIfToken();
-        router.replace(ok ? '/dashboard' : '/login');
+        router.replace(ok ? '/onboarding' : '/login');
       } else {
         router.replace('/login');
       }
