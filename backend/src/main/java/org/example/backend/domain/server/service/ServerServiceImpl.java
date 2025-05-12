@@ -34,6 +34,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,7 +59,7 @@ public class ServerServiceImpl implements ServerService {
 
     @Override
     public void registerDeployment(
-            DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile frontEnvFile, MultipartFile backEnvFile, String accessToken) {
+            DeploymentRegistrationRequest request, String pemFilePath, String frontEnvFilePath, String backEnvFilePath, String accessToken) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -70,6 +72,11 @@ public class ServerServiceImpl implements ServerService {
 
         String host = project.getServerIP();
         Session sshSession = null;
+
+        // pem 조회
+        File pemFile = new File(project.getPemFilePath());
+        File frontEnvFile = new File(project.getFrontendEnvFilePath());
+        File backEnvFile = new File(project.getBackendEnvFilePath());
 
         try {
             // 1) 원격 서버 세션 등록
@@ -106,7 +113,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(User user, Project project, MultipartFile frontEnvFile, MultipartFile backEnvFile, String gitlabTargetBranchName) {
+    private List<String> serverInitializeCommands(User user, Project project, File frontEnvFile, File backEnvFile, String gitlabTargetBranchName) {
         GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), "https://lab.ssafy.com/potential1205/seed-test1");
 
         String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
@@ -212,7 +219,12 @@ public class ServerServiceImpl implements ServerService {
                 // 5-4. 서비스 활성화 및 시작
                 "sudo systemctl enable docker",
                 "sudo systemctl start docker",
-                "docker --version"
+                "docker --version",
+
+                // 5-5. Docker 데몬 TCP 포트 허용
+                "echo '{\"hosts\": [\"unix:///var/run/docker.sock\", \"tcp://0.0.0.0:3789\"]}' | sudo tee /etc/docker/daemon.json > /dev/null",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl restart docker"
         );
     }
 
@@ -354,10 +366,13 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins credentials 생성
-    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, MultipartFile frontEnvFile, MultipartFile backEnvFile) {
+    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, File frontEnvFile, File backEnvFile) {
         try {
-            String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile.getBytes());
-            String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile.getBytes());
+//            String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile.getBytes());
+//            String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile.getBytes());
+
+            String frontEnvFileStr = Base64.getEncoder().encodeToString(Files.readAllBytes(frontEnvFile.toPath()));
+            String backEnvFileStr = Base64.getEncoder().encodeToString(Files.readAllBytes(backEnvFile.toPath()));
 
             log.info(gitlabToken);
 
@@ -718,25 +733,26 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-//    private List<String> runApplicationList(List<Application> applicationList) {
-//        return applicationList.stream()
-//                .flatMap(app -> Stream.of(
-//
-//                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
-//
-//                        "docker stop " + app.getImageName() + " || true",
-//
-//                        "docker rm " + app.getImageName() + " || true",
-//
-//                        // [중요] 환경 변수 동적으로 넣어줘야함
-//                        "docker run -d " +
-//                                "--restart unless-stopped " +
-//                                "--name " + app.getImageName() + " " +
-//                                "-p " + app.getPort() + ":" + app.getPort() + " " +
-//                                app.getImageName() + ":" + app.getTag()
-//                ))
-//                .toList();
-//    }
+    private List<String> runApplicationList(List<ProjectApplication> projectApplicationList) {
+
+        return projectApplicationList.stream()
+                .flatMap(app -> Stream.of(
+
+                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
+
+                        "docker stop " + app.getImageName() + " || true",
+
+                        "docker rm " + app.getImageName() + " || true",
+
+                        // [중요] 환경 변수 동적으로 넣어줘야함
+                        "docker run -d " +
+                                "--restart unless-stopped " +
+                                "--name " + app.getImageName() + " " +
+                                "-p " + app.getPort() + ":" + app.getPort() + " " +
+                                app.getImageName() + ":" + app.getTag()
+                ))
+                .toList();
+    }
 
     private List<String> makeGitlabWebhook(String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
         String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
@@ -856,7 +872,7 @@ public class ServerServiceImpl implements ServerService {
 
 
     @Override
-    public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
+    public void convertHttpToHttps(HttpsConvertRequest request, String pemFilePath, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
@@ -872,6 +888,8 @@ public class ServerServiceImpl implements ServerService {
 
         String host = project.getServerIP();
         Session sshSession = null;
+
+        File pemFile = new File(project.getPemFilePath());
 
         try {
             // 1) 원격 서버 세션 등록
@@ -1079,8 +1097,8 @@ public class ServerServiceImpl implements ServerService {
                 .build());
     }
 
-    private Session createSessionWithPem(MultipartFile pemFile, String host) throws JSchException, IOException {
-        byte[] keyBytes = pemFile.getBytes();
+    private Session createSessionWithPem(File pemFile, String host) throws JSchException, IOException {
+        byte[] keyBytes = Files.readAllBytes(pemFile.toPath());
 
         JSch jsch = new JSch();
         jsch.addIdentity("ec2-key", keyBytes, null, null);

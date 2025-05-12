@@ -84,21 +84,24 @@ public class ProjectServiceImpl implements ProjectService {
 
         userProjectRepository.save(UserProject.create(project.getId(), userId));
 
-        request.getApplicationList().forEach(app -> {
+        if (request.getApplicationList() != null && !request.getApplicationList().isEmpty()) {
+            request.getApplicationList().forEach(app -> {
 
-            Application application = applicationRepository.findByImageName(app.getImageName())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+                Application application = applicationRepository.findByImageName(app.getImageName())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
-            ProjectApplication projectApplication = ProjectApplication.builder()
-                    .projectId(project.getId())
-                    .applicationId(application.getId())
-                    .imageName(app.getImageName())
-                    .tag(app.getTag())
-                    .port(app.getPort())
-                    .build();
+                ProjectApplication projectApplication = ProjectApplication.builder()
+                        .projectId(project.getId())
+                        .applicationId(application.getId())
+                        .imageName(app.getImageName())
+                        .tag(app.getTag())
+                        .port(app.getPort())
+                        .build();
 
-            projectApplicationRepository.save(projectApplication);
-        });
+                projectApplicationRepository.save(projectApplication);
+            });
+        }
+
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
