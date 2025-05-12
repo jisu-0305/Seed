@@ -28,14 +28,19 @@ export default function GitlabInput() {
 
   const fetchUserRepos = async () => {
     const { data } = await getUserRepos();
-    console.log(data);
     setRepoList(data);
   };
 
   // input 핸들러
   const handleRepoChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    setGitlabStatus({ ...gitlab, repo: e.target.value });
+    const url = e.target.value;
+
+    setGitlabStatus({ ...gitlab, repo: url });
   };
+
+  // const handleInput = (e: ChangeEvent<HTMLInputElement>) => {
+  //   setGitlabStatus({ ...gitlab, repo: e.target.value });
+  // };
 
   const handleStructureSelect = (value: '모노' | '멀티') => {
     setGitlabStatus({
@@ -80,7 +85,8 @@ export default function GitlabInput() {
       <Title>GitLab 레포지토리 주소를 입력해주세요</Title>
       {/* <Input
         placeholder="https://lab.ssafy.com/s12-final/S12P31A206.git"
-        value={gitlabUrl || gitlab.repo}
+        value={gitlab.repo}
+        onChange={handleInput}
       /> */}
 
       <StSelectWrapper>
@@ -89,7 +95,7 @@ export default function GitlabInput() {
             레포지토리를 선택하세요
           </option>
           {repoList.map((repo) => (
-            <option key={repo.id} value={repo.name}>
+            <option key={repo.id} value={repo.http_url_to_repo}>
               {repo.name}
             </option>
           ))}
@@ -175,6 +181,8 @@ const Container = styled.div`
   width: 100%;
   padding: 4rem;
 `;
+
+// const Input = styled.input``;
 
 const Title = styled.h2`
   width: fit-content;

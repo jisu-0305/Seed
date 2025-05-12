@@ -14,6 +14,9 @@ interface ProjectInfoStore {
   // 다음 단계 유효성 검사
   onNextValidate: () => boolean;
   setOnNextValidate: (fn: () => boolean) => void;
+  // 다음 성공시 콜백함수
+  onNextSuccess?: () => void;
+  setOnNextSuccess: (fn: () => void) => void;
 }
 
 const initialStatus: ProjectInfo = {
@@ -31,9 +34,11 @@ const initialStatus: ProjectInfo = {
   },
   app: [],
   env: {
-    env: false,
-    node: '',
-    jdk: 17,
+    frontendFramework: '',
+    frontEnv: false,
+    backEnv: false,
+    node: 'v22',
+    jdk: '17',
     buildTool: 'Gradle',
   },
 };
@@ -66,15 +71,44 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
       resetProjectStatus: () => set({ stepStatus: initialStatus }),
 
       onNextValidate: () => true,
-
       // 콜백 등록
       setOnNextValidate: (fn) => set(() => ({ onNextValidate: fn })),
+
+      onNextSuccess: undefined,
+      setOnNextSuccess: (fn) => set({ onNextSuccess: fn }),
     }),
     {
       name: 'projectInfo',
     },
   ),
 );
+
+interface ProjectFileState {
+  pemFile: File | null;
+  frontEnvFile: File | null;
+  backEnvFile: File | null;
+  setPemFile: (file: File | null) => void;
+  setFrontEnvFile: (file: File | null) => void;
+  setBackEnvFile: (file: File | null) => void;
+  clearAll: () => void;
+}
+
+export const useProjectFileStore = create<ProjectFileState>((set) => ({
+  pemFile: null,
+  frontEnvFile: null,
+  backEnvFile: null,
+
+  setPemFile: (file) => set({ pemFile: file }),
+  setFrontEnvFile: (file) => set({ frontEnvFile: file }),
+  setBackEnvFile: (file) => set({ backEnvFile: file }),
+
+  clearAll: () =>
+    set({
+      pemFile: null,
+      frontEnvFile: null,
+      backEnvFile: null,
+    }),
+}));
 
 interface ProjectStore {
   projects: ProjectSummary[];

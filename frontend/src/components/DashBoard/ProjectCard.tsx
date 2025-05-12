@@ -1,27 +1,31 @@
 import styled from '@emotion/styled';
+import { useRouter } from 'next/navigation';
 
-// eslint-disable-next-line import/extensions
 import { getCardColor } from '@/utils/getColor';
+import { formatDateTime } from '@/utils/getFormattedTime';
 
 interface ProjectCardProps {
+  id: number;
   emoji: string;
   title: string;
   time: string;
-  build: boolean;
+  build: string | null;
   https: boolean;
 }
 
 export const ProjectCard = ({
+  id,
   emoji,
   title,
   time,
   build,
   https,
 }: ProjectCardProps) => {
+  const router = useRouter();
   const cardColor = getCardColor(emoji);
 
   return (
-    <Card color={cardColor}>
+    <Card color={cardColor} onClick={() => router.push(`/projects/${id}`)}>
       <Title>
         <ProjectImage
           src={`/assets/projectcard/project_${emoji}.png`}
@@ -33,13 +37,14 @@ export const ProjectCard = ({
         <BuildInfo>
           <h3>
             최근 빌드
-            <IcStatus
-              src={`/assets/icons/ic_build_${build ? 'success' : 'fail'}.svg`}
-              alt={`project_${build ? 'success' : 'fail'}`}
-            />
+            {time && (
+              <IcStatus
+                src={`/assets/icons/ic_build_${build ? 'success' : 'fail'}.svg`}
+                alt={`project_${build ? 'success' : 'fail'}`}
+              />
+            )}
           </h3>
-
-          <p>{time}</p>
+          <p>{time ? formatDateTime(time) : '빌드 이력 없음'}</p>
         </BuildInfo>
         <Info>
           <p>
@@ -69,11 +74,13 @@ const Card = styled.div<{ color: string }>`
   gap: 1rem;
 
   padding: 2rem;
-  /* min-width: 20rem; */
+  width: 20rem;
   height: 10rem;
 
   background: ${({ color }) => color};
   border-radius: 1.6rem;
+
+  cursor: pointer;
 `;
 
 const Title = styled.h3`
@@ -84,6 +91,10 @@ const Title = styled.h3`
 
   ${({ theme }) => theme.fonts.EnTitle2};
   color: ${({ theme }) => theme.colors.Black1};
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ProjectImage = styled.img`
