@@ -13,7 +13,7 @@ public interface DockerApiClient {
     DockerTag getTags(String namespace, String repo, int page, int pageSize);
     DemonContainerStateCountResponse getInfo();
     List<ContainerDto> getContainersByStatus(List<String> statuses);
-    List<ContainerDto> getContainersByName(String nameFilter);
-    List<String> getContainerLogs(String containerId, DockerContainerLogRequest filter);
+    List<ContainerDto> getContainersByName(String serverIp, String nameFilter);
+    List<String> getContainerLogs(String serverIp, String containerId, DockerContainerLogRequest filter);
     List<String> getImageDefaultPorts(String namespace, String imageName, String tag);
 }

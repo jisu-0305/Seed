@@ -11,8 +11,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "project_configs")
-public class ProjectConfig {
+@Table(name = "project_applications")
+public class ProjectApplication {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,15 +20,11 @@ public class ProjectConfig {
 
     private Long projectId;
 
-    private String nodejsVersion;
+    private Long applicationId;
 
-    private String frontendFramework;
+    private String imageName;
 
-    private String frontendEnvFile;
+    private String tag;
 
-    private String jdkVersion;
-
-    private String jdkBuildTool;
-
-    private String backendEnvFile;
+    private int port;
 }

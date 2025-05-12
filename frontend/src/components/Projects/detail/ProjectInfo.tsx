@@ -34,7 +34,11 @@ export function ProjectInfo({
         <Label>Client</Label>
         <Value>
           <FolderIcon
-            src={`/assets/icons/ic_folder_${mode}.svg`}
+            src={
+              folder === 'MONO'
+                ? `/assets/icons/ic_folder_${mode}.svg`
+                : `/assets/icons/ic_branch_${mode}.svg`
+            }
             alt="folder"
           />
           {clientDir}
@@ -44,7 +48,11 @@ export function ProjectInfo({
         <Label>Server</Label>
         <Value>
           <FolderIcon
-            src={`/assets/icons/ic_folder_${mode}.svg`}
+            src={
+              folder === 'MONO'
+                ? `/assets/icons/ic_folder_${mode}.svg`
+                : `/assets/icons/ic_branch_${mode}.svg`
+            }
             alt="folder"
           />
           {serverDir}

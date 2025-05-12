@@ -1,4 +1,4 @@
-package org.example.backend.util.fastai.dto.patchfile;
+package org.example.backend.util.aiapi.dto.patchfile;
 
 import lombok.Builder;
 import lombok.Getter;

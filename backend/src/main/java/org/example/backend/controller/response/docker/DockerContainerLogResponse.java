@@ -7,11 +7,7 @@ public record DockerContainerLogResponse(
         String timestamp,
         String message
 ) {
-    public static DockerContainerLogResponse of(String rawLine, boolean includeTimestamps) {
-        if (!includeTimestamps) {
-            return new DockerContainerLogResponse(null, rawLine);
-        }
-
+    public static DockerContainerLogResponse of(String rawLine) {
         int idx = rawLine.indexOf(' ');
         if (idx > 0) {
             String ts  = rawLine.substring(0, idx);

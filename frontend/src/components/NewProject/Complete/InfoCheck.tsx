@@ -17,7 +17,12 @@ export default function InfoCheck() {
       <Section>
         <Row>
           <Label>GitLab Repo</Label>
-          <Value>{status.gitlab.repo || '-'}</Value>
+          <Value>
+            {status.gitlab.repo
+              ?.split('/')
+              .pop()
+              ?.replace(/\.git$/, '') || '-'}
+          </Value>
         </Row>
         <Row>
           <Label>폴더 구조</Label>
@@ -67,10 +72,9 @@ export default function InfoCheck() {
         <AppList>
           {status.app.length > 0 ? (
             status.app.map((app) => (
-              <Row key={app.name}>
+              <Row key={app.imageName}>
                 <AppInfo>
-                  <strong>{app.name}</strong> :{' '}
-                  {app.tag === 'latest' ? 'LTS' : app.tag}
+                  <strong>{app.imageName}</strong> : {app.tag}
                 </AppInfo>
                 <PortInfo>: {app.port}</PortInfo>
               </Row>
@@ -95,7 +99,7 @@ export default function InfoCheck() {
             <AppInfo>.env</AppInfo>
             <Icon
               src={
-                status.env.env
+                status.env.frontEnv && status.env.backEnv
                   ? `/assets/icons/ic_checked_${mode}_true.svg`
                   : `/assets/icons/ic_checked_${mode}_false.svg`
               }

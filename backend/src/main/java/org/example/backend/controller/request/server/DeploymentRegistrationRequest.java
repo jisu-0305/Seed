@@ -5,5 +5,4 @@ import lombok.Getter;
 @Getter
 public class DeploymentRegistrationRequest {
     private Long projectId;
-    private String gitlabTargetBranchName;
 }

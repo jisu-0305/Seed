@@ -8,7 +8,9 @@ import lombok.Data;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class GitlabProject {
 
-    private Long id;
+    @JsonProperty("id")
+    private Long gitlabProjectId;
+
     private String name;
 
     @JsonProperty("path_with_namespace")

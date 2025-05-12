@@ -24,11 +24,12 @@ public class HttpsLogServiceImpl implements HttpsLogService{
     private final UserProjectRepository userProjectRepository;
 
     @Override
-    public void saveLog(Long projectId, String stepName, String logContent) {
+    public void saveLog(Long projectId, String stepName, String logContent, String status) {
         httpsLogRepository.save(HttpsLog.builder()
                 .projectId(projectId)
                 .stepName(stepName)
                 .logContent(logContent)
+                .status(status)
                 .createdAt(LocalDateTime.now())
                 .build());
     }
@@ -45,6 +46,7 @@ public class HttpsLogServiceImpl implements HttpsLogService{
                     .stepNumber(stepNumber++)
                     .stepName(log.getStepName())
                     .logContent(log.getLogContent())
+                    .status(log.getStatus())
                     .createdAt(log.getCreatedAt())
                     .build());
         }

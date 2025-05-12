@@ -7,7 +7,7 @@ COPY gradlew gradlew.bat settings.gradle* build.gradle* ./
 COPY gradle/ ./gradle/
 
 # Gradle Wrapper 실행 권한 부여
-RUN chmod +x gradlew
+RUN chmod +x ./gradlew
 
 # 의존성 다운로드 (변경 없으면 캐시 활용)
 RUN ./gradlew dependencies --no-daemon

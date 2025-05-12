@@ -8,8 +8,7 @@ import java.util.List;
 public interface DockerService {
     ImageResponse getDockerImages(String image);
     List<TagResponse> getDockerImageTags(String image);
-    List<DemonHealthyCheckResponse> checkHealth();
-    List<AppHealthyCheckResponse> getAppStatus(String appName);
-    List<DockerContainerLogResponse> getContainerLogs(String appName, DockerContainerLogRequest request);
-    List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag);
+    List<DemonHealthyCheckResponse> checkHealth();List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag);
+    List<AppHealthyCheckResponse> getAppStatus(String serverIp, String appName);
+    List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request);
 }

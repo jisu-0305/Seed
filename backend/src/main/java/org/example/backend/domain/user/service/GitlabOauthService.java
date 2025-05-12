@@ -13,4 +13,6 @@ public interface GitlabOauthService {
     boolean login(String accessToken);
 
     UserProfile getUserProfile(String jwtToken);
+
+    void updatePersonalAccessToken(String accessToken, String pat);
 }

@@ -48,6 +48,12 @@ public class WebClientConfig {
                 .build();
     }
 
+    @Bean("dockerWebClientBuilder")
+    public WebClient.Builder dockerWebClientBuilder() {
+        return WebClient.builder()
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
+    }
+
     @Bean("dockerHubWebClient")
     public WebClient dockerHubWebClient() {
         ExchangeStrategies strategies = ExchangeStrategies.builder()

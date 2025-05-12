@@ -1,4 +1,4 @@
-package org.example.backend.util.fastai.dto.aireport;
+package org.example.backend.util.aiapi.dto.aireport;
 
 import lombok.Data;
 

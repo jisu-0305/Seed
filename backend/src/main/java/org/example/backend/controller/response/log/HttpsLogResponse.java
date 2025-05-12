@@ -11,5 +11,6 @@ public class HttpsLogResponse {
     private int stepNumber;
     private String stepName;
     private String logContent;
+    private String status;
     private LocalDateTime createdAt;
 }
