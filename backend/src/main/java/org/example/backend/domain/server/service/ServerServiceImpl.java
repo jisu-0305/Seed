@@ -18,7 +18,9 @@ import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
 import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
+import org.example.backend.domain.project.entity.ProjectApplication;
 import org.example.backend.domain.project.repository.ApplicationRepository;
+import org.example.backend.domain.project.repository.ProjectApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.server.entity.HttpsLog;
 import org.example.backend.domain.server.repository.HttpsLogRepository;
@@ -114,7 +116,7 @@ public class ServerServiceImpl implements ServerService {
         log.info(gitlabProject.toString());
 
         // 어플리케이션 목록
-         List<Application> applicationList = applicationRepository.findAllByProjectId(project.getId());
+//         List<Application> applicationList = applicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
                 updatePackageManager(),
@@ -716,25 +718,25 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> runApplicationList(List<Application> applicationList) {
-        return applicationList.stream()
-                .flatMap(app -> Stream.of(
-
-                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
-
-                        "docker stop " + app.getImageName() + " || true",
-
-                        "docker rm " + app.getImageName() + " || true",
-
-                        // [중요] 환경 변수 동적으로 넣어줘야함
-                        "docker run -d " +
-                                "--restart unless-stopped " +
-                                "--name " + app.getImageName() + " " +
-                                "-p " + app.getPort() + ":" + app.getPort() + " " +
-                                app.getImageName() + ":" + app.getTag()
-                ))
-                .toList();
-    }
+//    private List<String> runApplicationList(List<Application> applicationList) {
+//        return applicationList.stream()
+//                .flatMap(app -> Stream.of(
+//
+//                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
+//
+//                        "docker stop " + app.getImageName() + " || true",
+//
+//                        "docker rm " + app.getImageName() + " || true",
+//
+//                        // [중요] 환경 변수 동적으로 넣어줘야함
+//                        "docker run -d " +
+//                                "--restart unless-stopped " +
+//                                "--name " + app.getImageName() + " " +
+//                                "-p " + app.getPort() + ":" + app.getPort() + " " +
+//                                app.getImageName() + ":" + app.getTag()
+//                ))
+//                .toList();
+//    }
 
     private List<String> makeGitlabWebhook(String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
         String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
