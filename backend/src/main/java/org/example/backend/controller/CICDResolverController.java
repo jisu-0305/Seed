@@ -14,11 +14,13 @@ import org.example.backend.domain.selfcicd.service.CICDResolverService;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.global.response.ApiResponse;
+import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
 import org.example.backend.util.backoffice.SimulationRequestDto;
-import org.example.backend.util.fastai.FastAIClient;
-import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponse;
-import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
-import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponse;
+import org.example.backend.util.aiapi.AIApiClient;
+import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
+import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,7 +30,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @RestController
 @RequestMapping("/api/self-cicd")
@@ -37,7 +38,7 @@ import java.util.stream.Stream;
 public class CICDResolverController {
 
     private final CICDResolverService cicdResolverService;
-    private final FastAIClient fastAIClient;
+    private final AIApiClient fastAIClient;
     private final GitlabService gitlabService;
     private final ObjectMapper objectMapper;
 
@@ -119,14 +120,17 @@ public class CICDResolverController {
                 throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
             }
 
-            SuspectFileResponse suspectDto = fastAIClient.requestSuspectFiles(diffJson, treeJson, appLog);
-            log.debug(">>>>>>>>>>>>>의심파일 찾기"+suspectDto.getResponse().getSuspectFiles().toString());
-            String summary = suspectDto.getResponse().getErrorSummary();
-            String cause = suspectDto.getResponse().getCause();
-            String hint = suspectDto.getResponse().getResolutionHint();
+            SuspectFileRequest suspectRequest = SuspectFileRequest.builder()
+                    .diffRaw(diffJson)
+                    .tree(treeJson)
+                    .log(appLog)
+                    .build();
+
+            SuspectFileInnerResponse suspectFileInnerResponse = fastAIClient.requestSuspectFiles(suspectRequest).getResponse();
+            log.debug(">>>>>>>>>>>>>의심파일 찾기"+suspectFileInnerResponse.getSuspectFiles().toString());
 
             List<Map<String, String>> filesRaw = new ArrayList<>();
-            for (var f : suspectDto.getResponse().getSuspectFiles()) {
+            for (var f : suspectFileInnerResponse.getSuspectFiles()) {
                 String path = f.getPath();
                 String code = gitlabService.getRawFileContent(accessToken, projectId, path, "master");
                 filesRaw.add(Map.of("path", path, "code", code));
@@ -140,7 +144,7 @@ public class CICDResolverController {
                 throw new BusinessException(ErrorCode.AI_RESOLVE_REQUEST_FAILED);
             }
 
-            ResolveErrorResponse resolveDto = fastAIClient.requestResolveError(summary, cause, hint, rawJson);
+            ResolveErrorResponse resolveDto = fastAIClient.requestResolveError(suspectFileInnerResponse, rawJson);
             log.debug(">>>>>>>>>>>>>해결책 요약: "+resolveDto.toString());
 
             for (var fix : resolveDto.getResponse().getFileFixes()) {
@@ -152,9 +156,15 @@ public class CICDResolverController {
                         .map(f -> f.get("code"))
                         .orElse("");
 
-                PatchedFile patch = fastAIClient.requestPatchFile(path, code, instruction);
-                log.debug(">>>>>>>>>>>>>변경된 파일 내용: "+patch.getPatchedCode().toString());
-                patchedFiles.add(patch);
+                PatchFileRequest patchFileRequest = PatchFileRequest.builder()
+                        .path(path)
+                        .originalCode(code)
+                        .instruction(instruction)
+                        .build();
+
+                PatchedFile patchedFile = fastAIClient.requestPatchFile(patchFileRequest);
+                log.debug(">>>>>>>>>>>>>변경된 파일 내용: "+patchedFile.getPatchedCode().toString());
+                patchedFiles.add(patchedFile);
             }
         }
 

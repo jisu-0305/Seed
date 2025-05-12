@@ -1,4 +1,4 @@
-package org.example.backend.util.fastai;
+package org.example.backend.util.aiapi;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -6,12 +6,16 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
-import org.example.backend.util.fastai.dto.aireport.AIReportRequest;
-import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
-import org.example.backend.util.fastai.dto.aireport.ReportResponse;
-import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponse;
-import org.example.backend.util.fastai.dto.suspectapp.InferAppResponse;
-import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponse;
+import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
+import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
+import org.example.backend.util.aiapi.dto.patchfile.PatchTextRequest;
+import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
+import org.example.backend.util.aiapi.dto.aireport.ReportResponse;
+import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
+import org.example.backend.util.aiapi.dto.suspectapp.InferAppResponse;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -24,20 +28,20 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class FastAIClientImpl implements FastAIClient{
+public class AIApiClientImpl implements AIApiClient {
 
     private final WebClient webClient;
-    private static final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Value("${fastapi.base-url}")
     private String fastApiBaseUrl;
 
     @Override
-    public List<String> requestInferApplications(InferAppRequest request) {
+    public List<String> requestInferApplications(InferAppRequest inferAppRequest) {
         String json;
 
         try {
-            json = objectMapper.writeValueAsString(request);
+            json = objectMapper.writeValueAsString(inferAppRequest);
             log.debug("🔍 [InferApp] Request JSON: {}", json);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
@@ -72,11 +76,11 @@ public class FastAIClientImpl implements FastAIClient{
     }
 
     @Override
-    public SuspectFileResponse requestSuspectFiles(String diffRaw, String tree, String appLog) {
+    public SuspectFileResponse requestSuspectFiles(SuspectFileRequest suspectFileRequest) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("diff_raw", diffRaw);
-        formData.add("tree", tree);
-        formData.add("log", appLog);
+        formData.add("diff_raw", suspectFileRequest.getDiffRaw());
+        formData.add("tree", suspectFileRequest.getTree());
+        formData.add("log", suspectFileRequest.getLog());
 
 //        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", formData);
         String response = webClient.post()
@@ -108,11 +112,11 @@ public class FastAIClientImpl implements FastAIClient{
     }
 
     @Override
-    public ResolveErrorResponse requestResolveError(String errorSummary, String cause, String resolutionHint, String filesRawJson) {
+    public ResolveErrorResponse requestResolveError(SuspectFileInnerResponse suspectFileInnerResponse, String filesRawJson) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("errorSummary", errorSummary);
-        formData.add("cause", cause);
-        formData.add("resolutionHint", resolutionHint);
+        formData.add("errorSummary", suspectFileInnerResponse.getErrorSummary());
+        formData.add("cause", suspectFileInnerResponse.getCause());
+        formData.add("resolutionHint", suspectFileInnerResponse.getResolutionHint());
         formData.add("files_raw", filesRawJson);
 
         log.debug(">>>>>>>> [Fast API]requestResolveError: {}", formData);
@@ -145,10 +149,10 @@ public class FastAIClientImpl implements FastAIClient{
     }
 
     @Override
-    public String requestPatchText(String originalCode, String instruction) {
+    public String requestPatchText(PatchTextRequest patchTextRequest) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("original_code", originalCode);
-        formData.add("instruction", instruction);
+        formData.add("original_code", patchTextRequest.getOriginalCode());
+        formData.add("instruction", patchTextRequest.getInstruction());
 
         log.debug(">>>>>>>> [Fast API]requestPatchText: {}", formData);
         try {
@@ -165,11 +169,11 @@ public class FastAIClientImpl implements FastAIClient{
     }
 
     @Override
-    public PatchedFile requestPatchFile(String path, String originalCode, String instruction) {
+    public PatchedFile requestPatchFile(PatchFileRequest patchFileRequest) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("path", path);
-        formData.add("original_code", originalCode);
-        formData.add("instruction", instruction);
+        formData.add("path", patchFileRequest.getPath());
+        formData.add("original_code", patchFileRequest.getOriginalCode());
+        formData.add("instruction", patchFileRequest.getInstruction());
 
         log.debug(">>>>>>>> [Fast API]requestPatchFile: {}", formData);
         try {
@@ -182,7 +186,7 @@ public class FastAIClientImpl implements FastAIClient{
                     .block();
 
             PatchedFile patchedFile = new PatchedFile();
-            patchedFile.setPath(path);
+            patchedFile.setPath(patchFileRequest.getPath());
             patchedFile.setPatchedCode(patchedCode);
 
             return patchedFile;
@@ -192,16 +196,16 @@ public class FastAIClientImpl implements FastAIClient{
     }
 
     @Override
-    public ReportResponse requestErrorReport(AIReportRequest request) {
+    public ReportResponse requestErrorReport(AIReportRequest aiReportRequest) {
         String response;
         String json;
         try {
-            json = objectMapper.writeValueAsString(request);
+            json = objectMapper.writeValueAsString(aiReportRequest);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
         }
 
-        log.debug(">>>>>>>> [Fast API]requestErrorReport DTO: {}", request);
+        log.debug(">>>>>>>> [Fast API]requestErrorReport DTO: {}", aiReportRequest);
 
         try {
             response = webClient.post()

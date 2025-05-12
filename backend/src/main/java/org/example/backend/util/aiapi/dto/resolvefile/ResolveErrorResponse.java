@@ -1,4 +1,4 @@
-package org.example.backend.util.fastai.dto.resolvefile;
+package org.example.backend.util.aiapi.dto.resolvefile;
 
 import lombok.Data;
 

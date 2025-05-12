@@ -2,7 +2,6 @@ package org.example.backend.domain.selfcicd.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
@@ -22,14 +21,17 @@ import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
-import org.example.backend.util.fastai.FastAIClient;
-import org.example.backend.util.fastai.dto.aireport.AIReportRequest;
-import org.example.backend.util.fastai.dto.aireport.ReportResponse;
-import org.example.backend.util.fastai.dto.resolvefile.FileFix;
-import org.example.backend.util.fastai.dto.resolvefile.ResolutionReport;
-import org.example.backend.util.fastai.dto.resolvefile.ResolveErrorResponse;
-import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
-import org.example.backend.util.fastai.dto.suspectfile.SuspectFileResponse;
+import org.example.backend.util.aiapi.AIApiClient;
+import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
+import org.example.backend.util.aiapi.dto.aireport.ReportResponse;
+import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
+import org.example.backend.util.aiapi.dto.resolvefile.FileFix;
+import org.example.backend.util.aiapi.dto.resolvefile.ResolutionReport;
+import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
+import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileResponse;
 import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
 
@@ -44,11 +46,11 @@ import java.util.Map;
 public class CICDResolverServiceImpl implements CICDResolverService {
     private final JenkinsService jenkinsService;
     private final DockerService dockerService;
-    private final FastAIClient fastAIClient;
+    private final AIApiClient fastAIClient;
     private final GitlabService gitlabService;
     private final ProjectRepository projectRepository;
     private final ApplicationRepository applicationRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     @Override
     public DockerLogResponse getRecentDockerLogs(DockerLogRequest request) {
@@ -136,7 +138,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         Map<String, String> appLogs = new HashMap<>();
         for (String appName : suspectedApps) {
 //            List<DockerContainerLogResponse> dockerLogLines = dockerService.getContainerLogs(
-//                    appName, projectID, new DockerContainerLogRequest()
+//                    appName, project.getServerIP(), new DockerContainerLogRequest()
 //            );
 
             //이렇게 하는 이유는 DockerContainerLogResponse에 형식 맞추고 해당 내용을 String으로 바꿔주다보니 생김(차라리 Response안에 String으로 변환하는 메서드가 있다면 메인 로직이 깔끔할것 같음)
@@ -179,15 +181,22 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             }
 
             // 2-1. 의심되는 어플리케이션 'files' 찾기
-            SuspectFileResponse suspectDto = fastAIClient.requestSuspectFiles(diffJson, treeJson, appLog);
+            SuspectFileRequest suspectRequest = SuspectFileRequest.builder()
+                    .diffRaw(diffJson)
+                    .tree(treeJson)
+                    .log(appLog)
+                    .build();
+
+            SuspectFileInnerResponse suspectFileInnerResponse = fastAIClient.requestSuspectFiles(suspectRequest).getResponse();
 //            log.debug(">>>>>>>>>>>>>의심파일 찾기"+suspectDto.getResponse().getSuspectFiles().toString());
-            String summary = suspectDto.getResponse().getErrorSummary();
-            String cause = suspectDto.getResponse().getCause();
-            String hint = suspectDto.getResponse().getResolutionHint();
+
+//            String summary = suspectFileResponse.getResponse().getErrorSummary();
+//            String cause = suspectFileResponse.getResponse().getCause();
+//            String hint = suspectFileResponse.getResponse().getResolutionHint();
 
             // 2-2. 의심되는 'file 원본 코드' 가져오기
             List<Map<String, String>> filesRaw = new ArrayList<>();
-            for (var f : suspectDto.getResponse().getSuspectFiles()) {
+            for (var f : suspectFileInnerResponse.getSuspectFiles()) {
                 String path = f.getPath();
                 String code = gitlabService.getRawFileContent(accessToken, projectId, path, "master");
                 filesRaw.add(Map.of("path", path, "code", code));
@@ -202,7 +211,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                 throw new BusinessException(ErrorCode.AI_RESOLVE_REQUEST_FAILED);
             }
 
-            ResolveErrorResponse resolveDto = fastAIClient.requestResolveError(summary, cause, hint, rawJson);
+            ResolveErrorResponse resolveDto = fastAIClient.requestResolveError(suspectFileInnerResponse, rawJson);
 //            log.debug(">>>>>>>>>>>>>해결책 요약: "+resolveDto.toString());
 
             // 2-4. 해결 요약본을 토대로 '수정된 파일 코드' 받기
@@ -215,7 +224,13 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                         .map(f -> f.get("code"))
                         .orElse("");
 
-                PatchedFile patch = fastAIClient.requestPatchFile(path, code, instruction);
+                PatchFileRequest patchFileRequest = PatchFileRequest.builder()
+                        .path(path)
+                        .originalCode(code)
+                        .instruction(instruction)
+                        .build();
+
+                PatchedFile patch = fastAIClient.requestPatchFile(patchFileRequest);
 //                log.debug(">>>>>>>>>>>>>변경된 파일 내용: "+patch.getPatchedCode().toString());
                 patchedFiles.add(patch);
             }
