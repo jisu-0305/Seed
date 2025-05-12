@@ -83,7 +83,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, request.getGitlabTargetBranchName(), projectConfig)) {
+            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, project.getGitlabTargetBranchName(), projectConfig)) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
@@ -141,7 +141,7 @@ public class ServerServiceImpl implements ServerService {
         ).flatMap(Collection::stream).toList();
     }
 
-    // 1. 방화벽 설정 (optional)
+    // [optional] 1. 방화벽 설정
     private List<String> setFirewall() {
         return List.of(
                 "sudo ufw enable",
@@ -185,7 +185,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 5. Node.js, npm 설치
+    // 5. Node.js, npm 설치 (docker로 빌드하므로 필요없어짐)
     private List<String> setNodejs() {
         return List.of(
                 "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
@@ -195,7 +195,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 6. Docker, Docker-Compose 설치
+    // 6. Docker 설치 (Docker-Compose 추가 가능)
     private List<String> setDocker() {
         return List.of(
                 // 5-1. 공식 GPG 키 추가
@@ -209,15 +209,14 @@ public class ServerServiceImpl implements ServerService {
                         "  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable\" | \\\n" +
                         "  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
 
-                // 5-3. Docker, Docker-Compose 설치
+                // 5-3. Docker 설치
                 "sudo apt-get update",
-                "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+                "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin", // 필요시 docker-compose-plugin 포함
 
                 // 5-4. 서비스 활성화 및 시작
                 "sudo systemctl enable docker",
                 "sudo systemctl start docker",
-                "docker --version",
-                "docker compose version"
+                "docker --version"
         );
     }
 
@@ -303,7 +302,7 @@ public class ServerServiceImpl implements ServerService {
                 "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null",
                 "echo 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/' | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
                 "sudo apt update",
-                "sudo apt install -y --allow-downgrades jenkins=2.508"
+                "sudo apt install -y --allow-downgrades jenkins=2.504"
         );
     }
 
@@ -348,8 +347,8 @@ public class ServerServiceImpl implements ServerService {
                         "  credentials \\\n" +
                         "  credentials-binding\\\n" +
                         "  workflow-api\\\n" +
-                        "  pipeline-rest-api\\\n" +
-                        "  configuration-as-code",
+                        "  pipeline-rest-api\\\n",
+                        //"  configuration-as-code",
 
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins",
                 "sudo usermod -aG docker jenkins",
