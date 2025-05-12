@@ -11,8 +11,8 @@ import java.util.List;
 public interface DockerApiClient {
     ImageResponse getImages(String query, int page, int pageSize);
     DockerTag getTags(String namespace, String repo, int page, int pageSize);
-    DemonContainerStateCountResponse getInfo();
-    List<ContainerDto> getContainersByStatus(List<String> statuses);
+    DemonContainerStateCountResponse getInfo(String serverIp);
+    List<ContainerDto> getContainersByStatus(String serverIp, List<String> statuses);
     List<ContainerDto> getContainersByName(String serverIp, String nameFilter);
     List<String> getContainerLogs(String serverIp, String containerId, DockerContainerLogRequest filter);
 }
