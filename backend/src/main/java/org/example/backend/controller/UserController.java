@@ -85,4 +85,14 @@ public class UserController {
 
         return ResponseEntity.ok(ApiResponse.success(profile));
     }
+
+    @PostMapping("/pat")
+    @Operation(summary = "GitLab Personal Access Token 저장", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<Void>> saveGitlabPAT(
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken,
+            @RequestBody String pat
+    ) {
+        gitlabOauthService.updatePersonalAccessToken(accessToken, pat);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 }

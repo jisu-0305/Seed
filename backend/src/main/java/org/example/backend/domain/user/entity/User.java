@@ -35,4 +35,6 @@ public class User {
     private String profileImageUrl;
 
     private LocalDateTime createdAt;
+
+    private boolean hasGitlabPersonalAccessToken;
 }
