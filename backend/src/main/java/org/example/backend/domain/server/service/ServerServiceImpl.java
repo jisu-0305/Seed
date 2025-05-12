@@ -34,6 +34,8 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -57,7 +59,7 @@ public class ServerServiceImpl implements ServerService {
 
     @Override
     public void registerDeployment(
-            DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile frontEnvFile, MultipartFile backEnvFile, String accessToken) {
+            DeploymentRegistrationRequest request, String pemFilePath, String frontEnvFilePath, String backEnvFilePath, String accessToken) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -70,6 +72,11 @@ public class ServerServiceImpl implements ServerService {
 
         String host = project.getServerIP();
         Session sshSession = null;
+
+        // pem 조회
+        File pemFile = new File(project.getPemFilePath());
+        File frontEnvFile = new File(project.getFrontendEnvFilePath());
+        File backEnvFile = new File(project.getBackendEnvFilePath());
 
         try {
             // 1) 원격 서버 세션 등록
@@ -88,8 +95,19 @@ public class ServerServiceImpl implements ServerService {
             // 3) 성공 로그
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
-            // jenkins api token 생성 및 저장
-            //issueAndSaveToken(project.getId(), project.getServerIP());
+            // 3) Jenkins 토큰 발급
+            log.info("Jenkins API 토큰 발급 시작");
+            issueAndSaveToken(project.getId(), project.getServerIP(), sshSession);
+            log.info("Jenkins API 토큰 발급 완료");
+
+            // 4) init.groovy 스크립트 및 토큰 로그 제거
+            log.info("init.groovy.d 토큰 발급 스크립트 삭제 시도");
+            String deleteScript = execCommand(sshSession, "sudo rm -f /var/lib/jenkins/init.groovy.d/init_token.groovy");
+            log.info("삭제 결과:\n{}", deleteScript);
+
+            log.info("토큰 파일 삭제 시도");
+            String deleteTokenFile = execCommand(sshSession, "sudo rm -f /tmp/jenkins_token");
+            log.info("토큰 파일 삭제 결과:\n{}", deleteTokenFile);
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -99,14 +117,14 @@ public class ServerServiceImpl implements ServerService {
             throw new BusinessException(ErrorCode.BUSINESS_ERROR);
 
         } finally {
-            if (session != null && !sshSession.isConnected()) {
+            if (sshSession != null && sshSession.isConnected()) {
                 sshSession.disconnect();
             }
         }
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(User user, Project project, MultipartFile frontEnvFile, MultipartFile backEnvFile, String gitlabTargetBranchName) {
+    private List<String> serverInitializeCommands(User user, Project project, File frontEnvFile, File backEnvFile, String gitlabTargetBranchName) {
         GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), "https://lab.ssafy.com/potential1205/seed-test1");
 
         String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
@@ -212,7 +230,12 @@ public class ServerServiceImpl implements ServerService {
                 // 5-4. 서비스 활성화 및 시작
                 "sudo systemctl enable docker",
                 "sudo systemctl start docker",
-                "docker --version"
+                "docker --version",
+
+                // 5-5. Docker 데몬 TCP 포트 허용
+                "echo '{\"hosts\": [\"unix:///var/run/docker.sock\", \"tcp://0.0.0.0:3789\"]}' | sudo tee /etc/docker/daemon.json > /dev/null",
+                "sudo systemctl daemon-reload",
+                "sudo systemctl restart docker"
         );
     }
 
@@ -326,24 +349,42 @@ public class ServerServiceImpl implements ServerService {
                         "</user>\n" +
                         "EOF" ,
 
+                "sudo mkdir -p /var/lib/jenkins/init.groovy.d",
+                "sudo tee /var/lib/jenkins/init.groovy.d/init_token.groovy > /dev/null <<EOF\n" +
+                        "import jenkins.model.*\n" +
+                        "import jenkins.security.ApiTokenProperty\n" +
+                        "def instance = Jenkins.get()\n" +
+                        "def user = instance.getUser(\"admin\")\n" +
+                        "if (user == null) {\n" +
+                        "    println(\"[INIT] Jenkins user 'admin' not found.\")\n" +
+                        "} else {\n" +
+                        "    def token = user.getProperty(ApiTokenProperty.class).getTokenStore().generateNewToken(\"init-token\")\n" +
+                        "    println(\"[INIT] Jenkins API Token: \" + token.plainValue)\n" +
+                        "    new File(\"/tmp/jenkins_token\").text = token.plainValue\n" +
+                        "}\n" +
+                        "EOF",
+
+
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/users",
+                "sudo chown -R jenkins:jenkins /var/lib/jenkins/init.groovy.d",
+
                 "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o ~/jenkins-plugin-cli.jar",
                 "sudo systemctl stop jenkins",
 
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war \\\n" +
-                        "  --plugin-download-directory=/var/lib/jenkins/plugins \\\n" +
-                        "  --plugins \\\n" +
-                        "  gitlab-plugin \\\n" +
-                        "  gitlab-api \\\n" +
-                        "  git \\\n" +
-                        "  workflow-aggregator \\\n" +
-                        "  docker-plugin \\\n" +
-                        "  docker-workflow \\\n" +
-                        "  pipeline-stage-view \\\n" +
-                        "  credentials \\\n" +
-                        "  credentials-binding\\\n" +
-                        "  workflow-api\\\n" +
-                        "  pipeline-rest-api\\\n",
+                // 플러그인 설치 1단계
+                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
+                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
+                        "--plugins gitlab-plugin gitlab-api git workflow-aggregator --verbose",
+
+                // 플러그인 설치 2단계
+                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
+                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
+                        "--plugins docker-plugin docker-workflow pipeline-stage-view --verbose",
+
+                // 플러그인 설치 3단계
+                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
+                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
+                        "--plugins credentials credentials-binding workflow-api pipeline-rest-api --verbose",
                         //"  configuration-as-code",
 
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins",
@@ -354,10 +395,13 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins credentials 생성
-    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, MultipartFile frontEnvFile, MultipartFile backEnvFile) {
+    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, File frontEnvFile, File backEnvFile) {
         try {
-            String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile.getBytes());
-            String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile.getBytes());
+//            String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile.getBytes());
+//            String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile.getBytes());
+
+            String frontEnvFileStr = Base64.getEncoder().encodeToString(Files.readAllBytes(frontEnvFile.toPath()));
+            String backEnvFileStr = Base64.getEncoder().encodeToString(Files.readAllBytes(backEnvFile.toPath()));
 
             log.info(gitlabToken);
 
@@ -718,25 +762,26 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-//    private List<String> runApplicationList(List<Application> applicationList) {
-//        return applicationList.stream()
-//                .flatMap(app -> Stream.of(
-//
-//                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
-//
-//                        "docker stop " + app.getImageName() + " || true",
-//
-//                        "docker rm " + app.getImageName() + " || true",
-//
-//                        // [중요] 환경 변수 동적으로 넣어줘야함
-//                        "docker run -d " +
-//                                "--restart unless-stopped " +
-//                                "--name " + app.getImageName() + " " +
-//                                "-p " + app.getPort() + ":" + app.getPort() + " " +
-//                                app.getImageName() + ":" + app.getTag()
-//                ))
-//                .toList();
-//    }
+    private List<String> runApplicationList(List<ProjectApplication> projectApplicationList) {
+
+        return projectApplicationList.stream()
+                .flatMap(app -> Stream.of(
+
+                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
+
+                        "docker stop " + app.getImageName() + " || true",
+
+                        "docker rm " + app.getImageName() + " || true",
+
+                        // [중요] 환경 변수 동적으로 넣어줘야함
+                        "docker run -d " +
+                                "--restart unless-stopped " +
+                                "--name " + app.getImageName() + " " +
+                                "-p " + app.getPort() + ":" + app.getPort() + " " +
+                                app.getImageName() + ":" + app.getTag()
+                ))
+                .toList();
+    }
 
     private List<String> makeGitlabWebhook(String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
         String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
@@ -748,17 +793,14 @@ public class ServerServiceImpl implements ServerService {
         return List.of();
     }
 
-    private void issueAndSaveToken(Long projectId, String serverIp) {
+
+    private void issueAndSaveToken(Long projectId, String serverIp, Session session) {
         try {
             String jenkinsUrl = "http://" + serverIp + ":9090";
             String jenkinsJobName = "auto-created-deployment-job";
             String jenkinsUsername = "admin";
-            String jenkinsToken = generateTokenViaCurl(
-                    jenkinsUrl,
-                    jenkinsUsername,
-                    "pwd123",
-                    jenkinsUsername
-            );
+
+            String jenkinsToken = generateTokenViaFile(session);
 
             JenkinsInfo jenkinsInfo = JenkinsInfo.builder()
                     .projectId(projectId)
@@ -769,94 +811,37 @@ public class ServerServiceImpl implements ServerService {
                     .build();
 
             jenkinsInfoRepository.save(jenkinsInfo);
-            log.info("Jenkins API 토큰을 DB에 저장했습니다.");
+            log.info("✅ Jenkins API 토큰을 파일에서 추출해 저장 완료");
 
         } catch (Exception e) {
-            log.error("Jenkins 토큰 발급 또는 저장 실패", e);
+            log.error("❌ Jenkins 토큰 파싱 또는 저장 실패", e);
             throw new BusinessException(ErrorCode.JENKINS_TOKEN_SAVE_FAILED);
         }
     }
 
-    private String generateTokenViaCurl(String jenkinsUrl, String username, String password, String tokenName) {
+    private String generateTokenViaFile(Session session) {
         try {
-            ObjectMapper mapper = new ObjectMapper();
+            String cmd = "sudo cat /tmp/jenkins_token";
+            log.info("📤 실행 명령어: {}", cmd);
 
-            // 쿠키 저장용 임시 파일 생성
-            File cookieFile = File.createTempFile("jenkins_cookie", ".txt");
-            String cookiePath = cookieFile.getAbsolutePath().replace("\\", "/");
+            String result = execCommand(session, cmd);
+            log.info("📥 Jenkins 토큰 파일 내용:\n{}", result);
 
-            // 1. Crumb + 쿠키 요청
-            List<String> crumbCommand = Arrays.asList(
-                    "curl",
-                    "-u", username + ":" + password,
-                    "-c", cookiePath,
-                    "-s",
-                    jenkinsUrl + "/crumbIssuer/api/json"
-            );
-
-            Process crumbProcess = new ProcessBuilder(crumbCommand)
-                    .redirectErrorStream(true).start();
-
-            String crumbResponse = new BufferedReader(new InputStreamReader(crumbProcess.getInputStream()))
-                    .lines().collect(Collectors.joining());
-
-            log.info("Crumb 응답: " + crumbResponse);
-            if (!crumbResponse.trim().startsWith("{")) {
-                throw new BusinessException(ErrorCode.JENKINS_CRUMB_REQUEST_FAILED);
-            }
-
-            JsonNode crumbJson = mapper.readTree(crumbResponse);
-            String crumb = crumbJson.get("crumb").asText();
-            String crumbField = crumbJson.get("crumbRequestField").asText();
-
-            // 2️. 토큰 요청
-            String tokenUrl = jenkinsUrl + "/user/" + username + "/descriptorByName/jenkins.security.ApiTokenProperty/generateNewToken";
-            String tokenJsonPayload = "{\"newTokenName\":\"" + tokenName + "\"}";
-
-            List<String> curlCommand = Arrays.asList(
-                    "curl",
-                    "-u", username + ":" + password,
-                    "-b", cookiePath,
-                    "-c", cookiePath,
-                    "-s",
-                    "-X", "POST",
-                    tokenUrl,
-                    "-H", crumbField + ":" + crumb,
-                    "-H", "Content-Type: application/json",
-                    "-H", "Referer: " + jenkinsUrl + "/",
-                    "-d", tokenJsonPayload
-            );
-
-
-            Process tokenProcess = new ProcessBuilder(curlCommand)
-                    .redirectErrorStream(true).start();
-
-            String tokenResponse = new BufferedReader(new InputStreamReader(tokenProcess.getInputStream()))
-                    .lines().collect(Collectors.joining());
-
-
-            if (!tokenResponse.trim().startsWith("{")) {
+            if (result.isBlank()) {
                 throw new BusinessException(ErrorCode.JENKINS_TOKEN_RESPONSE_INVALID);
             }
 
-            JsonNode tokenJson = mapper.readTree(tokenResponse);
-            String token = tokenJson.path("data").path("tokenValue").asText();
-
-            if (token == null || token.isBlank()) {
-                throw new BusinessException(ErrorCode.JENKINS_TOKEN_PARSE_FAILED);
-            }
-
-            return token;
+            return result.trim();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("❌ Jenkins 토큰 파일 파싱 실패", e);
             throw new BusinessException(ErrorCode.JENKINS_TOKEN_REQUEST_FAILED);
         }
     }
 
 
     @Override
-    public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
+    public void convertHttpToHttps(HttpsConvertRequest request, String pemFilePath, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
@@ -873,6 +858,8 @@ public class ServerServiceImpl implements ServerService {
         String host = project.getServerIP();
         Session sshSession = null;
 
+        File pemFile = new File(project.getPemFilePath());
+
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
@@ -882,11 +869,20 @@ public class ServerServiceImpl implements ServerService {
             // 2) 명령어 실행
             log.info("초기화 명령 실행 시작");
             for (Map.Entry<String, String> entry : convertHttpToHttpsCommands(request)) {
-                log.info("명령 수행:\n{}", entry.getValue());
-                String output = execCommand(sshSession, entry.getValue());
-                saveLog(project.getId(), entry.getKey() , output);
-                log.info("명령 결과:\n{}", output);
+                String stepName = entry.getKey();
+                String command = entry.getValue();
+                try {
+                    log.info("명령 수행:\n{}", command);
+                    String output = execCommand(sshSession, command);
+                    saveLog(project.getId(), stepName, output, "SUCCESS");
+                    log.info("명령 결과:\n{}", output);
+                } catch (Exception e) {
+                    String errorMsg = e.getMessage();
+                    log.error("명령 실패: {}", errorMsg);
+                    saveLog(project.getId(), stepName, errorMsg, "FAIL");
+                }
             }
+
 
             // 3) 성공 로그
             log.info("Https 전환을 성공했습니다.");
@@ -1070,17 +1066,18 @@ public class ServerServiceImpl implements ServerService {
         """, domain, domain, domain, domain);
     }
 
-    private void saveLog(Long projectId, String stepName, String logContent) {
+    private void saveLog(Long projectId, String stepName, String logContent, String status) {
         httpsLogRepository.save(HttpsLog.builder()
                 .projectId(projectId)
                 .stepName(stepName)
                 .logContent(logContent)
+                .status(status)
                 .createdAt(LocalDateTime.now())
                 .build());
     }
 
-    private Session createSessionWithPem(MultipartFile pemFile, String host) throws JSchException, IOException {
-        byte[] keyBytes = pemFile.getBytes();
+    private Session createSessionWithPem(File pemFile, String host) throws JSchException, IOException {
+        byte[] keyBytes = Files.readAllBytes(pemFile.toPath());
 
         JSch jsch = new JSch();
         jsch.addIdentity("ec2-key", keyBytes, null, null);
@@ -1125,10 +1122,13 @@ public class ServerServiceImpl implements ServerService {
             // 4) 종료 코드 확인
             int code = channel.getExitStatus();
             if (code != 0) {
-                throw new IOException(
-                        String.format("명령 실패(exit=%d): %s", code, stderr.toString(StandardCharsets.UTF_8))
-                );
+                String stdErrMsg = stderr.toString(StandardCharsets.UTF_8);
+                String stdOutMsg = stdout.toString(StandardCharsets.UTF_8);
+                throw new IOException(String.format(
+                        "명령 실패(exit=%d)\n[STDERR]\n%s\n[STDOUT]\n%s", code, stdErrMsg, stdOutMsg
+                ));
             }
+
 
             // 5) 정상 출력 반환
             return stdout.toString(StandardCharsets.UTF_8);

@@ -2,7 +2,6 @@ package org.example.backend.controller.request.project;
 
 import lombok.Getter;
 import org.example.backend.domain.project.enums.ProjectStructure;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 

@@ -70,7 +70,7 @@ public class DockerApiClientImpl implements DockerApiClient {
     @Override
     public List<ContainerDto> getContainersByName(String serverIp, String nameFilter) {
         // 1) Build the absolute base URL once
-        String engineBaseUrl = "http://" + serverIp + ":2375";
+        String engineBaseUrl = "http://" + serverIp + ":3789";
 
         // 2) Ask your builder for the perfectly encoded, absolute URI
         URI uri = uriBuilder.buildContainersByNameUri(engineBaseUrl, nameFilter);
@@ -96,7 +96,7 @@ public class DockerApiClientImpl implements DockerApiClient {
             DockerContainerLogRequest filter
     ) {
         WebClient client = webClientBuilder
-                .baseUrl("http://" + serverIp + ":2375")
+                .baseUrl("http://" + serverIp + ":3789")
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
 
@@ -217,7 +217,7 @@ public class DockerApiClientImpl implements DockerApiClient {
     // 사용자 serverIp로 접속하는 client 생성
     private WebClient maseUserServerWebClient(String serverIp) {
         return webClientBuilder
-                .baseUrl("http://" + serverIp + ":2375")
+                .baseUrl("http://" + serverIp + ":3789")
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
