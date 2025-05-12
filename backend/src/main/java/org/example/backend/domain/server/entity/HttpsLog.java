@@ -21,7 +21,8 @@ public class HttpsLog {
 
     private String stepName;
 
-    @Column(length = 16000)
+    @Lob
+    @Column(columnDefinition = "TEXT")
     private String logContent;
 
     private LocalDateTime createdAt;

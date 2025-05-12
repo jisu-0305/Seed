@@ -36,12 +36,10 @@ import java.util.stream.Collectors;
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
-    private final ProjectConfigRepository projectConfigRepository;
     private final ApplicationRepository applicationRepository;
     private final RedisSessionManager redisSessionManager;
     private final UserProjectRepository userProjectRepository;
     private final ProjectExecutionRepository projectExecutionRepository;
-    private final ProjectStatusRepository projectStatusRepository;
     private final UserRepository userRepository;
 
     @Value("${file.base-path}")
@@ -49,19 +47,13 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public ProjectResponse createProject(ProjectCreateRequest request,
-                                         MultipartFile clientEnvFile,
-                                         MultipartFile serverEnvFile,
-                                         MultipartFile pemFile,
-                                         String accessToken) {
+    public ProjectResponse createProject(ProjectCreateRequest request, MultipartFile frontEnvFile,
+                                         MultipartFile backendEnvFile, MultipartFile pemFile, String accessToken) {
+
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
         String projectName = extractProjectNameFromUrl(request.getRepositoryUrl());
-
-        String frontendEnvPath = saveFile(clientEnvFile, "env/client");
-        String backendEnvPath = saveFile(serverEnvFile, "env/server");
-        String pemPath = saveFile(pemFile, "pem");
 
         Project project = Project.builder()
                 .ownerId(userId)
@@ -70,39 +62,33 @@ public class ProjectServiceImpl implements ProjectService {
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
                 .structure(request.getStructure())
-                .frontendBranchName(request.getFrontendBranchName())
+                .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())
-                .backendBranchName(request.getBackendBranchName())
                 .backendDirectoryName(request.getBackendDirectoryName())
-                .pemFilePath(pemPath)
-                .build();
-
-        Project savedProject = projectRepository.save(project);
-
-        userProjectRepository.save(UserProject.create(savedProject.getId(), userId));
-
-        ProjectStatus status = ProjectStatus.builder()
-                .projectId(savedProject.getId())
+                .nodejsVersion(request.getNodejsVersion())
+                .frontendFramework(request.getFrontendFramework())
+                .jdkVersion(request.getJdkVersion())
+                .jdkBuildTool(request.getJdkBuildTool())
                 .autoDeploymentEnabled(true)
                 .httpsEnabled(false)
                 .build();
-        projectStatusRepository.save(status);
 
-        projectConfigRepository.save(ProjectConfig.builder()
-                .projectId(savedProject.getId())
-                .nodejsVersion(request.getNodejsVersion())
-                .frontendFramework(request.getFrontendFramework())
-                .frontendEnvFile(frontendEnvPath)
-                .jdkVersion(request.getJdkVersion())
-                .jdkBuildTool(request.getJdkBuildTool())
-                .backendEnvFile(backendEnvPath)
-                .build());
+        projectRepository.save(project);
+
+        String pemPath = saveFile(pemFile, "/opt/app/env/projects/" + project.getId() + "/");
+        String frontendEnvPath = saveFile(frontEnvFile, "/opt/app/env/projects/" + project.getId() + "/");
+        String backendEnvPath = saveFile(backendEnvFile, "/opt/app/env/projects/" + project.getId() + "/");
+
+        project.update(pemPath, frontendEnvPath, backendEnvPath);
+
+        userProjectRepository.save(UserProject.create(project.getId(), userId));
+
         request.getApplicationList().forEach(app ->
                 applicationRepository.save(Application.builder()
                         .imageName(app.getImageName())
                         .tag(app.getTag())
                         .port(app.getPort())
-                        .projectId(savedProject.getId())
+                        .projectId(project.getId())
                         .build())
         );
 
@@ -117,10 +103,10 @@ public class ProjectServiceImpl implements ProjectService {
                 .build());
 
         return ProjectMapper.toResponse(
-                savedProject,
+                project,
                 memberList,
-                status.isAutoDeploymentEnabled(),
-                status.isHttpsEnabled(),
+                project.isAutoDeploymentEnabled(),
+                project.isHttpsEnabled(),
                 null,
                 null
         );
@@ -139,7 +125,6 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectConfig config = projectConfigRepository.findByProjectId(projectId).orElse(null);
         List<Application> applications = applicationRepository.findAllByProjectId(projectId);
 
         return ProjectDetailResponse.builder()
@@ -150,16 +135,15 @@ public class ProjectServiceImpl implements ProjectService {
                 .createdAt(project.getCreatedAt())
                 .repositoryUrl(project.getRepositoryUrl())
                 .structure(project.getStructure())
-                .frontendBranchName(project.getFrontendBranchName())
+                .gitlabTargetBranchName(project.getGitlabTargetBranchName())
                 .frontendDirectoryName(project.getFrontendDirectoryName())
-                .backendBranchName(project.getBackendBranchName())
                 .backendDirectoryName(project.getBackendDirectoryName())
-                .nodejsVersion(config != null ? config.getNodejsVersion() : null)
-                .frontendFramework(config != null ? config.getFrontendFramework() : null)
-                .frontendEnvFilePath(config != null ? config.getFrontendEnvFile() : null)
-                .jdkVersion(config != null ? config.getJdkVersion() : null)
-                .jdkBuildTool(config != null ? config.getJdkBuildTool() : null)
-                .backendEnvFilePath(config != null ? config.getBackendEnvFile() : null)
+                .nodejsVersion(project.getNodejsVersion())
+                .frontendFramework(project.getFrontendFramework())
+                .frontendEnvFilePath(project.getFrontendEnvFilePath())
+                .jdkVersion(project.getJdkVersion())
+                .jdkBuildTool(project.getJdkBuildTool())
+                .backendEnvFilePath(project.getBackendEnvFilePath())
                 .applicationList(applications.stream()
                         .map(app -> ApplicationResponse.builder()
                                 .imageName(app.getImageName())
@@ -187,9 +171,6 @@ public class ProjectServiceImpl implements ProjectService {
         Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
                 .collect(Collectors.toMap(Project::getId, p -> p));
 
-        Map<Long, ProjectStatus> statusMap = projectStatusRepository.findByProjectIdIn(projectIdList).stream()
-                .collect(Collectors.toMap(ProjectStatus::getProjectId, s -> s));
-
         List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);
         List<Long> allUserIdList = allUserProjectList.stream().map(UserProject::getUserId).distinct().toList();
 
@@ -213,16 +194,15 @@ public class ProjectServiceImpl implements ProjectService {
         return projectIdList.stream()
                 .map(id -> {
                     Project project = projectMap.get(id);
-                    ProjectStatus status = statusMap.get(id);
                     List<UserInProject> memberList = projectUsersMap.getOrDefault(id, List.of());
 
                     return ProjectMapper.toResponse(
                             project,
                             memberList,
-                            status.isAutoDeploymentEnabled(),
-                            status.isHttpsEnabled(),
-                            status.getBuildStatus(),
-                            status.getLastBuildAt()
+                            project.isAutoDeploymentEnabled(),
+                            project.isHttpsEnabled(),
+                            project.getBuildStatus(),
+                            project.getLastBuildAt()
                     );
                 })
                 .toList();
@@ -253,10 +233,10 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public void markHttpsConverted(Long projectId) {
-        ProjectStatus status = projectStatusRepository.findByProjectId(projectId)
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
 
-        status.enableHttps();
+        project.enableHttps();
 
         projectExecutionRepository.save(ProjectExecution.builder()
                 .projectId(projectId)
@@ -278,23 +258,20 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(UserProject::getProjectId)
                 .toList();
 
-        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
-                .collect(Collectors.toMap(Project::getId, p -> p));
+        List<Project> projectList = projectRepository.findByIdIn(projectIdList);
 
-        List<ProjectStatus> statuses = projectStatusRepository.findByProjectIdIn(projectIdList);
+        return projectList.stream()
+                .map(project -> {
 
-        return statuses.stream()
-                .map(status -> {
-                    Project project = projectMap.get(status.getProjectId());
                     if (project == null) return null;
 
                     return ProjectStatusResponse.builder()
                             .id(project.getId())
                             .projectName(project.getProjectName())
-                            .httpsEnabled(status.isHttpsEnabled())
-                            .autoDeploymentEnabled(status.isAutoDeploymentEnabled())
-                            .buildStatus(status.getBuildStatus())
-                            .lastBuildAt(status.getLastBuildAt())
+                            .httpsEnabled(project.isHttpsEnabled())
+                            .autoDeploymentEnabled(project.isAutoDeploymentEnabled())
+                            .buildStatus(project.getBuildStatus())
+                            .lastBuildAt(project.getLastBuildAt())
                             .build();
                 })
                 .filter(Objects::nonNull)
@@ -333,8 +310,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(e -> new ProjectExecutionGroupResponse(e.getKey(), e.getValue()))
                 .toList();
     }
-
-
 
     private String extractProjectNameFromUrl(String url) {
         if (url == null || !url.endsWith(".git")) return "unknown";

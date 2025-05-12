@@ -11,6 +11,7 @@ public class ProjectCreateRequest {
     private String serverIP;
     private String repositoryUrl;
     private ProjectStructure structure;
+    private String gitlabTargetBranch;
     private String frontendBranchName;
     private String frontendDirectoryName;
     private String backendBranchName;

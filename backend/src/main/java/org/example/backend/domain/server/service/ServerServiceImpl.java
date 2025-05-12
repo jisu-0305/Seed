@@ -16,9 +16,9 @@ import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
+import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
-import org.example.backend.domain.project.entity.ProjectConfig;
-import org.example.backend.domain.project.repository.ProjectConfigRepository;
+import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.server.entity.HttpsLog;
 import org.example.backend.domain.server.repository.HttpsLogRepository;
@@ -45,11 +45,11 @@ public class ServerServiceImpl implements ServerService {
     private final UserRepository userRepository;
     private final UserProjectRepository userProjectRepository;
     private final ProjectRepository projectRepository;
-    private final ProjectConfigRepository projectConfigRepository;
     private final RedisSessionManager redisSessionManager;
     private final GitlabService gitlabService;
     private final JenkinsInfoRepository jenkinsInfoRepository;
     private final HttpsLogRepository httpsLogRepository;
+    private final ApplicationRepository applicationRepository;
 
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
 
@@ -66,9 +66,6 @@ public class ServerServiceImpl implements ServerService {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectConfig projectConfig = projectConfigRepository.findByProjectId(project.getId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_CONFIG_NOT_FOUND));
-
         String host = project.getServerIP();
         Session sshSession = null;
 
@@ -80,12 +77,11 @@ public class ServerServiceImpl implements ServerService {
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, request.getGitlabTargetBranchName(), projectConfig)) {
+            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, project.getGitlabTargetBranchName())) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
             }
-
 
             // 3) 성공 로그
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
@@ -108,7 +104,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(User user, Project project, MultipartFile frontEnvFile, MultipartFile backEnvFile, String gitlabTargetBranchName, ProjectConfig projectConfig) {
+    private List<String> serverInitializeCommands(User user, Project project, MultipartFile frontEnvFile, MultipartFile backEnvFile, String gitlabTargetBranchName) {
         GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), "https://lab.ssafy.com/potential1205/seed-test1");
 
         String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
@@ -116,6 +112,9 @@ public class ServerServiceImpl implements ServerService {
         String gitlabProjectUrlWithToken = "https://" + user.getUserIdentifyId() + ":" + user.getGitlabPersonalAccessToken() + "@lab.ssafy.com/" + namespace;
 
         log.info(gitlabProject.toString());
+
+        // 어플리케이션 목록
+         List<Application> applicationList = applicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
                 updatePackageManager(),
@@ -128,14 +127,15 @@ public class ServerServiceImpl implements ServerService {
                 setJenkinsConfigure(),
                 makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
                 setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
-                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, projectConfig, project),
-                makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig, project),
-                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, projectConfig, project),
+                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
+                makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                //runApplicationList(applicationList),
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
 
-    // 1. 방화벽 설정 (optional)
+    // [optional] 1. 방화벽 설정
     private List<String> setFirewall() {
         return List.of(
                 "sudo ufw enable",
@@ -179,7 +179,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 5. Node.js, npm 설치
+    // 5. Node.js, npm 설치 (docker로 빌드하므로 필요없어짐)
     private List<String> setNodejs() {
         return List.of(
                 "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
@@ -189,7 +189,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    // 6. Docker, Docker-Compose 설치
+    // 6. Docker 설치 (Docker-Compose 추가 가능)
     private List<String> setDocker() {
         return List.of(
                 // 5-1. 공식 GPG 키 추가
@@ -203,15 +203,14 @@ public class ServerServiceImpl implements ServerService {
                         "  https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo \"$VERSION_CODENAME\") stable\" | \\\n" +
                         "  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null",
 
-                // 5-3. Docker, Docker-Compose 설치
+                // 5-3. Docker 설치
                 "sudo apt-get update",
-                "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin",
+                "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin", // 필요시 docker-compose-plugin 포함
 
                 // 5-4. 서비스 활성화 및 시작
                 "sudo systemctl enable docker",
                 "sudo systemctl start docker",
-                "docker --version",
-                "docker compose version"
+                "docker --version"
         );
     }
 
@@ -297,7 +296,7 @@ public class ServerServiceImpl implements ServerService {
                 "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null",
                 "echo 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/' | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
                 "sudo apt update",
-                "sudo apt install -y --allow-downgrades jenkins=2.508"
+                "sudo apt install -y --allow-downgrades jenkins=2.504"
         );
     }
 
@@ -319,7 +318,7 @@ public class ServerServiceImpl implements ServerService {
                         "  <fullName>admin</fullName>\n" +
                         "  <properties>\n" +
                         "    <hudson.security.HudsonPrivateSecurityRealm_-Details>\n" +
-                        "      <passwordHash>#jbcrypt:$2a$10$Dow1v0zN88bGyfprxqO2ZuhT8Vlfk7q/EGp8Hznh5CZmj1mHndOFK</passwordHash>\n" +
+                        "      <passwordHash>#jbcrypt:$2b$12$6CPsRl/Dz/hQRDDoMCyUyuk.q3QsYwnsH8cSzi/43H1ybVsn4yBva</passwordHash>\n" +
                         "    </hudson.security.HudsonPrivateSecurityRealm_-Details>\n" +
                         "  </properties>\n" +
                         "</user>\n" +
@@ -342,8 +341,8 @@ public class ServerServiceImpl implements ServerService {
                         "  credentials \\\n" +
                         "  credentials-binding\\\n" +
                         "  workflow-api\\\n" +
-                        "  pipeline-rest-api\\\n" +
-                        "  configuration-as-code",
+                        "  pipeline-rest-api\\\n",
+                        //"  configuration-as-code",
 
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins",
                 "sudo usermod -aG docker jenkins",
@@ -459,13 +458,13 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, ProjectConfig projectConfig, Project project) {
+    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) {
 
         log.info(repositoryUrl);
 
         String frontendDockerScript;
 
-        switch (projectConfig.getFrontendFramework()) {
+        switch (project.getFrontendFramework()) {
             case "vue.js":
                 frontendDockerScript =
                         "                        set -e\n" +
@@ -602,24 +601,24 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeDockerfileForBackend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, ProjectConfig projectConfig, Project project) {
+    private List<String> makeDockerfileForBackend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
 
         log.info(repositoryUrl);
 
         String backendDockerfileContent;
 
-        switch (projectConfig.getJdkBuildTool()) {
+        switch (project.getJdkBuildTool()) {
             case "Gradle":
                 backendDockerfileContent =
                         "cd " + projectPath + "/" + project.getBackendDirectoryName() + "&& cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                                 "# 1단계: 빌드 스테이지\n" +
-                                "FROM gradle:8.5-jdk" + projectConfig.getJdkVersion() + "AS builder\n" +
+                                "FROM gradle:8.5-jdk" + project.getJdkVersion() + "AS builder\n" +
                                 "WORKDIR /app\n" +
                                 "COPY . .\n" +
                                 "RUN gradle bootJar --no-daemon\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + projectConfig.getJdkVersion()  + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk-slim\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/build/libs/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
@@ -631,13 +630,13 @@ public class ServerServiceImpl implements ServerService {
                 backendDockerfileContent =
                         "cd " + projectPath+ "/" + project.getBackendDirectoryName() + "&& cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                                 "# 1단계: 빌드 스테이지\n" +
-                                "FROM maven:3.9.6-eclipse-temurin-" + projectConfig.getJdkVersion() + " AS builder\n" +
+                                "FROM maven:3.9.6-eclipse-temurin-" + project.getJdkVersion() + " AS builder\n" +
                                 "WORKDIR /app\n" +
                                 "COPY . .\n" +
                                 "RUN mvn clean package -DskipTests\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + projectConfig.getJdkVersion() + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion() + "-jdk-slim\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/target/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
@@ -655,12 +654,12 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeDockerfileForFrontend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, ProjectConfig projectConfig, Project project) {
+    private List<String> makeDockerfileForFrontend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
         log.info(repositoryUrl);
 
         String frontendDockerfileContent;
 
-        switch (projectConfig.getFrontendFramework()) {
+        switch (project.getFrontendFramework()) {
             case "vue.js":
                 frontendDockerfileContent =
                         "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
@@ -717,13 +716,34 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
+    private List<String> runApplicationList(List<Application> applicationList) {
+        return applicationList.stream()
+                .flatMap(app -> Stream.of(
+
+                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
+
+                        "docker stop " + app.getImageName() + " || true",
+
+                        "docker rm " + app.getImageName() + " || true",
+
+                        // [중요] 환경 변수 동적으로 넣어줘야함
+                        "docker run -d " +
+                                "--restart unless-stopped " +
+                                "--name " + app.getImageName() + " " +
+                                "-p " + app.getPort() + ":" + app.getPort() + " " +
+                                app.getImageName() + ":" + app.getTag()
+                ))
+                .toList();
+    }
+
     private List<String> makeGitlabWebhook(String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
         String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
 
         gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
 
         //최초 실행 로직 한번 필요 그래야 아래 777의미가 있음
-        return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
+        //return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
+        return List.of();
     }
 
     private void issueAndSaveToken(Long projectId, String serverIp) {

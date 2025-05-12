@@ -10,7 +10,7 @@ export default function StepSidebar() {
   const { mode } = useThemeStore();
 
   const appCnt = status.app.length;
-  const mainAppName = status.app[0]?.name || '-';
+  const mainAppName = status.app[0]?.imageName || '-';
 
   const toggleExpand = () => {
     setIsExpanded((prev) => !prev);
@@ -24,7 +24,12 @@ export default function StepSidebar() {
       <Section>
         <Row>
           <Label>GitLab Repo</Label>
-          <Value>{status.gitlab.repo || '-'}</Value>
+          <Value>
+            {status.gitlab.repo
+              ?.split('/')
+              .pop()
+              ?.replace(/\.git$/, '') || '-'}
+          </Value>
         </Row>
         <Row>
           <Label>폴더 구조</Label>
@@ -92,8 +97,8 @@ export default function StepSidebar() {
 
         {isExpanded &&
           status.app.map((app) => (
-            <Row key={app.name}>
-              <AppTag>{app.name}</AppTag>
+            <Row key={app.imageName}>
+              <AppTag>{app.imageName}</AppTag>
             </Row>
           ))}
       </Section>

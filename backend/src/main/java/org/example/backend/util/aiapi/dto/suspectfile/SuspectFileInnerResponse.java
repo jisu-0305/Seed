@@ -1,4 +1,4 @@
-package org.example.backend.util.fastai.dto.suspectfile;
+package org.example.backend.util.aiapi.dto.suspectfile;
 
 import lombok.Data;
 
