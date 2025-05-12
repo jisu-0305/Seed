@@ -50,7 +50,7 @@
                 throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
             }
 
-            String projectName = projectRepository.findProjectNameById(request.getProjectId());
+            String projectName = projectRepository.findById(request.getProjectId()).get().getProjectName();
 
             return request.getIdList().stream()
                     .filter(receiverId -> !Objects.equals(senderId, receiverId))
@@ -95,7 +95,7 @@
             invitation.accept();
             invitationRepository.save(invitation);
 
-            String projectName = projectRepository.findProjectNameById(invitation.getProjectId());
+            String projectName = projectRepository.findById(invitation.getProjectId()).get().getProjectName();
             List<Long> otherUserIdList = userProjectRepository.findUserIdsByProjectId(invitation.getProjectId()).stream()
                     .filter(id -> !id.equals(userId))
                     .toList();

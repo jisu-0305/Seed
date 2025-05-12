@@ -17,7 +17,9 @@ import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.service.JenkinsService;
 import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
+import org.example.backend.domain.project.entity.ProjectApplication;
 import org.example.backend.domain.project.repository.ApplicationRepository;
+import org.example.backend.domain.project.repository.ProjectApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
@@ -51,6 +53,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final ProjectRepository projectRepository;
     private final ApplicationRepository applicationRepository;
     private final ObjectMapper objectMapper;
+    private final ProjectApplicationRepository projectApplicationRepository;
 
     @Override
     public DockerLogResponse getRecentDockerLogs(DockerLogRequest request) {
@@ -75,9 +78,9 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         String jenkinsErrorLog = jenkinsService.getBuildLog(buildNumber, projectId, accessToken);
 
         // 1-2. 해당 프로젝트의 어플리케이션 목록 조회
-        List<Application> apps = applicationRepository.findAllByProjectId(project.getId());
+        List<ProjectApplication> apps = projectApplicationRepository.findAllByProjectId(project.getId());
         List<String> appNames = apps.stream()
-                .map(Application::getImageName)
+                .map(ProjectApplication::getImageName)
                 .toList();
 
         // 1-3. Git diff 정보 가져오기 -> 관련해서 GitlabCompareCommit.id 필드가 실제 커밋 id인지 사실 여부 확인 필요 - 담당자: 박유진
