@@ -29,6 +29,8 @@ const TeamInviteModal = ({
   const handleSelectUser = (user: ProjectMember) => {
     if (selectedUsers.some((u) => u.userId === user.userId)) return;
     setSelectedUsers((prev) => [...prev, user]);
+    setQuery('');
+    setFiltered([]);
   };
 
   const handleRemoveSelected = (userId: number) => {
@@ -69,6 +71,10 @@ const TeamInviteModal = ({
     } catch (err) {
       console.error('초대 요청 실패', err);
     }
+
+    setSelectedUsers([]);
+    setFiltered([]);
+    setQuery('');
   };
 
   useEffect(() => {
@@ -154,9 +160,9 @@ const TeamInviteModal = ({
                       <div>{user.userIdentifyId}</div>
                     </UserInfo>
                     <StatusText status={user.status}>
-                      {user.status === 'accepted'
+                      {user.status === 'ACCEPTED'
                         ? '초대 수락'
-                        : user.status === 'pending'
+                        : user.status === 'PENDING'
                           ? '수락 대기'
                           : '초대 거절'}
                     </StatusText>
@@ -326,9 +332,9 @@ const UserInfo = styled.div`
 const StatusText = styled.div<{ status: string }>`
   ${({ theme }) => theme.fonts.Title7};
   color: ${({ theme, status }) =>
-    status === 'accepted'
+    status === 'ACCEPTED'
       ? theme.colors.Green1
-      : status === 'pending'
+      : status === 'PENDING'
         ? theme.colors.Blue1
         : theme.colors.Red2};
 `;
