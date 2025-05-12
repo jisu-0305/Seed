@@ -24,7 +24,6 @@ public class ServerController {
     private final ProjectService projectService;
     private final HttpsLogService httpsLogService;
 
-
     @PostMapping("/deployment")
     public ResponseEntity<ApiResponse<String>> registerDeployment(
             @RequestPart("request") DeploymentRegistrationRequest request,
