@@ -1,20 +1,29 @@
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 
+import { convertServer } from '@/apis/server';
 import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
 import { useModal } from '@/hooks/Common';
 import { useThemeStore } from '@/stores/themeStore';
+import { HttpsConfig } from '@/types/config';
 
+import HttpsConfigModal from '../Modal/HttpsConfigModal';
 import ManageMemberModal from '../Modal/ManageMemberModal';
 
 interface ActionButtonsProps {
   projectId: string | null;
   gitlab?: string | URL;
+  pemFilePath: string;
 }
 
-export function ActionButtons({ projectId, gitlab }: ActionButtonsProps) {
+export function ActionButtons({
+  projectId,
+  gitlab,
+  pemFilePath,
+}: ActionButtonsProps) {
   const { mode } = useThemeStore();
   const team = useModal();
+  const https = useModal();
 
   const router = useRouter();
 
@@ -27,8 +36,28 @@ export function ActionButtons({ projectId, gitlab }: ActionButtonsProps) {
     console.log('빌드 다시 시작하기 API 연결하기');
   };
 
-  const runHttps = async () => {
-    console.log('Https 설정 시작하기 API 연결하기');
+  const handleConfigSubmit = async ({ domain, email }: HttpsConfig) => {
+    if (projectId == null) {
+      console.error('projectId가 없습니다');
+      https.toggle();
+      return;
+    }
+
+    const pid: number =
+      typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
+
+    try {
+      const payload = {
+        request: { pid, domain, email },
+        pemFile: pemFilePath,
+      };
+      const data = await convertServer(payload);
+      console.log('✔️ HTTPS 변환 요청 성공:', data);
+    } catch (err) {
+      console.error('❌ HTTPS 변환 요청 실패', err);
+    } finally {
+      https.toggle();
+    }
   };
 
   const goToGitLab = () => {
@@ -54,7 +83,7 @@ export function ActionButtons({ projectId, gitlab }: ActionButtonsProps) {
             <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
             지금 빌드
           </Button>
-          <Button variant="https" onClick={runHttps}>
+          <Button variant="https" onClick={https.toggle}>
             <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
             Https 설정
           </Button>
@@ -82,6 +111,13 @@ export function ActionButtons({ projectId, gitlab }: ActionButtonsProps) {
           projectId={projectId}
           isShowing={team.isShowing}
           handleClose={team.toggle}
+        />
+      </ModalWrapper>
+      <ModalWrapper isShowing={https.isShowing}>
+        <HttpsConfigModal
+          isShowing={https.isShowing}
+          handleClose={https.toggle}
+          onSubmit={handleConfigSubmit}
         />
       </ModalWrapper>
     </>
