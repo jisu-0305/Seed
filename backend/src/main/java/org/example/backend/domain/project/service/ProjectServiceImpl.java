@@ -76,9 +76,9 @@ public class ProjectServiceImpl implements ProjectService {
 
         projectRepository.save(project);
 
-        String pemPath = saveFile(pemFile, "/opt/app/env/projects/" + project.getId() + "/");
-        String frontendEnvPath = saveFile(frontEnvFile, "/opt/app/env/projects/" + project.getId() + "/");
-        String backendEnvPath = saveFile(backendEnvFile, "/opt/app/env/projects/" + project.getId() + "/");
+        String pemPath = saveFile(pemFile, "/home/ubuntu/env/projects/" + project.getId() + "/");
+        String frontendEnvPath = saveFile(frontEnvFile, "/home/ubuntu/env/projects/" + project.getId() + "/");
+        String backendEnvPath = saveFile(backendEnvFile, "/home/ubuntu/env/projects/" + project.getId() + "/");
 
         project.update(pemPath, frontendEnvPath, backendEnvPath);
 
