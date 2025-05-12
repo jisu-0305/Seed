@@ -18,7 +18,9 @@ import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
 import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
+import org.example.backend.domain.project.entity.ProjectApplication;
 import org.example.backend.domain.project.repository.ApplicationRepository;
+import org.example.backend.domain.project.repository.ProjectApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.server.entity.HttpsLog;
 import org.example.backend.domain.server.repository.HttpsLogRepository;
@@ -52,6 +54,7 @@ public class ServerServiceImpl implements ServerService {
     private final ApplicationRepository applicationRepository;
 
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
+    private final ProjectApplicationRepository projectApplicationRepository;
 
     @Override
     public void registerDeployment(
@@ -114,7 +117,7 @@ public class ServerServiceImpl implements ServerService {
         log.info(gitlabProject.toString());
 
         // 어플리케이션 목록
-         List<Application> applicationList = applicationRepository.findAllByProjectId(project.getId());
+         List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
                 updatePackageManager(),
@@ -130,7 +133,7 @@ public class ServerServiceImpl implements ServerService {
                 makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                //runApplicationList(applicationList),
+                //runApplicationList(projectApplicationList),
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
@@ -716,8 +719,8 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> runApplicationList(List<Application> applicationList) {
-        return applicationList.stream()
+    private List<String> runApplicationList(List<ProjectApplication> projectApplicationList) {
+        return projectApplicationList.stream()
                 .flatMap(app -> Stream.of(
 
                         "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",

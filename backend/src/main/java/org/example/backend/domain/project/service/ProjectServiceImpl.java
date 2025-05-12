@@ -39,6 +39,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ApplicationRepository applicationRepository;
     private final RedisSessionManager redisSessionManager;
     private final UserProjectRepository userProjectRepository;
+    private final ProjectApplicationRepository projectApplicationRepository;
     private final ProjectExecutionRepository projectExecutionRepository;
     private final UserRepository userRepository;
 
@@ -83,14 +84,21 @@ public class ProjectServiceImpl implements ProjectService {
 
         userProjectRepository.save(UserProject.create(project.getId(), userId));
 
-        request.getApplicationList().forEach(app ->
-                applicationRepository.save(Application.builder()
-                        .imageName(app.getImageName())
-                        .tag(app.getTag())
-                        .port(app.getPort())
-                        .projectId(project.getId())
-                        .build())
-        );
+        request.getApplicationList().forEach(app -> {
+
+            Application application = applicationRepository.findByImageName(app.getImageName())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+            ProjectApplication projectApplication = ProjectApplication.builder()
+                    .projectId(project.getId())
+                    .applicationId(application.getId())
+                    .imageName(app.getImageName())
+                    .tag(app.getTag())
+                    .port(app.getPort())
+                    .build();
+
+            projectApplicationRepository.save(projectApplication);
+        });
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -125,7 +133,7 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
-        List<Application> applications = applicationRepository.findAllByProjectId(projectId);
+        List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(projectId);
 
         return ProjectDetailResponse.builder()
                 .id(project.getId())
@@ -144,7 +152,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .jdkVersion(project.getJdkVersion())
                 .jdkBuildTool(project.getJdkBuildTool())
                 .backendEnvFilePath(project.getBackendEnvFilePath())
-                .applicationList(applications.stream()
+                .applicationList(projectApplicationList.stream()
                         .map(app -> ApplicationResponse.builder()
                                 .imageName(app.getImageName())
                                 .tag(app.getTag())

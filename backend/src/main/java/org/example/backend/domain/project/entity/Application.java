@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.HashMap;
+import java.util.Map;
+
 @Entity
 @Getter
 @NoArgsConstructor
@@ -18,11 +21,16 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long projectId;
-
     private String imageName;
 
-    private String tag;
+    private int defaultPort;
 
-    private int port;
+    @ElementCollection
+    @CollectionTable(
+            name = "application_env",
+            joinColumns = @JoinColumn(name = "application_id")
+    )
+    @MapKeyColumn(name = "env_key")
+    @Column(name = "env_value")
+    private Map<String, String> envVariables = new HashMap<>();
 }
