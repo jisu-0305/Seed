@@ -9,6 +9,6 @@ public interface DockerService {
     ImageResponse getImages(String image);
     List<TagResponse> getTag(String image);
     List<DemonHealthyCheckResponse> checkHealth();
-    List<AppHealthyCheckResponse> getAppStatus(String appName);
-    List<DockerContainerLogResponse> getContainerLogs(String appName, DockerContainerLogRequest request);
+    List<AppHealthyCheckResponse> getAppStatus(String serverIp, String appName);
+    List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request);
 }

@@ -19,6 +19,7 @@ public class Project {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    private Long gitlabProjectId;
     private Long ownerId;
     private String projectName;
     private String serverIP;

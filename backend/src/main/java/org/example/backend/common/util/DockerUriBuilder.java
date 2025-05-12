@@ -1,5 +1,6 @@
 package org.example.backend.common.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@Slf4j
 public class DockerUriBuilder {
 
     @Value("${docker.hub.api.base-url}")
@@ -59,30 +61,26 @@ public class DockerUriBuilder {
         return buildFilteredContainersUri("status", statuses);
     }
 
-    public URI buildContainersByNameUri(String name) {
-        return buildFilteredContainersUri("name", List.of(name));
+//    public URI buildContainersByNameUri(String name) {
+//        return buildFilteredContainersUri("name", List.of(name));
+//    }
+
+    public URI buildContainersByNameUri(String engineBaseUrl, String name) {
+
+        log.info(">>>>>>>>>>> 빌더부분 -> engineBaseUrl = {}",engineBaseUrl);
+        String rawJson = String.format("{\"name\":[\"%s\"]}", name);
+        String encoded = URLEncoder.encode(rawJson, StandardCharsets.UTF_8);
+        String uri = engineBaseUrl + "/containers/json?all=true&filters=" + encoded;
+        return URI.create(uri);
     }
 
-    public URI buildContainerLogsUri(
-            String containerId,
-            Boolean includeStdout,
-            Boolean includeStderr,
-            String tailLines,
-            Long sinceSeconds,
-            Long untilSeconds,
-            Boolean includeTimestamps,
-            Boolean includeDetails,
-            Boolean followStream
-    ) {
+    public URI buildContainerLogsUri(String containerId, Long sinceSeconds, Long untilSeconds) {
         UriComponentsBuilder uri = UriComponentsBuilder
                 .fromUriString(dockerEngineApiBaseUrl)
                 .path("/containers/{id}/logs")
-                .queryParam("stdout", includeStdout)
-                .queryParam("stderr", includeStderr)
-                .queryParam("tail", tailLines)
-                .queryParam("timestamps", includeTimestamps)
-                .queryParam("details", includeDetails)
-                .queryParam("follow", followStream);
+                .queryParam("stdout", true)
+                .queryParam("stderr", true)
+                .queryParam("timestamps", true);
 
         if (sinceSeconds != null) {
             uri.queryParam("since", sinceSeconds);
@@ -105,6 +103,5 @@ public class DockerUriBuilder {
         String uriString = dockerEngineApiBaseUrl + "/containers/json?all=true&filters=" + encoded;
         return URI.create(uriString);
     }
-
 
 }

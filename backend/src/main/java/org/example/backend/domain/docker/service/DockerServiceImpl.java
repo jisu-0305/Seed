@@ -105,10 +105,10 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<AppHealthyCheckResponse> getAppStatus(String appName) {
+    public List<AppHealthyCheckResponse> getAppStatus(String serverIp, String appName) {
 
         try {
-            var containers = dockerApiClient.getContainersByName(appName);
+            var containers = dockerApiClient.getContainersByName(serverIp, appName);
 
             if (containers.isEmpty()) {
                 throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
@@ -136,19 +136,20 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<DockerContainerLogResponse> getContainerLogs(String appName, DockerContainerLogRequest request) {
+    public List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request) {
 
-        List<ContainerDto> containers = dockerApiClient.getContainersByName(appName);
+        // 컨테이너 조회
+        List<ContainerDto> containers = dockerApiClient.getContainersByName(serverIp, appName);
         if (containers.isEmpty()) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
                     String.format("애플리케이션 이름 '%s' 에 해당하는 컨테이너가 없습니다.", appName));
         }
         String containerId = containers.get(0).getId();
 
-        List<String> rawLines = dockerApiClient.getContainerLogs(containerId, request);
+        List<String> rawLines = dockerApiClient.getContainerLogs(serverIp, containerId, request);
 
         return rawLines.stream()
-                .map(line -> DockerContainerLogResponse.of(line, request.includeTimestamps()))
+                .map(line -> DockerContainerLogResponse.of(line))
                 .collect(Collectors.toList());
     }
 
