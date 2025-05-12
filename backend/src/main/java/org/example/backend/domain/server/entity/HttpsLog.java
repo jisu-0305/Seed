@@ -25,6 +25,9 @@ public class HttpsLog {
     @Column(columnDefinition = "TEXT")
     private String logContent;
 
+    @Column(nullable = false)
+    private String status;
+
     private LocalDateTime createdAt;
 }
 

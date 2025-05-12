@@ -6,7 +6,7 @@ import org.example.backend.domain.server.entity.HttpsLog;
 import java.util.List;
 
 public interface HttpsLogService {
-    void saveLog(Long projectId, String stepName, String logContent);
+    void saveLog(Long projectId, String stepName, String logContent, String status);
     List<HttpsLogResponse> getLogs(Long projectId, String accessToken);
     List<HttpsLog> getLogsByProjectId(Long projectId);
 }
