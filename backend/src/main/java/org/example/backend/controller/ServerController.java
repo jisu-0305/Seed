@@ -27,12 +27,12 @@ public class ServerController {
     @PostMapping("/deployment")
     public ResponseEntity<ApiResponse<String>> registerDeployment(
             @RequestPart("request") DeploymentRegistrationRequest request,
-            @RequestPart("pemFile") MultipartFile pemFile,
-            @RequestPart("frontEnvFile") MultipartFile frontEnvFile,
-            @RequestPart("backEnvFile") MultipartFile backEnvFile,
+            @RequestPart("pemFilePath") String pemFilePath,
+            @RequestPart("frontEnvFilePath") String frontEnvFilePath,
+            @RequestPart("backEnvFilePath") String backEnvFilePath,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.registerDeployment(request, pemFile, frontEnvFile, backEnvFile, accessToken);
+        serverService.registerDeployment(request, pemFilePath, frontEnvFilePath, backEnvFilePath, accessToken);
 
         return ResponseEntity.ok(ApiResponse.success("자동 배포 설정 완료"));
     }
@@ -40,10 +40,10 @@ public class ServerController {
     @PostMapping(value = "/convert")
     public ResponseEntity<ApiResponse<String>> convertHttps(
             @RequestPart("request") HttpsConvertRequest request,
-            @RequestPart("pemFile") MultipartFile pemFile,
+            @RequestPart("pemFilePath") String pemFilePath,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.convertHttpToHttps(request, pemFile, accessToken);
+        serverService.convertHttpToHttps(request, pemFilePath, accessToken);
 
         projectService.markHttpsConverted(request.getProjectId());
 

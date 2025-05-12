@@ -28,9 +28,14 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private ProjectStructure structure;
 
+    // mono
     private String gitlabTargetBranchName;
     private String frontendDirectoryName;
     private String backendDirectoryName;
+
+    // multi
+    private String frontendBranchName;
+    private String backendBranchName;
 
     // config
     private String pemFilePath;
