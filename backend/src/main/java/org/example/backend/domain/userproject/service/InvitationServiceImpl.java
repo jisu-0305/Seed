@@ -8,11 +8,11 @@
     import org.example.backend.controller.response.userproject.InvitationResponse;
     import org.example.backend.domain.fcm.service.NotificationService;
     import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
+    import org.example.backend.domain.project.entity.Project;
     import org.example.backend.domain.project.repository.ProjectRepository;
     import org.example.backend.domain.userproject.dto.UserInProject;
     import org.example.backend.domain.userproject.entity.Invitation;
     import org.example.backend.domain.userproject.entity.UserProject;
-    import org.example.backend.domain.userproject.enums.InvitationStateType;
     import org.example.backend.domain.userproject.mapper.InvitationMapper;
     import org.example.backend.domain.userproject.repository.InvitationRepository;
     import org.example.backend.domain.userproject.repository.UserProjectRepository;
@@ -23,6 +23,7 @@
     import org.example.backend.domain.fcm.enums.NotificationType;
 
     import java.time.LocalDateTime;
+    import java.util.ArrayList;
     import java.util.List;
     import java.util.Objects;
     import java.util.Set;
@@ -45,21 +46,24 @@
         public List<InvitationResponse> sendInvitations(InvitationRequest request, String accessToken) {
             SessionInfoDto session = redisSessionManager.getSession(accessToken);
             Long senderId = session.getUserId();
+            Long projectId = request.getProjectId();
 
-            if (!userProjectRepository.existsByProjectIdAndUserId(request.getProjectId(), senderId)) {
+            if (!userProjectRepository.existsByProjectIdAndUserId(projectId, senderId)) {
                 throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
             }
 
-            String projectName = projectRepository.findById(request.getProjectId()).get().getProjectName();
+            Project project = projectRepository.findById(projectId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+            String projectName = project.getProjectName();
 
-            return request.getIdList().stream()
-                    .filter(receiverId -> !Objects.equals(senderId, receiverId))
-                    .filter(receiverId -> !invitationRepository.existsByProjectIdAndReceiverId(request.getProjectId(), receiverId))
-                    .map(receiverId -> {
-                        Invitation invitation = Invitation.create(
-                                request.getProjectId(), senderId, receiverId, InvitationStateType.PENDING
-                        );
-                        Invitation saved = invitationRepository.save(invitation);
+            List<InvitationResponse> responses = new ArrayList<>();
+
+            request.getIdList().stream()
+                    .filter(receiverId -> !receiverId.equals(senderId))
+                    .filter(receiverId -> !invitationRepository.existsByProjectIdAndReceiverId(projectId, receiverId))
+                    .forEach(receiverId -> {
+                        Invitation inv = Invitation.create(projectId, senderId, receiverId);
+                        Invitation saved = invitationRepository.save(inv);
 
                         notificationService.notifyUsers(
                                 List.of(receiverId),
@@ -67,9 +71,10 @@
                                 projectName
                         );
 
-                        return toResponse(saved, NotificationType.INVITATION_CREATED_TYPE);
-                    })
-                    .toList();
+                        responses.add(toResponse(saved, NotificationType.INVITATION_CREATED_TYPE));
+                    });
+
+            return responses;
         }
 
         @Override
