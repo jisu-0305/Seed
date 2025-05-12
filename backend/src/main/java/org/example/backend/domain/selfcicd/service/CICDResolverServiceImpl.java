@@ -2,7 +2,9 @@ package org.example.backend.domain.selfcicd.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.request.log.DockerLogRequest;
+import org.example.backend.controller.response.docker.DockerContainerLogResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
 import org.example.backend.controller.response.log.DockerLogResponse;
@@ -21,6 +23,7 @@ import org.example.backend.util.fastai.dto.suspectapp.InferAppRequest;
 import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,9 +114,16 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          *         추가로 log가져올때도 docker log 사용해야할거같은데 nginx는 별도의 log찾아야하는거 아닌가 싶음(결국 서버 접속 필요...? -> keypem저장?)
          * 담당자: 엔티티 - 강승엽, nginx 소스코드 저장 - 이재훈
          * */
-        Map<String, String> appLogs = new HashMap<>();
+
+//        Instant commitInstant = gitlabCompareResponse.getCommit().getCreatedAt().toInstant();
+//        long sinceSeconds = commitInstant.getEpochSecond();
+//        long untilSeconds = Instant.now().getEpochSecond();
+//
+//        DockerContainerLogRequest logRequest = new DockerContainerLogRequest(sinceSeconds, untilSeconds);
+//        Map<String, List<DockerContainerLogResponse>> appLogs = new HashMap<>();
+//
 //        for (String appName : suspectedApps) {
-//            String logs = dockerService.getRecentLog(project, appName); // 도커 기반 로그 수집
+//            List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(appName, logRequest);
 //            appLogs.put(appName, logs);
 //        }
 

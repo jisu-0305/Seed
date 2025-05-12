@@ -87,14 +87,8 @@ public class DockerApiClientImpl implements DockerApiClient {
 
         URI uri = uriBuilder.buildContainerLogsUri(
                 containerId,
-                filter.includeStdout(),
-                filter.includeStderr(),
-                filter.tailLines(),
                 filter.sinceSeconds(),
-                filter.untilSeconds(),
-                filter.includeTimestamps(),
-                filter.includeDetails(),
-                filter.followStream()
+                filter.untilSeconds()
         );
         log.debug(">> 컨테이너 로그 조회 URI: {}", uri);
 

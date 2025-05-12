@@ -63,26 +63,13 @@ public class DockerUriBuilder {
         return buildFilteredContainersUri("name", List.of(name));
     }
 
-    public URI buildContainerLogsUri(
-            String containerId,
-            Boolean includeStdout,
-            Boolean includeStderr,
-            String tailLines,
-            Long sinceSeconds,
-            Long untilSeconds,
-            Boolean includeTimestamps,
-            Boolean includeDetails,
-            Boolean followStream
-    ) {
+    public URI buildContainerLogsUri(String containerId, Long sinceSeconds, Long untilSeconds) {
         UriComponentsBuilder uri = UriComponentsBuilder
                 .fromUriString(dockerEngineApiBaseUrl)
                 .path("/containers/{id}/logs")
-                .queryParam("stdout", includeStdout)
-                .queryParam("stderr", includeStderr)
-                .queryParam("tail", tailLines)
-                .queryParam("timestamps", includeTimestamps)
-                .queryParam("details", includeDetails)
-                .queryParam("follow", followStream);
+                .queryParam("stdout", true)
+                .queryParam("stderr", true)
+                .queryParam("timestamps", true);
 
         if (sinceSeconds != null) {
             uri.queryParam("since", sinceSeconds);
@@ -105,6 +92,5 @@ public class DockerUriBuilder {
         String uriString = dockerEngineApiBaseUrl + "/containers/json?all=true&filters=" + encoded;
         return URI.create(uriString);
     }
-
 
 }
