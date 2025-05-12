@@ -1,8 +1,11 @@
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 
+import { createProject } from '@/apis/create';
 import SmallButton from '@/components/Common/button/SmallButton';
+import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { PostProjectInfo } from '@/types/project';
 import { getUrlFromId } from '@/utils/getProjectStep';
 
 import InfoCheck from './InfoCheck';
@@ -10,6 +13,58 @@ import InfoCheck from './InfoCheck';
 export default function Complete() {
   const router = useRouter();
   const { mode } = useThemeStore();
+
+  const { stepStatus, resetProjectStatus } = useProjectInfoStore();
+
+  function stepStatusToProjectRequest(): PostProjectInfo {
+    const { gitlab, server, app, env } = stepStatus;
+
+    if (gitlab.structure === '모노') {
+      return {
+        structure: 'MONO',
+        repositoryUrl: gitlab.repo,
+        backendDirectoryName: gitlab.directory.server,
+        frontendDirectoryName: gitlab.directory.client,
+        jdkVersion: env.jdk,
+        serverIP: server.ip,
+        frontendFramework: env.frontendFramework,
+        nodejsVersion: env.node,
+        jdkBuildTool: env.buildTool,
+        applicationList: app,
+      };
+    }
+    return {
+      structure: 'MULTI',
+      repositoryUrl: gitlab.repo,
+      backendBranchName: gitlab.directory.server,
+      frontendBranchName: gitlab.directory.client,
+      jdkVersion: env.jdk,
+      serverIP: server.ip,
+      frontendFramework: env.frontendFramework,
+      nodejsVersion: env.node,
+      jdkBuildTool: env.buildTool,
+      applicationList: app,
+    };
+  }
+
+  const handleSubmit = async () => {
+    try {
+      const projectInfo = stepStatusToProjectRequest();
+
+      console.log(projectInfo);
+      resetProjectStatus();
+
+      const res = await createProject(projectInfo);
+
+      if (res.success) {
+        alert('프로젝트가 성공적으로 생성되었습니다!');
+        router.push(`/dashboard`);
+      }
+    } catch (error) {
+      console.error(error);
+      alert('프로젝트 생성에 실패했습니다.');
+    }
+  };
 
   if (mode === null) return null;
 
@@ -28,12 +83,7 @@ export default function Complete() {
             />
             이전
           </SmallButton>
-          <SmallButton
-            variant="complete"
-            onClick={() => {
-              alert('프로젝트가 생성되었습니다!');
-            }}
-          >
+          <SmallButton variant="complete" onClick={handleSubmit}>
             프로젝트 생성하기
             <Icon
               src="/assets/icons/ic_button_arrow_right_light.svg"

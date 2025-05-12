@@ -1,28 +1,19 @@
 import styled from '@emotion/styled';
 import { ChangeEvent, useState } from 'react';
 
+import { getDockerImage } from '@/apis/gitlab';
 import SmallModal from '@/components/Common/Modal/SmallModal';
 
 interface Props {
   isShowing: boolean;
   handleClose: () => void;
-  onSelect: (app: { name: string }) => void;
+  onSelect: (name: string) => void;
 }
 
-const dummyImages = [
-  {
-    name: 'redis',
-    desc: 'Redis is the world’s fastest data platform for caching, vector search, and NoSQL databases.',
-  },
-  {
-    name: 'redis-temp',
-    desc: 'redis-stack-server installs a Redis server with additional database capabilities',
-  },
-  {
-    name: 'redis/redis-stack',
-    desc: 'redis-stack installs a Redis server with additional database capabilities and the RedisInsight.',
-  },
-];
+interface Image {
+  repo_name: string;
+  short_description: string;
+}
 
 const SearchDockerImageModal = ({
   isShowing,
@@ -30,8 +21,12 @@ const SearchDockerImageModal = ({
   onSelect,
 }: Props) => {
   const [query, setQuery] = useState('');
+  const [imageList, setImageList] = useState<Image[]>([]);
 
-  const filteredImages = dummyImages.filter((img) => img.name.includes(query));
+  const fetchDockerImage = async () => {
+    const { data } = await getDockerImage(query);
+    setImageList(data.image);
+  };
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     setQuery(e.target.value);
@@ -51,27 +46,34 @@ const SearchDockerImageModal = ({
               placeholder="어플리케이션을 검색해주세요."
               value={query}
               onChange={handleSearch}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') fetchDockerImage();
+              }}
             />
-            <SearchIcon src="/assets/icons/ic_search_light.svg" alt="search" />
+            <SearchIcon
+              onClick={fetchDockerImage}
+              src="/assets/icons/ic_search_light.svg"
+              alt="search"
+            />
           </SearchWrapper>
 
           <ResultList>
-            {filteredImages.map((img) => (
+            {imageList.map((img) => (
               <ResultItem
-                key={img.name}
+                key={img.repo_name}
                 onClick={() => {
-                  onSelect(img);
+                  onSelect(img.repo_name);
                   handleClose();
                 }}
               >
                 <ImageName>
-                  {img.name}
+                  {img.repo_name}
                   <OfficialIcon
                     src="/assets/icons/ic_official.svg"
                     alt="official"
                   />
                 </ImageName>
-                <ImageDesc>{img.desc}</ImageDesc>
+                <ImageDesc>{img.short_description}</ImageDesc>
               </ResultItem>
             ))}
           </ResultList>
