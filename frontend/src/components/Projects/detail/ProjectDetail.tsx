@@ -2,9 +2,13 @@ import styled from '@emotion/styled';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { fetchHttpsBuildLogs, HttpsBuildLog } from '@/apis/build';
+import {
+  fetchBuildDetail,
+  fetchHttpsBuildLogs,
+  fetchLastBuild,
+  HttpsBuildLog,
+} from '@/apis/build';
 import { fetchProjectDetail } from '@/apis/project';
-import { tasksByTab as dummyTasks } from '@/assets/dummy/builds';
 import { useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
@@ -28,6 +32,9 @@ export default function ProjectDetail() {
   const { projects, loadProjects } = useProjectStore();
   const [selectedTab, setSelectedTab] = useState<DeployTabName>(
     DeployTabNames[0],
+  );
+  const [defaultBuildNumber, setdefaultBuildNumber] = useState<number | null>(
+    null,
   );
 
   const [detail, setDetail] = useState<
@@ -97,12 +104,11 @@ export default function ProjectDetail() {
     if (selectedTab === 'Https 세팅') {
       fetchHttpsBuildLogs(id)
         .then((logs: HttpsBuildLog[]) => {
-          // API 응답을 Task 타입으로 맵핑
           const tasks: Task[] = logs.map((log) => ({
-            no: log.stepNumber,
-            description: log.stepName,
-            duration: new Date(log.createdAt).toLocaleTimeString(), // 예시 변환
-            status: inferStatusFromLog(log.logContent), // 커스텀 로직
+            stepNumber: log.stepNumber,
+            stepName: log.stepName,
+            duration: new Date(log.createdAt).toLocaleTimeString(),
+            status: inferStatusFromLog(log.logContent),
           }));
           setTasksByTab((prev) => ({ ...prev, [selectedTab]: tasks }));
         })
@@ -110,12 +116,20 @@ export default function ProjectDetail() {
           console.error('HTTPS 빌드 로그 로딩 실패', err);
           setTasksByTab((prev) => ({ ...prev, [selectedTab]: [] }));
         });
-    } else {
-      // 다른 탭은 더미 혹은 초기값 유지
-      setTasksByTab((prev) => ({
-        ...prev,
-        [selectedTab]: dummyTasks[selectedTab] || [],
-      }));
+    } else if (selectedTab === '최근 빌드') {
+      // 1) 최근 빌드 요약 호출
+      fetchLastBuild(id)
+        .then((summary) => {
+          setdefaultBuildNumber(summary.buildNumber);
+          return fetchBuildDetail(id, summary.buildNumber);
+        })
+        .then((tasks) => {
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: tasks }));
+        })
+        .catch((err) => {
+          console.error('최근 빌드 로딩 실패', err);
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: [] }));
+        });
     }
   }, [projectId, selectedTab]);
 
@@ -182,6 +196,8 @@ export default function ProjectDetail() {
 
         <SubTitle>Deploy Status</SubTitle>
         <DeployStatus
+          projectId={projectId}
+          buildNumber={defaultBuildNumber}
           tasksByTab={tasksByTab}
           selectedTab={selectedTab}
           onTabChange={setSelectedTab}

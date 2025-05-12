@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import React, { useState } from 'react';
 
 import SmallModal from '@/components/Common/Modal/SmallModal';
-import TipItem from '@/components/Common/TipItem';
+import ModalTipItem from '@/components/Common/ModalTipItem';
 import { HttpsConfig } from '@/types/config';
 
 interface HttpsModalProps {
@@ -54,7 +54,7 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
         </Label>
 
         <SubmitButton type="submit">설정하기</SubmitButton>
-        <TipItem text="서비스의 DNS와 소유자의 이메일 주소를 입력해주세요" />
+        <ModalTipItem text="서비스의 DNS와 소유자의 이메일 주소를 입력해주세요" />
       </Form>
     </SmallModal>
   );

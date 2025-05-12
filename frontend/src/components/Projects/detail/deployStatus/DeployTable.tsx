@@ -1,8 +1,41 @@
 import styled from '@emotion/styled';
+import { useState } from 'react';
 
-import { Task } from '@/types/task';
+import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
+import { useModal } from '@/hooks/Common';
+import { EchoList, Task } from '@/types/task';
 
-export function DeployTable({ tasks }: { tasks: Task[] }) {
+import { BuildStepDetailModal } from '../../Modal/BuildStepDetailModal';
+
+interface DeployTableProps {
+  projectId: number;
+  buildNumber: number | null;
+  tasks: Task[];
+}
+
+export function DeployTable({
+  projectId,
+  buildNumber,
+  tasks,
+}: DeployTableProps) {
+  const stepModal = useModal();
+  const [currentStep, setCurrentStep] = useState<{
+    number: number;
+    name: string;
+    echoList?: EchoList[];
+  } | null>(null);
+
+  const handleStepClick = (
+    stepNumber: number,
+    stepName: string,
+    echoList?: EchoList[],
+  ) => {
+    if (buildNumber == null) return;
+
+    setCurrentStep({ number: stepNumber, name: stepName, echoList });
+    stepModal.toggle();
+  };
+
   return (
     <TableWrapper>
       <Table>
@@ -16,10 +49,10 @@ export function DeployTable({ tasks }: { tasks: Task[] }) {
           </tr>
         </thead>
         <tbody>
-          {tasks.map(({ no, description, duration, status }) => (
-            <tr key={no}>
-              <td>{no}</td>
-              <td>{description}</td>
+          {tasks.map(({ stepNumber, stepName, duration, status, echoList }) => (
+            <tr key={stepNumber}>
+              <td>{stepNumber}</td>
+              <td>{stepName}</td>
               <td>{duration}</td>
               <td>
                 <StatusBadge status={status}>{status}</StatusBadge>
@@ -28,15 +61,28 @@ export function DeployTable({ tasks }: { tasks: Task[] }) {
                 <Icon
                   src="/assets/icons/ic_more.svg"
                   alt="log"
-                  onClick={() => {
-                    console.log('젠킨스 로그 보여줄거임');
-                  }}
+                  onClick={() =>
+                    handleStepClick(stepNumber, stepName, echoList)
+                  }
                 />
               </td>
             </tr>
           ))}
         </tbody>
       </Table>
+      {currentStep && (
+        <ModalWrapper isShowing={stepModal.isShowing}>
+          <BuildStepDetailModal
+            isShowing={stepModal.isShowing}
+            handleClose={stepModal.toggle}
+            projectId={projectId}
+            buildNumber={buildNumber!}
+            stepNumber={currentStep.number}
+            stepName={currentStep.name}
+            echoList={currentStep.echoList}
+          />
+        </ModalWrapper>
+      )}
     </TableWrapper>
   );
 }
@@ -51,6 +97,14 @@ const Table = styled.table`
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+
+  thead th {
+    position: sticky;
+    top: 0;
+    background: ${({ theme }) => theme.colors.Background}; /* 헤더 배경색 */
+    z-index: 2;
+    border-bottom: 1px solid ${({ theme }) => theme.colors.InputStroke};
+  }
 
   th,
   td {

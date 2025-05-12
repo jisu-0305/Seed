@@ -7,12 +7,15 @@ import { BuildHistoryPanel } from './BuildHistoryPanel';
 import { DeployTable } from './DeployTable';
 
 export function DeployStatus({
+  projectId,
+  buildNumber,
   tasksByTab,
   selectedTab,
   onTabChange,
 }: DeployStatusProps) {
   const tabs = Object.keys(tasksByTab) as DeployTabName[];
   const { mode } = useThemeStore();
+  const pid = Number(projectId);
 
   if (mode === null) return null;
 
@@ -33,9 +36,13 @@ export function DeployStatus({
 
       <ContentWrapper>
         {selectedTab === '빌드 기록' ? (
-          <BuildHistoryPanel />
+          <BuildHistoryPanel projectId={pid} />
         ) : (
-          <DeployTable tasks={tasksByTab[selectedTab]} />
+          <DeployTable
+            projectId={pid}
+            buildNumber={buildNumber}
+            tasks={tasksByTab[selectedTab]}
+          />
         )}
       </ContentWrapper>
     </Container>
