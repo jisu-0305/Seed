@@ -56,7 +56,6 @@ public class ServerServiceImpl implements ServerService {
     private final ApplicationRepository applicationRepository;
 
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
-    private final ProjectApplicationRepository projectApplicationRepository;
 
     @Override
     public void registerDeployment(
@@ -124,7 +123,7 @@ public class ServerServiceImpl implements ServerService {
         log.info(gitlabProject.toString());
 
         // 어플리케이션 목록
-         List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
+//         List<Application> applicationList = applicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
                 updatePackageManager(),
@@ -140,8 +139,8 @@ public class ServerServiceImpl implements ServerService {
                 makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                //runApplicationList(projectApplicationList),
-                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
+                //runApplicationList(applicationList),
+                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
 

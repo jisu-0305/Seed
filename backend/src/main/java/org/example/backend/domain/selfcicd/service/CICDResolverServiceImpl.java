@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.request.log.DockerLogRequest;
-import org.example.backend.controller.response.docker.DockerContainerLogResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
 import org.example.backend.controller.response.log.DockerLogResponse;
