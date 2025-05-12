@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.request.log.DockerLogRequest;
+import org.example.backend.controller.response.docker.DockerContainerLogResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
 import org.example.backend.controller.response.log.DockerLogResponse;
@@ -36,10 +37,12 @@ import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileResponse;
 import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,18 +56,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final ApplicationRepository applicationRepository;
     private final ObjectMapper objectMapper;
     private final ProjectApplicationRepository projectApplicationRepository;
-
-    @Override
-    public DockerLogResponse getRecentDockerLogs(DockerLogRequest request) {
-        String logs = LogUtil.getRecentDockerLogs(
-                request.getIp(),
-                request.getPemPath(),
-                request.getContainerName(),
-                request.getSince()
-        );
-        return new DockerLogResponse(logs);
-    }
-
+    
     //두번째 기능 메인 로직
     @Override
     public void handleSelfHealingCI(Long projectId, String accessToken) {
@@ -82,8 +74,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                 .map(ProjectApplication::getImageName)
                 .toList();
 
-        // 1-3. Git diff 정보 가져오기 -> 관련해서 GitlabCompareCommit.id 필드가 실제 커밋 id인지 사실 여부 확인 필요 - 담당자: 박유진
-        GitlabCompareResponse gitlabCompareResponse = gitlabService.fetchLatestMrDiff(accessToken, project.getId()).block();
+        // 1-3. Git diff 정보 가져오기
+        GitlabCompareResponse gitlabCompareResponse = gitlabService.fetchLatestMrDiff(accessToken, project.getGitlabProjectId()).block();
 
         // 1-4. AI API 호출: 1~3의 재료주고 의심되는 애플리케이션 추론 요청
         InferAppRequest inferAppRequest = InferAppRequest.builder()
@@ -110,18 +102,14 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 
         Map<String, List<GitlabTree>> appTrees = new HashMap<>();
 
-        // 브렌치 이름 필요(임시로 master로 지정, 추후 모노 레포에 따른 브렌치 필드 추가시 변경)
-//        String originalProjectBranch = project.getBackendoriginalProjectBranch();
-        String originalProjectBranch = "master";
-
         for (String appName : suspectedApps) {
             String folder = appToFolderMap.getOrDefault(appName, appName);
             List<GitlabTree> tree = gitlabService.getRepositoryTree(
                     accessToken,
-                    projectId,
+                    project.getGitlabProjectId(),
                     folder, // path
                     true,   // recursive
-                    originalProjectBranch
+                    project.getGitlabTargetBranchName()
             );
             appTrees.put(appName, tree);
         }
@@ -137,26 +125,39 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          *         추가로 log가져올때도 docker log 사용해야할거같은데 nginx는 별도의 log찾아야하는거 아닌가 싶음(결국 서버 접속 필요...? -> keypem저장?)
          * 담당자: 엔티티 - 강승엽, nginx 소스코드 저장 - 이재훈
          * */
-        Map<String, String> appLogs = new HashMap<>();
-        for (String appName : suspectedApps) {
-//            List<DockerContainerLogResponse> dockerLogLines = dockerService.getContainerLogs(
-//                    appName, project.getServerIP(), new DockerContainerLogRequest()
-//            );
 
-            //이렇게 하는 이유는 DockerContainerLogResponse에 형식 맞추고 해당 내용을 String으로 바꿔주다보니 생김(차라리 Response안에 String으로 변환하는 메서드가 있다면 메인 로직이 깔끔할것 같음)
-//            String fullLogText = dockerLogLines.stream()
-//                    .map(logLine -> {
-//                        if (logLine.timestamp() != null) {
-//                            return logLine.timestamp() + " " + logLine.message();
-//                        } else {
-//                            return logLine.message();
-//                        }
-//                    })
-//                    .collect(Collectors.joining("\n"));
-//
-//            appLogs.put(appName, fullLogText);
+        Instant commitInstant = gitlabCompareResponse.getCommit()
+                .getCreatedAt()    // OffsetDateTime
+                .toInstant();      // Instant
+        long sinceSeconds = commitInstant.getEpochSecond();
+        long untilSeconds = Instant.now().getEpochSecond();
+
+        // 2) 요청 DTO 생성
+        DockerContainerLogRequest logRequest =
+                new DockerContainerLogRequest(sinceSeconds, untilSeconds);
+
+        // 3) 앱별로 로그 수집
+        Map<String, List<DockerContainerLogResponse>> dockerAppLogs = new HashMap<>();
+        for (String appName : suspectedApps) {
+            // serverIp, appName, request 순서로 호출
+            List<DockerContainerLogResponse> logs =
+                    dockerService.getContainerLogs(project.getServerIP(), appName, logRequest);
+            dockerAppLogs.put(appName, logs);
         }
 
+        Map<String, String> appLogs = dockerAppLogs.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> entry.getValue().stream()
+                                .map(log -> {
+                                    if (log.timestamp() != null) {
+                                        return log.timestamp() + " " + log.message();
+                                    } else {
+                                        return log.message();
+                                    }
+                                })
+                                .collect(Collectors.joining("\n"))
+                ));
 
         // 2. AI FastAPI를 이용한 수정 파일 정보 받기 및 해당 파일 내용 수정
         List<PatchedFile> patchedFiles = new ArrayList<>();
@@ -192,15 +193,11 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             SuspectFileInnerResponse suspectFileInnerResponse = fastAIClient.requestSuspectFiles(suspectRequest).getResponse();
 //            log.debug(">>>>>>>>>>>>>의심파일 찾기"+suspectDto.getResponse().getSuspectFiles().toString());
 
-//            String summary = suspectFileResponse.getResponse().getErrorSummary();
-//            String cause = suspectFileResponse.getResponse().getCause();
-//            String hint = suspectFileResponse.getResponse().getResolutionHint();
-
             // 2-2. 의심되는 'file 원본 코드' 가져오기
             List<Map<String, String>> filesRaw = new ArrayList<>();
             for (var f : suspectFileInnerResponse.getSuspectFiles()) {
                 String path = f.getPath();
-                String code = gitlabService.getRawFileContent(accessToken, projectId, path, "master");
+                String code = gitlabService.getRawFileContent(accessToken, project.getGitlabProjectId(), path, "master");
                 filesRaw.add(Map.of("path", path, "code", code));
 //                log.debug(">>>>>>>>>>>>>깃렙 api 파일 path: "+path+", 소스코드: "+code);
             }
@@ -250,7 +247,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
          * 담당자: 이재훈
          * */
         String newProejctBranch = "ai/fix/" + System.currentTimeMillis();
-        gitlabService.createBranch(accessToken, project.getId(), newProejctBranch, originalProjectBranch);
+        gitlabService.createBranch(accessToken, project.getGitlabProjectId(), newProejctBranch, project.getGitlabTargetBranchName());
 
 
         // 3-2. GitLab에 AI를 통해 수정된 파일들 커밋
@@ -259,7 +256,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 
             gitlabService.commitPatchedFiles(
                     accessToken,
-                    project.getId(),
+                    project.getGitlabProjectId(),
                     newProejctBranch,
                     commitMessage,
                     patchedFiles
@@ -306,15 +303,15 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         if (buildSucceeded) {
             gitlabService.createMergeRequest(
                     accessToken,
-                    project.getId(),
+                    project.getGitlabProjectId(),
                     newProejctBranch,
-                    originalProjectBranch,
+                    project.getGitlabTargetBranchName(),
                     "[AI 수정 제안] 빌드 자동 복구",
                     "AI가 수정한 코드를 기반으로 빌드가 성공했습니다. 검토 후 병합해주세요."
             );
         }
 
-        // 4-4. 반환값 고민
+        // 4-4. 반환값 고민 -> 그냥 db에 저장하는 형태로.
     }
 }
 
