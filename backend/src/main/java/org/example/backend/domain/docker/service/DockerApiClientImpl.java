@@ -11,15 +11,19 @@ import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 @Slf4j
@@ -29,6 +33,7 @@ public class DockerApiClientImpl implements DockerApiClient {
     private final WebClient dockerHubWebClient;
     private final WebClient dockerWebClient;
     private final DockerUriBuilder uriBuilder;
+    private final WebClient.Builder webClientBuilder;
 
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {
@@ -63,49 +68,57 @@ public class DockerApiClientImpl implements DockerApiClient {
     }
 
     @Override
-    public List<ContainerDto> getContainersByName(String nameFilter) {
-        URI uri = uriBuilder.buildContainersByNameUri(nameFilter);
+    public List<ContainerDto> getContainersByName(String serverIp, String nameFilter) {
+        // 1) Build the absolute base URL once
+        String engineBaseUrl = "http://" + serverIp + ":2375";
+
+        // 2) Ask your builder for the perfectly encoded, absolute URI
+        URI uri = uriBuilder.buildContainersByNameUri(engineBaseUrl, nameFilter);
         log.debug(">> 이름 기반 컨테이너 조회 URI: {}", uri);
 
-        return fetchFlux(dockerWebClient, uri, ContainerDto.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
-    }
+        // 3) Use a vanilla WebClient and hand it the URI directly
+        WebClient client = webClientBuilder
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
 
-    /**
-     * 지정한 컨테이너의 로그를 조회하여 문자열 리스트로 반환하는 메서드.
-     * <p>
-     * 1. DockerContainerLogRequest로 부터 uri 생성 <br>
-     * 2. WebClient로 raw DataBuffer Flux를 수신 <br>
-     * 3. {@link #demultiplex(ByteBuffer)}로 multiplexed 바이너리 프레임을 UTF‑8 문자열로 분리<br>
-     * 4. 리스트로 수집(block).
-     *
-     * @param containerId 조회할 Docker 컨테이너의 ID
-     * @param filter      로그 필터 옵션(출력 타입, tailLines, timestamps 등)
-     * @return 파싱된 로그 라인들을 담은 List&lt;String&gt;
-     */
-    @Override
-    public List<String> getContainerLogs(String containerId, DockerContainerLogRequest filter) {
-
-        URI uri = uriBuilder.buildContainerLogsUri(
-                containerId,
-                filter.sinceSeconds(),
-                filter.untilSeconds()
-        );
-        log.debug(">> 컨테이너 로그 조회 URI: {}", uri);
-
-        // 1) Raw DataBuffer flux로 받기
-        Flux<DataBuffer> rawFlux = dockerWebClient.get()
+        return client.get()
                 .uri(uri)
                 .retrieve()
-                .bodyToFlux(DataBuffer.class);
-
-        // 2) Demultiplex and collect lines
-        List<String> logLines = rawFlux
-                .flatMap(dataBuffer -> demultiplex(dataBuffer.asByteBuffer()))
+                .bodyToFlux(ContainerDto.class)
                 .collectList()
                 .block();
+    }
 
-        return logLines;
+    @Override
+    public List<String> getContainerLogs(
+            String serverIp,
+            String containerId,
+            DockerContainerLogRequest filter
+    ) {
+        WebClient client = webClientBuilder
+                .baseUrl("http://" + serverIp + ":2375")
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
 
+        return client.get()
+                .uri(b -> {
+                    b.path("/containers/{id}/logs")
+                            .queryParam("stdout", true)
+                            .queryParam("stderr", true)
+                            .queryParam("timestamps", true);
+                    if (filter.sinceSeconds() != null) {
+                        b.queryParam("since", filter.sinceSeconds());
+                    }
+                    if (filter.untilSeconds() != null) {
+                        b.queryParam("until", filter.untilSeconds());
+                    }
+                    return b.build(containerId);
+                })
+                .retrieve()
+                .bodyToFlux(DataBuffer.class)
+                .flatMap(db -> demultiplex(db.asByteBuffer()))
+                .collectList()
+                .block();
     }
 
     /* 공통 로짘 */
@@ -199,5 +212,13 @@ public class DockerApiClientImpl implements DockerApiClient {
             out.add(new String(chunk, StandardCharsets.UTF_8));
         }
         return Flux.fromIterable(out);
+    }
+
+    // 사용자 serverIp로 접속하는 client 생성
+    private WebClient maseUserServerWebClient(String serverIp) {
+        return webClientBuilder
+                .baseUrl("http://" + serverIp + ":2375")
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
     }
 }

@@ -1,5 +1,6 @@
 package org.example.backend.common.util;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
+@Slf4j
 public class DockerUriBuilder {
 
     @Value("${docker.hub.api.base-url}")
@@ -59,8 +61,17 @@ public class DockerUriBuilder {
         return buildFilteredContainersUri("status", statuses);
     }
 
-    public URI buildContainersByNameUri(String name) {
-        return buildFilteredContainersUri("name", List.of(name));
+//    public URI buildContainersByNameUri(String name) {
+//        return buildFilteredContainersUri("name", List.of(name));
+//    }
+
+    public URI buildContainersByNameUri(String engineBaseUrl, String name) {
+
+        log.info(">>>>>>>>>>> 빌더부분 -> engineBaseUrl = {}",engineBaseUrl);
+        String rawJson = String.format("{\"name\":[\"%s\"]}", name);
+        String encoded = URLEncoder.encode(rawJson, StandardCharsets.UTF_8);
+        String uri = engineBaseUrl + "/containers/json?all=true&filters=" + encoded;
+        return URI.create(uri);
     }
 
     public URI buildContainerLogsUri(String containerId, Long sinceSeconds, Long untilSeconds) {

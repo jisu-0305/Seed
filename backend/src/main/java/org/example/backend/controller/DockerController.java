@@ -53,19 +53,21 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(unhealthy));
     }
 
-    @GetMapping("/healthy/{appName}")
+    @GetMapping("/servers/{serverIp}/healthy/{appName}")
     public ResponseEntity<ApiResponse<List<AppHealthyCheckResponse>>> checkDockerHealth(
+            @PathVariable("serverIp") String serverIp,
             @Parameter(description = "애플리케이션 이름 (컨테이너 이름 필터)", example = "redis")
             @PathVariable("appName") String appName) {
-        List<AppHealthyCheckResponse> statuses = dockerService.getAppStatus(appName);
+        List<AppHealthyCheckResponse> statuses = dockerService.getAppStatus(serverIp, appName);
         return ResponseEntity.ok(ApiResponse.success(statuses));
     }
 
-    @GetMapping("/logs/{appName}")
+    @GetMapping("/servers/{serverIp}/logs/{appName}")
     public ResponseEntity<ApiResponse<List<DockerContainerLogResponse>>> getContainerLogs(
+            @PathVariable("serverIp") String serverIp,
             @PathVariable("appName") String appName,
             @Validated @ModelAttribute DockerContainerLogRequest request){
-        List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(appName, request);
+        List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(serverIp, appName, request);
         return ResponseEntity.ok(ApiResponse.success(logs));
     }
 }
