@@ -11,15 +11,13 @@ export interface ProjectInfo {
     ip: string;
     pem: boolean;
   };
-  app: {
-    name: string;
-    tag: string;
-    port: number;
-  }[];
+  app: Application[];
   env: {
-    env: boolean;
+    frontendFramework: string;
+    frontEnv: boolean;
+    backEnv: boolean;
     node: string;
-    jdk: number;
+    jdk: string;
     buildTool: string;
   };
 }
@@ -77,4 +75,38 @@ export interface ProjectDetailResponse {
   success: boolean;
   message: string;
   data: ProjectDetailData;
+}
+
+interface BaseProjectInfo {
+  repositoryUrl: string;
+  jdkVersion: string;
+  serverIP: string;
+  frontendFramework: string;
+  nodejsVersion: string;
+  applicationList: Application[];
+  jdkBuildTool: string;
+}
+
+export interface PostMonoProjectInfo extends BaseProjectInfo {
+  structure: 'MONO';
+  backendDirectoryName: string;
+  frontendDirectoryName: string;
+}
+
+export interface PostMultiProjectInfo extends BaseProjectInfo {
+  structure: 'MULTI';
+  backendBranchName: string;
+  frontendBranchName: string;
+}
+
+export type PostProjectInfo = PostMonoProjectInfo | PostMultiProjectInfo;
+
+// 대시보드 프로젝트 카드
+export interface ProjectCardInfo {
+  id: number;
+  projectName: string;
+  httpsEnabled: boolean;
+  autoDeploymentEnabled: boolean;
+  buildStatus: BuildStatus;
+  lastBuildAt: string;
 }

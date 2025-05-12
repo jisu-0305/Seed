@@ -1,20 +1,25 @@
 import styled from '@emotion/styled';
-import { ChangeEvent } from 'react';
+import { ChangeEvent, useEffect } from 'react';
 
-import { useProjectInfoStore } from '@/stores/projectStore';
+import {
+  useProjectFileStore,
+  useProjectInfoStore,
+} from '@/stores/projectStore';
 
 import FileInput from '../Common/FileInput';
 import TipItem from '../Common/TipItem';
 
 export default function EnvInput() {
-  const { stepStatus, setEnvStatus } = useProjectInfoStore();
+  const { stepStatus, setEnvStatus, setOnNextValidate } = useProjectInfoStore();
   const { env } = stepStatus;
+
+  const { setBackEnvFile, setFrontEnvFile } = useProjectFileStore();
 
   const handleNodeVersionChange = (e: ChangeEvent<HTMLInputElement>) => {
     setEnvStatus({ ...env, node: e.target.value });
   };
 
-  const handleJdkChange = (version: number) => {
+  const handleJdkChange = (version: string) => {
     setEnvStatus({ ...env, jdk: version });
   };
 
@@ -23,28 +28,61 @@ export default function EnvInput() {
   };
 
   const handleClientEnvChange = (file: File) => {
-    setEnvStatus({ ...env, env: !!file });
+    setEnvStatus({ ...env, frontEnv: !!file });
+    setFrontEnvFile(file);
   };
 
   const handleServerEnvChange = (file: File) => {
-    setEnvStatus({ ...env, env: !!file });
+    setEnvStatus({ ...env, backEnv: !!file });
+    setBackEnvFile(file);
   };
+
+  const handleFrontFrameworkChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setEnvStatus({ ...env, frontendFramework: e.target.value });
+  };
+
+  // 유효성 검사
+  const isFormValid = () => {
+    return (
+      !!env.frontEnv &&
+      !!env.node &&
+      !!env.node &&
+      !!env.backEnv &&
+      !!env.buildTool
+    );
+  };
+
+  // next 버튼 핸들러
+  useEffect(() => {
+    setOnNextValidate(isFormValid);
+  }, [env]);
+
   return (
     <Container>
       <Section>
         <Title>Client</Title>
         <Row>
+          <Label>Framework</Label>
+          <Input
+            type="text"
+            placeholder="react"
+            value={env.frontendFramework || ''}
+            onChange={handleFrontFrameworkChange}
+          />
+        </Row>
+        <Row>
           <Label>Node.js version</Label>
           <Input
             type="text"
-            placeholder="v22.14.0"
-            value={env.node}
+            placeholder="22"
+            value={env.node || ''}
             onChange={handleNodeVersionChange}
           />
         </Row>
         <Row>
           <Label>환경변수</Label>
           <FileInput
+            id="front"
             handleFileChange={handleClientEnvChange}
             accept=".env"
             placeholder="frontend.env"
@@ -60,16 +98,16 @@ export default function EnvInput() {
             <label>
               <input
                 type="radio"
-                checked={env.jdk === 17}
-                onChange={() => handleJdkChange(17)}
+                checked={env.jdk === '17'}
+                onChange={() => handleJdkChange('17')}
               />{' '}
               17
             </label>
             <label>
               <input
                 type="radio"
-                checked={env.jdk === 21}
-                onChange={() => handleJdkChange(21)}
+                checked={env.jdk === '21'}
+                onChange={() => handleJdkChange('21')}
               />{' '}
               21
             </label>
@@ -78,6 +116,7 @@ export default function EnvInput() {
         <Row>
           <Label>환경변수</Label>
           <FileInput
+            id="back"
             handleFileChange={handleServerEnvChange}
             accept=".env"
             placeholder="backend.env"

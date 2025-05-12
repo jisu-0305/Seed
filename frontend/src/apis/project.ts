@@ -1,6 +1,7 @@
-// apis/project.ts
+import { useQuery } from '@tanstack/react-query';
 
 import {
+  ProjectCardInfo,
   ProjectDetailData,
   ProjectDetailResponse,
   ProjectSummary,
@@ -39,4 +40,17 @@ export async function fetchProjectDetail(
     throw new Error(res.data.message || '프로젝트 상세 조회에 실패했습니다.');
   }
   return res.data.data;
+}
+
+// 대시보드 프로젝트 목록 조회
+export async function getProjects(): Promise<ProjectCardInfo[]> {
+  const { data } = await client.get('/projects/status');
+  return data.data;
+}
+
+export function useProjectCards() {
+  return useQuery({
+    queryKey: ['project-cards'],
+    queryFn: getProjects,
+  });
 }

@@ -25,5 +25,4 @@ public class Application {
     private String tag;
 
     private int port;
-
 }

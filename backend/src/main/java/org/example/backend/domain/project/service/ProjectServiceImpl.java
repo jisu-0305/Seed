@@ -70,9 +70,8 @@ public class ProjectServiceImpl implements ProjectService {
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
                 .structure(request.getStructure())
-                .frontendBranchName(request.getFrontendBranchName())
+                .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())
-                .backendBranchName(request.getBackendBranchName())
                 .backendDirectoryName(request.getBackendDirectoryName())
                 .pemFilePath(pemPath)
                 .build();
@@ -86,6 +85,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .autoDeploymentEnabled(true)
                 .httpsEnabled(false)
                 .build();
+
         projectStatusRepository.save(status);
 
         projectConfigRepository.save(ProjectConfig.builder()
@@ -150,9 +150,8 @@ public class ProjectServiceImpl implements ProjectService {
                 .createdAt(project.getCreatedAt())
                 .repositoryUrl(project.getRepositoryUrl())
                 .structure(project.getStructure())
-                .frontendBranchName(project.getFrontendBranchName())
+                .gitlabTargetBranchName(project.getGitlabTargetBranchName())
                 .frontendDirectoryName(project.getFrontendDirectoryName())
-                .backendBranchName(project.getBackendBranchName())
                 .backendDirectoryName(project.getBackendDirectoryName())
                 .nodejsVersion(config != null ? config.getNodejsVersion() : null)
                 .frontendFramework(config != null ? config.getFrontendFramework() : null)

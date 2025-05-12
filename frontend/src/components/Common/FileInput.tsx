@@ -7,12 +7,14 @@ interface FileInputProps {
   handleFileChange: (file: File) => void;
   accept?: string;
   placeholder: string;
+  id?: string;
 }
 
 export default function FileInput({
   handleFileChange,
   accept,
   placeholder,
+  id,
 }: FileInputProps) {
   const { mode } = useThemeStore();
   const [file, setFile] = useState<File | null>(null);
@@ -35,13 +37,13 @@ export default function FileInput({
         value={file?.name || ''}
         placeholder={placeholder || ''}
       />
-      <UploadLabel htmlFor="upload">
+      <UploadLabel htmlFor={id || 'upload'}>
         <UploadIcon src={`/assets/icons/ic_upload_${mode}.svg`} alt="upload" />
       </UploadLabel>
       <HiddenInput
         type="file"
         accept={accept}
-        id="upload"
+        id={id || 'upload'}
         onChange={handleChange}
       />
     </PemInputWrapper>
