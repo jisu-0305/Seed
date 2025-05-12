@@ -7,20 +7,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
-import org.example.backend.common.util.JenkinsUriBuilder;
 import org.example.backend.controller.response.jenkins.*;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
+import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectExecution;
-import org.example.backend.domain.project.entity.ProjectStatus;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.repository.ProjectExecutionRepository;
-import org.example.backend.domain.project.repository.ProjectStatusRepository;
+import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -38,7 +36,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     private final JenkinsClient jenkinsClient;
     private final ObjectMapper objectMapper;
-    private ProjectStatusRepository projectStatusRepository;
+    private final ProjectRepository projectRepository;
     private ProjectExecutionRepository projectExecutionRepository;
     private final JenkinsInfoRepository jenkinsInfoRepository;
     private final UserProjectRepository userProjectRepository;
@@ -189,10 +187,10 @@ public class JenkinsServiceImpl implements JenkinsService {
         int buildNumber = lastBuild.path("number").asInt();
         BuildStatus status = BuildStatus.valueOf(lastBuild.path("result").asText());
 
-        ProjectStatus statusEntity = projectStatusRepository.findByProjectId(projectId)
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
 
-        statusEntity.updateBuildStatus(status);
+        project.updateBuildStatus(status);
 
         projectExecutionRepository.save(ProjectExecution.builder()
                 .projectId(projectId)
