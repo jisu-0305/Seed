@@ -5,6 +5,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
+import org.example.backend.domain.user.entity.User;
+import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -23,6 +25,7 @@ public class GitlabServiceImpl implements GitlabService {
 //    private final UserRepository userRepository;
 //  private final RedisSessionManager redisSessionManager;
     private final GitlabApiClient gitlabApiClient;
+    private final UserRepository userRepository;
 
     /* Push _ webhook 생성 */
     @Override
@@ -117,6 +120,13 @@ public class GitlabServiceImpl implements GitlabService {
         int perPage = 100;
 
         return gitlabApiClient.requestProjectList(validGitlabAccessToken, page, perPage);
+    }
+
+    @Override
+    public List<GitlabProject> getGitlabProjectsByUserId(Long userId) {
+        User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        String personalAccessToken = user.getGitlabPersonalAccessToken();
+        return getProjects(personalAccessToken);
     }
 
     /* 레포지토리 단건 조회 (URL) */
