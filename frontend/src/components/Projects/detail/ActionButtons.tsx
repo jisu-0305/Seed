@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { startBuild } from '@/apis/build';
 import { convertServer } from '@/apis/server';
 import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
@@ -38,7 +39,14 @@ export function ActionButtons({
   };
 
   const runBuild = async () => {
-    console.log('빌드 다시 시작하기 API 연결하기');
+    if (!projectId) return;
+
+    try {
+      const data = await startBuild(projectId);
+      console.log('✔️ 빌드 시작 성공:', data);
+    } catch (err) {
+      console.error('❌ 빌드 시작 실패:', err);
+    }
   };
 
   const handleConfigSubmit = async ({ domain, email }: HttpsConfig) => {

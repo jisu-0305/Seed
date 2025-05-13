@@ -35,10 +35,10 @@ export function DeployStatus({
       </TabList>
 
       <ContentWrapper>
-        {tasksByTab[selectedTab]?.length === 0 ? (
-          <NoDataText>아직 빌드기록이 없습니다</NoDataText>
-        ) : selectedTab === '빌드 기록' ? (
+        {selectedTab === '빌드 기록' ? (
           <BuildHistoryPanel projectId={pid} selectedTab={selectedTab} />
+        ) : tasksByTab[selectedTab]?.length === 0 ? (
+          <NoDataText>아직 빌드기록이 없습니다</NoDataText>
         ) : (
           <DeployTable
             projectId={pid}
@@ -55,6 +55,7 @@ export function DeployStatus({
 const Container = styled.div`
   margin-top: 1rem;
   border-radius: 1rem;
+  width: 100%;
 `;
 
 const TabList = styled.div`

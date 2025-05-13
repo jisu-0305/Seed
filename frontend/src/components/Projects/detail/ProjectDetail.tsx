@@ -96,7 +96,7 @@ export default function ProjectDetail() {
     ),
   );
 
-  useEffect(() => {
+  const refreshTasks = async () => {
     if (!projectId) return;
     const id = Number(projectId);
     if (Number.isNaN(id)) return;
@@ -131,6 +131,10 @@ export default function ProjectDetail() {
           setTasksByTab((prev) => ({ ...prev, [selectedTab]: [] }));
         });
     }
+  };
+
+  useEffect(() => {
+    refreshTasks();
   }, [projectId, selectedTab]);
 
   if (loading) return <p>로딩 중…</p>;

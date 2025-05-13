@@ -85,8 +85,13 @@ export function BuildHistoryPanel({
   };
 
   if (mode === null) return null;
-  if (loadingBuilds) return null;
-  if (buildsError) return <div>빌드 목록 조회 실패: {buildsError.message}</div>;
+  if (loadingBuilds)
+    return (
+      <Wrapper>
+        <LoadingSpinner />
+      </Wrapper>
+    );
+  if (buildsError) return <NoDataText>아직 빌드기록이 없습니다</NoDataText>;
 
   return (
     <Wrapper>
@@ -162,11 +167,12 @@ export function BuildHistoryPanel({
 const Wrapper = styled.div`
   display: flex;
   height: 35rem;
+  width: 100%;
   overflow: hidden;
 `;
 
 const LeftPanel = styled.div`
-  width: 220px;
+  width: 22rem;
   border-right: 1px solid ${({ theme }) => theme.colors.DetailBorder2};
 
   overflow-y: auto;
@@ -287,4 +293,11 @@ const LogContainer = styled.div`
     ${({ theme }) => theme.fonts.Body4};
     color: ${({ theme }) => theme.colors.White};
   }
+`;
+
+const NoDataText = styled.div`
+  color: ${({ theme }) => theme.colors.Gray3};
+  ${({ theme }) => theme.fonts.Body2};
+  text-align: center;
+  padding: 2rem;
 `;
