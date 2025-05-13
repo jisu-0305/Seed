@@ -10,10 +10,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Platform {
-    @JsonProperty("architecture")
-    private String cpuArchitecture;
-
-    @JsonProperty("os")
-    private String os;
+public class BlobMetaData {
+    @JsonProperty("config")
+    private BlobMetaDataInfo blobMetaDataInfo;
 }

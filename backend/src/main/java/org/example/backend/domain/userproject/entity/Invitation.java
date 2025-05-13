@@ -30,14 +30,14 @@ public class Invitation {
     @Enumerated(EnumType.STRING)
     private InvitationStateType state;
 
-    public static Invitation create(Long projectId, Long senderId, Long receiverId, InvitationStateType invitationState) {
+    public static Invitation create(Long projectId, Long senderId, Long receiverId) {
         return Invitation.builder()
                 .projectId(projectId)
                 .senderId(senderId)
                 .receiverId(receiverId)
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusDays(7))
-                .state(invitationState)
+                .state(InvitationStateType.PENDING)
                 .build();
     }
 
