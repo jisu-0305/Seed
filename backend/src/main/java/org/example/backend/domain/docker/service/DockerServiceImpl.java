@@ -22,7 +22,7 @@ public class DockerServiceImpl implements DockerService {
     private final DockerApiClient dockerApiClient;
 
     @Override
-    public ImageResponse getImages(String image) {
+    public ImageResponse getDockerImages(String image) {
         int page = 1;
         int pageSize = 100;
 
@@ -45,7 +45,7 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<TagResponse> getTag(String image) {
+    public List<TagResponse> getDockerImageTags(String image) {
         String namespace = "library";
         int page = 1;
         int pageSize = 100;
@@ -71,9 +71,9 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<DemonHealthyCheckResponse> checkHealth() {
+    public List<DemonHealthyCheckResponse> checkHealth(String serverIp) {
 
-        DemonContainerStateCountResponse info = dockerApiClient.getInfo();
+        DemonContainerStateCountResponse info = dockerApiClient.getInfo(serverIp);
 
         if (info == null) {
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
@@ -87,14 +87,14 @@ public class DockerServiceImpl implements DockerService {
 
         try {
             List<String> statuses = List.of("paused","exited");
-            return dockerApiClient.getContainersByStatus(statuses).stream()
-                    .map(c -> {
-                        String name = c.getNames().stream().findFirst().orElse("");
+            return dockerApiClient.getContainersByStatus(serverIp, statuses).stream()
+                    .map(continer -> {
+                        String name = continer.getNames().stream().findFirst().orElse("");
                         return new DemonHealthyCheckResponse(
                                 name,
-                                c.getState(),
-                                c.getImage(),
-                                c.getImageId()
+                                continer.getState(),
+                                continer.getImage(),
+                                continer.getImageId()
                         );
                     })
                     .collect(Collectors.toList());
@@ -138,7 +138,6 @@ public class DockerServiceImpl implements DockerService {
     @Override
     public List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request) {
 
-        // 컨테이너 조회
         List<ContainerDto> containers = dockerApiClient.getContainersByName(serverIp, appName);
         if (containers.isEmpty()) {
             throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
@@ -149,8 +148,23 @@ public class DockerServiceImpl implements DockerService {
         List<String> rawLines = dockerApiClient.getContainerLogs(serverIp, containerId, request);
 
         return rawLines.stream()
-                .map(line -> DockerContainerLogResponse.of(line))
+                .map(DockerContainerLogResponse::of)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag) {
+
+        String namespace = "library";
+
+        String[] splitImageAndTag = imageAndTag.split(":", 2);
+        String imageName = splitImageAndTag[0];
+        String tag = (splitImageAndTag.length == 2 && !splitImageAndTag[1].isBlank()) ? splitImageAndTag[1] : "latest";
+
+        List<String> ports = dockerApiClient.getImageDefaultPorts(namespace, imageName, tag);
+
+        return List.of(new ImageDefaultPortResponse(imageName + ":" + tag, ports));
+
     }
 
 }

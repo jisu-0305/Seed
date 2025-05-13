@@ -144,10 +144,28 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         return UserProfile.builder()
+                .userId(user.getId())
                 .userName(user.getUserName())
                 .userIdentifyId(user.getUserIdentifyId())
                 .profileImageUrl(user.getProfileImageUrl())
+                .hasGitlabPersonalAccessToken(user.isHasGitlabPersonalAccessToken())
                 .build();
+    }
+
+    @Override
+    public void updatePersonalAccessToken(String accessToken, String pat) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        if (session == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED_USER);
+        }
+
+        Long userId = session.getUserId();
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        user.setGitlabPersonalAccessToken(pat);
+        user.setHasGitlabPersonalAccessToken(true);
+        userRepository.save(user);
     }
 
     private GitlabOauthToken getGitlabOauthToken(String code) {
@@ -190,5 +208,7 @@ public class GitlabOauthServiceImpl implements GitlabOauthService {
             );
         }
     }
+
+
 
 }

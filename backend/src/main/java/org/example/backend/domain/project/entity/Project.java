@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ProjectStructure;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -29,20 +30,22 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private ProjectStructure structure;
 
+    // mono
     private String gitlabTargetBranchName;
     private String frontendDirectoryName;
     private String backendDirectoryName;
 
+    // multi
+    private String frontendBranchName;
+    private String backendBranchName;
+
     // config
-    private String pemFilePath;
 
     private String frontendFramework;
     private String nodejsVersion;
-    private String frontendEnvFilePath;
 
     private String jdkVersion;
     private String jdkBuildTool;
-    private String backendEnvFilePath;
 
     private boolean autoDeploymentEnabled;
     private boolean httpsEnabled;
@@ -61,10 +64,5 @@ public class Project {
         this.lastBuildAt = LocalDateTime.now();
     }
 
-    public void update(String pemFilePath, String frontendEnvFilePath, String backendEnvFilePath) {
-        this.pemFilePath = pemFilePath;
-        this.frontendEnvFilePath = frontendEnvFilePath;
-        this.backendEnvFilePath = backendEnvFilePath;
-    }
 }
 

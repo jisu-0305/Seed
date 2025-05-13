@@ -8,6 +8,7 @@ import org.example.backend.controller.response.project.*;
 import org.example.backend.domain.project.entity.*;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
+import org.example.backend.domain.project.enums.FileType;
 import org.example.backend.domain.project.mapper.ProjectMapper;
 import org.example.backend.domain.project.repository.*;
 import org.example.backend.domain.user.entity.User;
@@ -42,6 +43,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectApplicationRepository projectApplicationRepository;
     private final ProjectExecutionRepository projectExecutionRepository;
     private final UserRepository userRepository;
+    private final ProjectFileRepository projectFileRepository;
 
     @Value("${file.base-path}")
     private String basePath;
@@ -76,29 +78,59 @@ public class ProjectServiceImpl implements ProjectService {
 
         projectRepository.save(project);
 
-        String pemPath = saveFile(pemFile, "/opt/app/env/projects/" + project.getId() + "/");
-        String frontendEnvPath = saveFile(frontEnvFile, "/opt/app/env/projects/" + project.getId() + "/");
-        String backendEnvPath = saveFile(backendEnvFile, "/opt/app/env/projects/" + project.getId() + "/");
+        try {
+            ProjectFile newFrontendEnvFile = ProjectFile.builder()
+                    .projectId(project.getId())
+                    .fileName(frontEnvFile.getOriginalFilename())
+                    .fileType(FileType.FRONT_ENV)
+                    .contentType(frontEnvFile.getContentType())
+                    .data(frontEnvFile.getBytes())
+                    .build();
 
-        project.update(pemPath, frontendEnvPath, backendEnvPath);
+            ProjectFile newBackendEnvFile = ProjectFile.builder()
+                    .projectId(project.getId())
+                    .fileName(backendEnvFile.getOriginalFilename())
+                    .fileType(FileType.BACKEND_ENV)
+                    .contentType(backendEnvFile.getContentType())
+                    .data(backendEnvFile.getBytes())
+                    .build();
+
+            ProjectFile newPemFile = ProjectFile.builder()
+                    .projectId(project.getId())
+                    .fileName(pemFile.getOriginalFilename())
+                    .fileType(FileType.PEM)
+                    .contentType(pemFile.getContentType())
+                    .data(pemFile.getBytes())
+                    .build();
+
+            projectFileRepository.save(newFrontendEnvFile);
+            projectFileRepository.save(newBackendEnvFile);
+            projectFileRepository.save(newPemFile);
+
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
+        }
 
         userProjectRepository.save(UserProject.create(project.getId(), userId));
 
-        request.getApplicationList().forEach(app -> {
+        if (request.getApplicationList() != null && !request.getApplicationList().isEmpty()) {
+            request.getApplicationList().forEach(app -> {
 
-            Application application = applicationRepository.findByImageName(app.getImageName())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+                Application application = applicationRepository.findByImageName(app.getImageName())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
-            ProjectApplication projectApplication = ProjectApplication.builder()
-                    .projectId(project.getId())
-                    .applicationId(application.getId())
-                    .imageName(app.getImageName())
-                    .tag(app.getTag())
-                    .port(app.getPort())
-                    .build();
+                ProjectApplication projectApplication = ProjectApplication.builder()
+                        .projectId(project.getId())
+                        .applicationId(application.getId())
+                        .imageName(app.getImageName())
+                        .tag(app.getTag())
+                        .port(app.getPort())
+                        .build();
 
-            projectApplicationRepository.save(projectApplication);
-        });
+                projectApplicationRepository.save(projectApplication);
+            });
+        }
+
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
@@ -148,10 +180,8 @@ public class ProjectServiceImpl implements ProjectService {
                 .backendDirectoryName(project.getBackendDirectoryName())
                 .nodejsVersion(project.getNodejsVersion())
                 .frontendFramework(project.getFrontendFramework())
-                .frontendEnvFilePath(project.getFrontendEnvFilePath())
                 .jdkVersion(project.getJdkVersion())
                 .jdkBuildTool(project.getJdkBuildTool())
-                .backendEnvFilePath(project.getBackendEnvFilePath())
                 .applicationList(projectApplicationList.stream()
                         .map(app -> ApplicationResponse.builder()
                                 .imageName(app.getImageName())
@@ -159,7 +189,6 @@ public class ProjectServiceImpl implements ProjectService {
                                 .port(app.getPort())
                                 .build())
                         .toList())
-                .pemFilePath(project.getPemFilePath())
                 .build();
     }
 
