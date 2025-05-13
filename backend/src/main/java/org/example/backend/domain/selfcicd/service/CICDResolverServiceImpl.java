@@ -5,17 +5,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
-import org.example.backend.controller.request.log.DockerLogRequest;
 import org.example.backend.controller.response.docker.DockerContainerLogResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
-import org.example.backend.controller.response.log.DockerLogResponse;
 import org.example.backend.domain.docker.service.DockerService;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.service.JenkinsService;
-import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectApplication;
 import org.example.backend.domain.project.repository.ApplicationRepository;
@@ -25,7 +22,7 @@ import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.aiapi.AIApiClient;
 import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
-import org.example.backend.util.aiapi.dto.aireport.ReportResponse;
+import org.example.backend.util.aiapi.dto.aireport.AIReportResponse;
 import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
 import org.example.backend.util.aiapi.dto.resolvefile.FileFix;
 import org.example.backend.util.aiapi.dto.resolvefile.ResolutionReport;
@@ -33,8 +30,6 @@ import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
 import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
 import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
 import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
-import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileResponse;
-import org.example.backend.util.log.LogUtil;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -284,7 +279,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         }
 
         // 4-3. AI 요약 보고서 가져오기
-        Map<String, ReportResponse> reportResponses = new HashMap<>();
+        Map<String, AIReportResponse> reportResponses = new HashMap<>();
 
         for (int i = 0; i < resolveErrorResponses.size(); i++) {
             ResolveErrorResponse resolveDto = resolveErrorResponses.get(i);
@@ -304,7 +299,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                             .build())
                     .build();
 
-            ReportResponse reportResponse = fastAIClient.requestErrorReport(reportRequest);
+            AIReportResponse reportResponse = fastAIClient.requestErrorReport(reportRequest);
 
             // 앱 이름 정보가 resolveDto에 없으므로, 인덱스 기준으로 suspectedApps에서 가져옴
             String appName = suspectedApps.get(i);

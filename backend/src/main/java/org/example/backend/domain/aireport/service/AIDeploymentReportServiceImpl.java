@@ -34,7 +34,7 @@ public class AIDeploymentReportServiceImpl implements AIDeploymentReportService 
         AIDeploymentReport report = reportRepository.findById(reportId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.REPORT_NOT_FOUND));
 
-        List<String> files = appliedFileRepository.findAllByReportId(reportId)
+        List<String> files = appliedFileRepository.findAllByAiReportId(reportId)
                 .stream()
                 .map(AppliedFile::getFileName)
                 .collect(Collectors.toList());

@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.example.backend.domain.aireport.enums.ReportStatus;
-import org.example.backend.util.aiapi.dto.aireport.ReportResponse;
+import org.example.backend.util.aiapi.dto.aireport.AIReportResponse;
 import java.time.LocalDateTime;
 
 @Entity
@@ -39,7 +39,7 @@ public class AIDeploymentReport {
 
     private LocalDateTime createdAt;
 
-    public static AIDeploymentReport of(Long projectId, String title, ReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
+    public static AIDeploymentReport of(Long projectId, String title, AIReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
         return AIDeploymentReport.builder()
                 .projectId(projectId)
                 .title(title)
