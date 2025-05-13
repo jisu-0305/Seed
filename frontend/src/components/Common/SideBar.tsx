@@ -18,6 +18,10 @@ export default function SideBar() {
   const { projects, loading, error, loadProjects } = useProjectStore();
 
   const handleMovePage = (url: string) => {
+    // if (pathname === '/onboarding') {
+    //   alert('원활한 서비스 이용을 위해 먼저 GitLab 토큰을 등록해주세요.');
+    //   return;
+    // }
     router.push(url);
   };
 
