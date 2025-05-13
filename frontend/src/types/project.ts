@@ -17,7 +17,9 @@ export interface ProjectInfo {
   env: {
     frontendFramework: string;
     frontEnv: boolean;
+    frontEnvName: string;
     backEnv: boolean;
+    backEnvName: string;
     node: string;
     jdk: string;
     buildTool: string;

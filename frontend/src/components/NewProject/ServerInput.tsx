@@ -94,6 +94,7 @@ export default function ServerInput() {
           handleFileChange={handlePemChange}
           accept=".pem"
           placeholder="key.pem"
+          inputType="pem"
         />
 
         <TipList>

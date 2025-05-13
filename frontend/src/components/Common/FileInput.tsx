@@ -9,6 +9,7 @@ interface FileInputProps {
   accept?: string;
   placeholder: string;
   id?: string;
+  inputType?: 'pem' | 'frontEnv' | 'backEnv';
 }
 
 export default function FileInput({
@@ -16,10 +17,11 @@ export default function FileInput({
   accept,
   placeholder,
   id,
+  inputType,
 }: FileInputProps) {
   const { mode } = useThemeStore();
-  const [file, setFile] = useState<File | null>(null);
   const { stepStatus } = useProjectInfoStore();
+  const [file, setFile] = useState<File | null>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -29,6 +31,15 @@ export default function FileInput({
     }
   };
 
+  let fileName = '';
+  if (inputType === 'pem') {
+    fileName = stepStatus.server.pemName;
+  } else if (inputType === 'frontEnv') {
+    fileName = stepStatus.env.frontEnvName;
+  } else if (inputType === 'backEnv') {
+    fileName = stepStatus.env.backEnvName;
+  }
+
   if (mode === null) return null;
 
   return (
@@ -36,7 +47,7 @@ export default function FileInput({
       <PemInput
         type="text"
         readOnly
-        value={file?.name || stepStatus.server.pemName}
+        value={file?.name || fileName}
         placeholder={placeholder || ''}
       />
       <UploadLabel htmlFor={id || 'upload'}>
