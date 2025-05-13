@@ -42,6 +42,7 @@ export function DeployStatus({
             projectId={pid}
             buildNumber={buildNumber}
             tasks={tasksByTab[selectedTab]}
+            selectedTab={selectedTab}
           />
         )}
       </ContentWrapper>

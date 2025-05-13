@@ -13,7 +13,7 @@ import { useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
 import { ProjectDetailData, ProjectSummary } from '@/types/project';
-import type { Task } from '@/types/task';
+import type { Task, TaskStatus } from '@/types/task';
 import { formatDateTime } from '@/utils/getFormattedTime';
 
 import { AvatarList } from '../AvatarList';
@@ -104,11 +104,11 @@ export default function ProjectDetail() {
     if (selectedTab === 'Https 세팅') {
       fetchHttpsBuildLogs(id)
         .then((logs: HttpsBuildLog[]) => {
-          const tasks: Task[] = logs.map((log) => ({
+          const tasks: Task[] = logs.map<Task>((log) => ({
             stepNumber: log.stepNumber,
             stepName: log.stepName,
             duration: new Date(log.createdAt).toLocaleTimeString(),
-            status: inferStatusFromLog(log.logContent),
+            status: log.status as TaskStatus,
           }));
           setTasksByTab((prev) => ({ ...prev, [selectedTab]: tasks }));
         })
@@ -132,12 +132,6 @@ export default function ProjectDetail() {
         });
     }
   }, [projectId, selectedTab]);
-
-  function inferStatusFromLog(logContent: string): Task['status'] {
-    if (/success/i.test(logContent)) return 'Complete';
-    if (/fail|error/i.test(logContent)) return 'Fail';
-    return 'In Progress';
-  }
 
   if (loading) return <p>로딩 중…</p>;
   if (error) return <p>{error}</p>;

@@ -11,12 +11,14 @@ interface DeployTableProps {
   projectId: number;
   buildNumber: number | null;
   tasks: Task[];
+  selectedTab: string;
 }
 
 export function DeployTable({
   projectId,
   buildNumber,
   tasks,
+  selectedTab,
 }: DeployTableProps) {
   const stepModal = useModal();
   const [currentStep, setCurrentStep] = useState<{
@@ -45,7 +47,7 @@ export function DeployTable({
             <th>작업</th>
             <th>실행 시간</th>
             <th>상태</th>
-            <th>로그</th>
+            <th>{selectedTab === 'Https 세팅' ? null : '로그'}</th>
           </tr>
         </thead>
         <tbody>
@@ -57,15 +59,17 @@ export function DeployTable({
               <td>
                 <StatusBadge status={status}>{status}</StatusBadge>
               </td>
-              <td>
-                <Icon
-                  src="/assets/icons/ic_more.svg"
-                  alt="log"
-                  onClick={() =>
-                    handleStepClick(stepNumber, stepName, echoList)
-                  }
-                />
-              </td>
+              {selectedTab === 'Https 세팅' ? null : (
+                <td>
+                  <Icon
+                    src="/assets/icons/ic_more.svg"
+                    alt="log"
+                    onClick={() =>
+                      handleStepClick(stepNumber, stepName, echoList)
+                    }
+                  />
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
@@ -147,21 +151,25 @@ const StatusBadge = styled.span<{ status: string }>`
   color: ${({ theme }) => theme.colors.White};
 
   background: ${({ status, theme }) =>
-    status === 'Complete'
+    status === 'SUCCESS'
       ? theme.colors.Blue2
-      : status === 'Fail'
+      : status === 'FAIL'
         ? theme.colors.Red3
-        : theme.colors.Purple3};
+        : status === 'FAILED'
+          ? theme.colors.Red3
+          : theme.colors.Purple3};
 
   &::before {
     content: '●';
     font-size: 0.8rem;
     color: ${({ status, theme }) =>
-      status === 'Complete'
+      status === 'SUCCESS'
         ? theme.colors.Blue1
-        : status === 'Fail'
+        : status === 'FAIL'
           ? theme.colors.Red2
-          : theme.colors.Purple1};
+          : status === 'FAILED'
+            ? theme.colors.Red2
+            : theme.colors.Purple1};
   }
 `;
 

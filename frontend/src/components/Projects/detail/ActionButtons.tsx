@@ -43,15 +43,8 @@ export function ActionButtons({
       return;
     }
 
-    const pid: number =
-      typeof projectId === 'string' ? parseInt(projectId, 10) : projectId;
-
     try {
-      const payload = {
-        request: { pid, domain, email },
-        pemFile: pemFilePath,
-      };
-      const data = await convertServer(payload);
+      const data = await convertServer(projectId, domain, email, pemFilePath);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);

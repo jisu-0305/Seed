@@ -92,7 +92,7 @@ const Input = styled.input`
   margin-top: 0.5rem;
   padding: 0.8rem;
   ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Text};
+  color: ${({ theme }) => theme.colors.Black};
   border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 0.5rem;
 `;
