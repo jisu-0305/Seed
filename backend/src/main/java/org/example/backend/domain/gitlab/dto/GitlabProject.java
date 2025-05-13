@@ -21,4 +21,7 @@ public class GitlabProject {
     @JsonProperty("http_url_to_repo")
     private String httpUrlToRepo;
 
+    @JsonProperty("default_branch")
+    private String defaultBranch;
+
 }

@@ -126,7 +126,7 @@ public class GitlabServiceImpl implements GitlabService {
     public List<GitlabProject> getGitlabProjectsByUserId(Long userId) {
         User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         String personalAccessToken = user.getGitlabPersonalAccessToken();
-        return getProjects(personalAccessToken);
+        return gitlabApiClient.requestProjectList(personalAccessToken, 1, 100);
     }
 
     /* 레포지토리 단건 조회 (URL) */
