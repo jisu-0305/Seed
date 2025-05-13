@@ -52,17 +52,18 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
-    @GetMapping("/healthy")
+    @GetMapping("/servers/{serverIp:.+}/healthy")
     @Operation(
-            summary = "도커 전체 헬스 체크",
-            description = "ContainersPaused 또는 ContainersStopped 값이 0보다 크면 해당 컨테이너 정보 반환함"
-    )
-    public ResponseEntity<ApiResponse<List<DemonHealthyCheckResponse>>> checkDockerDemonHealth() {
-        List<DemonHealthyCheckResponse> unhealthy = dockerService.checkHealth();
+            summary = "도커 불량 컨테이너 조회",
+            description = "ContainersPaused 또는 ContainersStopped 값이 0보다 크면 해당 컨테이너 정보 반환함")
+    public ResponseEntity<ApiResponse<List<DemonHealthyCheckResponse>>> checkDockerDemonHealth(@PathVariable("serverIp") String serverIp) {
+        List<DemonHealthyCheckResponse> unhealthy = dockerService.checkHealth(serverIp);
         return ResponseEntity.ok(ApiResponse.success(unhealthy));
     }
 
-    @GetMapping("/servers/{serverIp}/healthy/{appName}")
+    @GetMapping("/servers/{serverIp:.+}/healthy/{appName}")
+    @Operation(summary = "특정 이릅을 가지는 컨테이너들의 헬시 상태 조회",
+            description = "(backend 검색시 -> backend-docker, backend-test 등등)")
     public ResponseEntity<ApiResponse<List<AppHealthyCheckResponse>>> checkDockerHealth(
             @PathVariable("serverIp") String serverIp,
             @Parameter(description = "애플리케이션 이름 (컨테이너 이름 필터)", example = "redis")
@@ -71,10 +72,11 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(statuses));
     }
 
-    @GetMapping("/servers/{serverIp}/logs/{appName}")
+    @GetMapping("/servers/{serverIp:.+}/logs/{appName}")
+    @Operation(summary = "컨테이너 로그 조회")
     public ResponseEntity<ApiResponse<List<DockerContainerLogResponse>>> getContainerLogs(
             @PathVariable("serverIp") String serverIp,
-            @PathVariable("appName") String appName,
+            @Parameter(description = "컨테이너명", example = "backend") @PathVariable("appName") String appName,
             @Validated @ModelAttribute DockerContainerLogRequest request){
         List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(serverIp, appName, request);
         return ResponseEntity.ok(ApiResponse.success(logs));

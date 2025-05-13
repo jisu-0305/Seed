@@ -14,8 +14,6 @@ import org.example.backend.global.exception.ErrorCode;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -24,12 +22,10 @@ import reactor.netty.http.client.HttpClient;
 
 import java.io.IOException;
 import java.net.URI;
-import java.net.URLEncoder;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.*;
 
 @Component
@@ -38,7 +34,6 @@ import java.util.*;
 public class DockerApiClientImpl implements DockerApiClient {
 
     private final WebClient dockerHubWebClient;
-    private final WebClient dockerWebClient;
     private final WebClient dockerRegistryWebClient;
     private final DockerUriBuilder uriBuilder;
     private final ObjectMapper objectMapper;
@@ -63,31 +58,38 @@ public class DockerApiClientImpl implements DockerApiClient {
     }
 
     @Override
-    public DemonContainerStateCountResponse getInfo() {
-        URI uri = uriBuilder.buildInfoUri();
+    public DemonContainerStateCountResponse getInfo(String serverIp) {
+        URI uri = uriBuilder.buildInfoUri(serverIp);
         log.debug(">> Docker 데몬 정보 조회 URI: {}", uri);
 
-        return fetchMono(dockerWebClient, uri, DemonContainerStateCountResponse.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
+        WebClient client = webClientBuilder.build();
+        return fetchMono(
+                client,
+                uri,
+                DemonContainerStateCountResponse.class,
+                ErrorCode.DOCKER_HEALTH_API_FAILED
+        );
     }
 
     @Override
-    public List<ContainerDto> getContainersByStatus(List<String> statuses) {
-        URI uri = uriBuilder.buildContainersByStatusUri(statuses);
-        log.debug(">> 상태별 컨테이너 조회 URI: {}", uri);
+    public List<ContainerDto> getContainersByStatus(String serverIp, List<String> statuses) {
+        URI uri = uriBuilder.buildContainersByStatusUri(serverIp, statuses);
+        log.debug(">>>> 상태별 컨테이너 조회 uri: {}", uri);
 
-        return fetchFlux(dockerWebClient, uri, ContainerDto.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
+        WebClient client = webClientBuilder.build();
+        return fetchFlux(
+                client,
+                uri,
+                ContainerDto.class,
+                ErrorCode.DOCKER_HEALTH_API_FAILED
+        );
     }
 
     @Override
     public List<ContainerDto> getContainersByName(String serverIp, String nameFilter) {
-        // 1) Build the absolute base URL once
-        String engineBaseUrl = "http://" + serverIp + ":3789";
+        URI uri = uriBuilder.buildContainersByNameUri(serverIp, nameFilter);
+        log.debug(">>> 이름 기반 컨테이너 조회 URI: {}", uri);
 
-        // 2) Ask your builder for the perfectly encoded, absolute URI
-        URI uri = uriBuilder.buildContainersByNameUri(engineBaseUrl, nameFilter);
-        log.debug(">> 이름 기반 컨테이너 조회 URI: {}", uri);
-
-        // 3) Use a vanilla WebClient and hand it the URI directly
         WebClient client = webClientBuilder
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
                 .build();
@@ -101,30 +103,17 @@ public class DockerApiClientImpl implements DockerApiClient {
     }
 
     @Override
-    public List<String> getContainerLogs(
-            String serverIp,
-            String containerId,
-            DockerContainerLogRequest filter
-    ) {
+    public List<String> getContainerLogs(String serverIp, String containerId, DockerContainerLogRequest request) {
+
+        URI uri = uriBuilder.buildContainerLogsUri(serverIp, containerId, request);
+        log.debug(">> 컨테이너 로그 조회 URI: {}", uri);
+
         WebClient client = webClientBuilder
-                .baseUrl("http://" + serverIp + ":3789")
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_OCTET_STREAM_VALUE)
                 .build();
 
         return client.get()
-                .uri(b -> {
-                    b.path("/containers/{id}/logs")
-                            .queryParam("stdout", true)
-                            .queryParam("stderr", true)
-                            .queryParam("timestamps", true);
-                    if (filter.sinceSeconds() != null) {
-                        b.queryParam("since", filter.sinceSeconds());
-                    }
-                    if (filter.untilSeconds() != null) {
-                        b.queryParam("until", filter.untilSeconds());
-                    }
-                    return b.build(containerId);
-                })
+                .uri(uri)
                 .retrieve()
                 .bodyToFlux(DataBuffer.class)
                 .flatMap(db -> demultiplex(db.asByteBuffer()))
@@ -132,6 +121,7 @@ public class DockerApiClientImpl implements DockerApiClient {
                 .block();
     }
 
+    /* 공통 로직 */
     /**
      * 디폴트 포트 처리 로직
      * <br>
@@ -362,24 +352,17 @@ public class DockerApiClientImpl implements DockerApiClient {
     private Flux<String> demultiplex(ByteBuffer buf) {
         List<String> out = new ArrayList<>();
         while (buf.remaining() >= 8) {
-            buf.get(); // stream type
-            buf.get(); buf.get(); buf.get(); // reserved
-            int len = buf.getInt(); // payload 길이
+            buf.get();
+            buf.get(); buf.get(); buf.get();
+            int len = buf.getInt();
             if (buf.remaining() < len) {
-                break; // 남은 데이터가 payload보다 작으면 중단
+                break;
             }
             byte[] chunk = new byte[len];
-            buf.get(chunk);              // payload 읽기
+            buf.get(chunk);
             out.add(new String(chunk, StandardCharsets.UTF_8));
         }
         return Flux.fromIterable(out);
     }
 
-    // 사용자 serverIp로 접속하는 client 생성
-    private WebClient maseUserServerWebClient(String serverIp) {
-        return webClientBuilder
-                .baseUrl("http://" + serverIp + ":3789")
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-                .build();
-    }
 }
