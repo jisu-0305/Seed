@@ -72,7 +72,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .frontendFramework(request.getFrontendFramework())
                 .jdkVersion(request.getJdkVersion())
                 .jdkBuildTool(request.getJdkBuildTool())
-                .autoDeploymentEnabled(true)
+                .autoDeploymentEnabled(false)
                 .httpsEnabled(false)
                 .build();
 

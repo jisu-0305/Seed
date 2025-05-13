@@ -25,22 +25,21 @@ public class ServerController {
     private final HttpsLogService httpsLogService;
 
     @PostMapping("/deployment")
-    public ResponseEntity<ApiResponse<String>> registerDeployment(
+    public ResponseEntity<ApiResponse<Void>> registerDeployment(
             @RequestPart("request") DeploymentRegistrationRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         serverService.registerDeployment(request, accessToken);
 
-        return ResponseEntity.ok(ApiResponse.success("자동 배포 설정 완료"));
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     @PostMapping(value = "/convert")
     public ResponseEntity<ApiResponse<String>> convertHttps(
             @RequestPart("request") HttpsConvertRequest request,
-            @RequestPart("pemFilePath") String pemFilePath,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.convertHttpToHttps(request, pemFilePath, accessToken);
+        serverService.convertHttpToHttps(request, accessToken);
 
         projectService.markHttpsConverted(request.getProjectId());
 

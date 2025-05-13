@@ -1,7 +1,5 @@
 package org.example.backend.domain.server.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.jcraft.jsch.ChannelExec;
 import com.jcraft.jsch.JSch;
 import com.jcraft.jsch.JSchException;
@@ -16,7 +14,6 @@ import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
-import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectApplication;
 import org.example.backend.domain.project.entity.ProjectFile;
@@ -33,15 +30,11 @@ import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @Service
@@ -105,7 +98,7 @@ public class ServerServiceImpl implements ServerService {
             // 3) 성공 로그
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
-            // 3) Jenkins 토큰 발급
+//            // 3) Jenkins 토큰 발급
             log.info("Jenkins API 토큰 발급 시작");
             issueAndSaveToken(project.getId(), project.getServerIP(), sshSession);
             log.info("Jenkins API 토큰 발급 완료");
@@ -131,6 +124,8 @@ public class ServerServiceImpl implements ServerService {
                 sshSession.disconnect();
             }
         }
+
+        project.enableAutoDeployment();
     }
 
     // 서버 배포 프로세스
@@ -246,15 +241,18 @@ public class ServerServiceImpl implements ServerService {
                 "sudo apt-get update",
                 "sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin", // 필요시 docker-compose-plugin 포함
 
-                // 5-4. 서비스 활성화 및 시작
-                "sudo systemctl enable docker",
-                "sudo systemctl start docker",
-                "docker --version"
+                // 5-6. systemd 오버라이드 파일 생성
+                "sudo mkdir -p /etc/systemd/system/docker.service.d",
+                "sudo tee /etc/systemd/system/docker.service.d/override.conf > /dev/null << 'EOF'\n" +
+                        "[Service]\n" +
+                        "ExecStart=\n" +
+                        "ExecStart=/usr/bin/dockerd -H fd:// -H unix:///var/run/docker.sock -H tcp://0.0.0.0:3789 --containerd=/run/containerd/containerd.sock\n" +
+                        "EOF\n",
 
-                // 5-5. Docker 데몬 TCP 포트 허용
-//                "echo '{\"hosts\": [\"unix:///var/run/docker.sock\", \"tcp://0.0.0.0:3789\"]}' | sudo tee /etc/docker/daemon.json > /dev/null",
-//                "sudo systemctl daemon-reload",
-//                "sudo systemctl restart docker"
+                // 5-7. Docker 서비스 재시작
+                "sudo systemctl daemon-reload",
+                "sudo systemctl enable docker",
+                "sudo systemctl restart docker"
         );
     }
 
@@ -383,7 +381,6 @@ public class ServerServiceImpl implements ServerService {
                         "}\n" +
                         "EOF",
 
-
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/users",
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/init.groovy.d",
 
@@ -393,18 +390,17 @@ public class ServerServiceImpl implements ServerService {
                 // 플러그인 설치 1단계
                 "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
                         "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins gitlab-plugin gitlab-api git workflow-aggregator --verbose",
+                        "--plugins gitlab-plugin gitlab-api git workflow-aggregator --verbose < /dev/null",
 
                 // 플러그인 설치 2단계
                 "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
                         "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins docker-plugin docker-workflow pipeline-stage-view --verbose",
+                        "--plugins docker-plugin docker-workflow pipeline-stage-view --verbose < /dev/null",
 
                 // 플러그인 설치 3단계
                 "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
                         "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins credentials credentials-binding workflow-api pipeline-rest-api --verbose",
-                        //"  configuration-as-code",
+                        "--plugins credentials credentials-binding workflow-api pipeline-rest-api --verbose < /dev/null",
 
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins",
                 "sudo usermod -aG docker jenkins",
@@ -551,6 +547,74 @@ public class ServerServiceImpl implements ServerService {
                 break;
         }
 
+//        String jenkinsfileContent =
+//                "cd " + projectPath + " && cat <<EOF | sudo tee Jenkinsfile > /dev/null\n" +
+//
+//                        "pipeline {\n" +
+//                        "    agent any\n" +
+//                        "\n" +
+//                        "    stages {\n" +
+//                        "        stage('Checkout') {\n" +
+//                        "            steps {\n" +
+//                        "                echo '1. 워크스페이스 정리 및 소스 체크아웃'\n" +
+//                        "                deleteDir()\n" +
+//                        "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
+//                        "                    git branch: '" + gitlabTargetBranchName + "', url: \"https://\\$GIT_USER:\\$GIT_TOKEN@lab.ssafy.com/" + namespace + "\"\n" +
+//                        "                }\n" +
+//                        "            }\n" +
+//                        "        }\n" +
+//                        "\n" +
+//                        "        stage('Build Backend') {\n" +
+//                        "            when {\n" +
+//                        "                changeset pattern: '" + project.getBackendDirectoryName() + "/.*', comparator: 'REGEXP'\n" +
+//                        "            }\n" +
+//                        "            steps {\n" +
+//                        "                echo '2. Backend 변경 감지, 빌드 및 배포'\n" +
+//                        "                withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
+//                        "                    sh '''\n" +
+//                        "                        set -e\n" +
+//                        "                        echo \"  - 복사: $BACKEND_ENV → ${WORKSPACE}/backend/.env\"\n" +
+//                        "                        cp \"\\$BACKEND_ENV\" \"\\$WORKSPACE/" + project.getBackendDirectoryName() + "/.env\"\n" +
+//                        "                    '''\n" +
+//                        "                }\n" +
+//                        "                dir('" + project.getBackendDirectoryName() + "') {\n" +
+//                        "                    sh '''\n" +
+//                        "                        set -e\n" +
+//                        "                        docker build -t spring .\n" +
+//                        "                        docker stop spring || true\n" +
+//                        "                        docker rm spring || true\n" +
+//                        "                        docker run -d -p 8080:8080 --env-file .env --name spring spring\n" +
+//                        "                    '''\n" +
+//                        "                }\n" +
+//                        "                echo '[INFO] 백엔드 완료'\n" +
+//                        "            }\n" +
+//                        "        }\n" +
+//                        "\n" +
+//                        "        stage('Build Frontend') {\n" +
+//                        "            when {\n" +
+//                        "                changeset pattern: '" + project.getFrontendDirectoryName() +"/.*', comparator: 'REGEXP'\n" +
+//                        "            }\n" +
+//                        "            steps {\n" +
+//                        "                echo '3. Frontend 변경 감지, 빌드 및 배포'\n" +
+//                        "                withCredentials([file(credentialsId: \"front\", variable: 'FRONT_ENV')]) {\n" +
+//                        "                    sh '''\n" +
+//                        "                        set -e\n" +
+//                        "                        echo \"  - 복사: $FRONT_ENV → ${WORKSPACE}/frontend/.env\"\n" +
+//                        "                        cp \"\\$FRONT_ENV\" \"\\$WORKSPACE/" + project.getFrontendDirectoryName() + "/.env\"\n" +
+//                        "                    '''\n" +
+//                        "                }\n" +
+//                        "                dir('" + project.getFrontendDirectoryName() + "') {\n" +
+//                        "                    sh '''\n" +
+//                        frontendDockerScript +
+//                        "                    '''\n" +
+//                        "                }\n" +
+//                        "                echo '[INFO] 프론트엔드 완료'\n" +
+//                        "            }\n" +
+//                        "        }\n" +
+//                        "\n" +
+//                        "    }\n" +
+//                        "}\n" +
+//                        "EOF\n";
 
         String jenkinsfileContent =
                 "cd " + projectPath + " && cat <<EOF | sudo tee Jenkinsfile > /dev/null\n" +
@@ -570,14 +634,19 @@ public class ServerServiceImpl implements ServerService {
                         "\n" +
                         "        stage('Build Backend') {\n" +
                         "            when {\n" +
-                        "                changeset pattern: '" + project.getBackendDirectoryName() + "/.*', comparator: 'REGEXP'\n" +
+                        "                anyOf {\n" +
+                        "                    // 1) 백엔드 코드 변경 감지\n" +
+                        "                    changeset pattern: '" + project.getBackendDirectoryName() + "/.*', comparator: 'REGEXP'\n" +
+                        "                    // 2) 전체 빌드 (변경셋 없음)\n" +
+                        "                    expression { currentBuild.changeSets.size() == 0 }\n" +
+                        "                }\n" +
                         "            }\n" +
                         "            steps {\n" +
-                        "                echo '2. Backend 변경 감지, 빌드 및 배포'\n" +
+                        "                echo '2. Backend 변경 감지 또는 전체 빌드, 빌드 및 배포'\n" +
                         "                withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
                         "                    sh '''\n" +
                         "                        set -e\n" +
-                        "                        echo \"  - 복사: $BACKEND_ENV → ${WORKSPACE}/backend/.env\"\n" +
+                        "                        echo \"  - 복사: $BACKEND_ENV → ${WORKSPACE}/" + project.getBackendDirectoryName() + "/.env\"\n" +
                         "                        cp \"\\$BACKEND_ENV\" \"\\$WORKSPACE/" + project.getBackendDirectoryName() + "/.env\"\n" +
                         "                    '''\n" +
                         "                }\n" +
@@ -596,14 +665,19 @@ public class ServerServiceImpl implements ServerService {
                         "\n" +
                         "        stage('Build Frontend') {\n" +
                         "            when {\n" +
-                        "                changeset pattern: '" + project.getFrontendDirectoryName() +"/.*', comparator: 'REGEXP'\n" +
+                        "                anyOf {\n" +
+                        "                    // 1) 프론트엔드 코드 변경 감지\n" +
+                        "                    changeset pattern: '" + project.getFrontendDirectoryName() + "/.*', comparator: 'REGEXP'\n" +
+                        "                    // 2) 전체 빌드 (변경셋 없음)\n" +
+                        "                    expression { currentBuild.changeSets.size() == 0 }\n" +
+                        "                }\n" +
                         "            }\n" +
                         "            steps {\n" +
-                        "                echo '3. Frontend 변경 감지, 빌드 및 배포'\n" +
+                        "                echo '3. Frontend 변경 감지 또는 전체 빌드, 빌드 및 배포'\n" +
                         "                withCredentials([file(credentialsId: \"front\", variable: 'FRONT_ENV')]) {\n" +
                         "                    sh '''\n" +
                         "                        set -e\n" +
-                        "                        echo \"  - 복사: $FRONT_ENV → ${WORKSPACE}/frontend/.env\"\n" +
+                        "                        echo \"  - 복사: $FRONT_ENV → ${WORKSPACE}/" + project.getFrontendDirectoryName() + "/.env\"\n" +
                         "                        cp \"\\$FRONT_ENV\" \"\\$WORKSPACE/" + project.getFrontendDirectoryName() + "/.env\"\n" +
                         "                    '''\n" +
                         "                }\n" +
@@ -615,10 +689,10 @@ public class ServerServiceImpl implements ServerService {
                         "                echo '[INFO] 프론트엔드 완료'\n" +
                         "            }\n" +
                         "        }\n" +
-                        "\n" +
                         "    }\n" +
                         "}\n" +
                         "EOF\n";
+
 
 
         return List.of(
@@ -644,7 +718,7 @@ public class ServerServiceImpl implements ServerService {
                 backendDockerfileContent =
                         "cd " + projectPath + "/" + project.getBackendDirectoryName() + "&& cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                                 "# 1단계: 빌드 스테이지\n" +
-                                "FROM gradle:8.5-jdk" + project.getJdkVersion() + "AS builder\n" +
+                                "FROM gradle:8.5-jdk" + project.getJdkVersion() + " AS builder\n" +
                                 "WORKDIR /app\n" +
                                 "COPY . .\n" +
                                 "RUN gradle bootJar --no-daemon\n" +
@@ -751,21 +825,48 @@ public class ServerServiceImpl implements ServerService {
     private List<String> runApplicationList(List<ProjectApplication> projectApplicationList) {
 
         return projectApplicationList.stream()
-                .flatMap(app -> Stream.of(
+                .flatMap(app -> {
+                    String image = app.getImageName();
+                    int port  = app.getPort();
+                    String tag   = app.getTag();
 
-                        "docker build -t " + app.getImageName() + ":" + app.getTag() + " .",
+                    // stop, rm 명령
+                    String stop = "sudo docker stop " + image + " || true";
+                    String rm   = "sudo docker rm "   + image + " || true";
 
-                        "docker stop " + app.getImageName() + " || true",
+                    // run 명령 빌드
+                    StringBuilder runSb = new StringBuilder();
+                    runSb.append("sudo docker run -d ")
+                            .append("--restart unless-stopped ")
+                            .append("--name ").append(image).append(" ")
+                            .append("-p ").append(port).append(":").append(port).append(" ");
 
-                        "docker rm " + app.getImageName() + " || true",
+                    // 환경변수 Map 순회
+                    // key값은 db에서 꺼내와야함
+                    // value는 .env에서 꺼내와야함
+                    Map<String,String> envMap = Map.of(
+                            "MYSQL_ROOT_PASSWORD", "seed",
+                            "MYSQL_USER", "ssafy",
+                            "MYSQL_PASSWORD", "ssafy"
+                    );
 
-                        // [중요] 환경 변수 동적으로 넣어줘야함
-                        "docker run -d " +
-                                "--restart unless-stopped " +
-                                "--name " + app.getImageName() + " " +
-                                "-p " + app.getPort() + ":" + app.getPort() + " " +
-                                app.getImageName() + ":" + app.getTag()
-                ))
+                    if (envMap != null) {
+                        envMap.forEach((key, val) ->
+                                runSb.append("-e ")
+                                        .append(key)
+                                        .append("=")
+                                        .append(val)
+                                        .append(" ")
+                        );
+                    }
+
+                    // 마지막에 이미지:태그
+                    runSb.append(image).append(":").append(tag);
+
+                    String run = runSb.toString();
+
+                    return Stream.of(stop, rm, run);
+                })
                 .toList();
     }
 
@@ -827,7 +928,7 @@ public class ServerServiceImpl implements ServerService {
 
 
     @Override
-    public void convertHttpToHttps(HttpsConvertRequest request, String pemFilePath, String accessToken) {
+    public void convertHttpToHttps(HttpsConvertRequest request, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
