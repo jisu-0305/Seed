@@ -22,6 +22,7 @@ interface ProjectInfoStore {
 const initialStatus: ProjectInfo = {
   gitlab: {
     repo: '',
+    defaultBranch: '',
     structure: '모노',
     directory: {
       client: '',
@@ -31,13 +32,16 @@ const initialStatus: ProjectInfo = {
   server: {
     ip: '',
     pem: false,
+    pemName: '',
   },
   app: [],
   env: {
-    frontendFramework: '',
+    frontendFramework: 'React',
     frontEnv: false,
+    frontEnvName: '',
     backEnv: false,
-    node: 'v22',
+    backEnvName: '',
+    node: '22',
     jdk: '17',
     buildTool: 'Gradle',
   },

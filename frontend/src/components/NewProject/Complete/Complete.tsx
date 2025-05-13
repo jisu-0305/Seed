@@ -23,6 +23,7 @@ export default function Complete() {
       return {
         structure: 'MONO',
         repositoryUrl: gitlab.repo,
+        gitlabTargetBranch: gitlab.defaultBranch,
         backendDirectoryName: gitlab.directory.server,
         frontendDirectoryName: gitlab.directory.client,
         jdkVersion: env.jdk,
@@ -36,6 +37,7 @@ export default function Complete() {
     return {
       structure: 'MULTI',
       repositoryUrl: gitlab.repo,
+      gitlabTargetBranch: gitlab.defaultBranch,
       backendBranchName: gitlab.directory.server,
       frontendBranchName: gitlab.directory.client,
       jdkVersion: env.jdk,

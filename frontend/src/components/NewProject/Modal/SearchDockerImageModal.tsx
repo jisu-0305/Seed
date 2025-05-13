@@ -32,12 +32,18 @@ const SearchDockerImageModal = ({
     setQuery(e.target.value);
   };
 
+  const closeWithReset = () => {
+    setQuery('');
+    setImageList([]);
+    handleClose();
+  };
+
   return (
     isShowing && (
       <SmallModal
         title="Docker Image 찾기"
         isShowing={isShowing}
-        handleClose={handleClose}
+        handleClose={closeWithReset}
       >
         <StModalWrapper>
           <SearchWrapper>
@@ -63,7 +69,7 @@ const SearchDockerImageModal = ({
                 key={img.repo_name}
                 onClick={() => {
                   onSelect(img.repo_name);
-                  handleClose();
+                  closeWithReset();
                 }}
               >
                 <ImageName>
