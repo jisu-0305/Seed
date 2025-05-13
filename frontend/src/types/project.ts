@@ -40,7 +40,7 @@ export interface ProjectMember {
   userName: string;
   userIdentifyId: string;
   profileImageUrl: string;
-  status: 'ACCEPTED' | 'PENDING' | 'REJECTED';
+  status: 'ACCEPTED' | 'PENDING' | 'OWNER' | 'UNKNOWN';
 }
 
 export interface Application {
