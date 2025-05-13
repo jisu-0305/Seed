@@ -64,9 +64,11 @@ public class JenkinsController {
     @Operation(summary = "빌드 수동 트리거", description = "Jenkins Job을 수동으로 트리거(빌드 시작)합니다.")
     @PostMapping("/{projectId}/trigger")
     public void triggerBuild(@PathVariable Long projectId,
+                             @RequestParam String branchName,
                              @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
-        jenkinsService.triggerBuild(projectId, accessToken);
+        jenkinsService.triggerBuild(projectId, accessToken, branchName);
     }
+
 
     @Operation(summary = "빌드 커밋 변경사항 조회", description = "특정 빌드 번호의 커밋 변경 내역을 조회합니다.")
     @GetMapping("/{projectId}/builds/{buildNumber}/changes")
