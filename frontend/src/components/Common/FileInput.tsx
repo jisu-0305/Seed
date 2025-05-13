@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import { ChangeEvent, useState } from 'react';
 
+import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 interface FileInputProps {
@@ -8,6 +9,7 @@ interface FileInputProps {
   accept?: string;
   placeholder: string;
   id?: string;
+  inputType?: 'pem' | 'frontEnv' | 'backEnv';
 }
 
 export default function FileInput({
@@ -15,8 +17,10 @@ export default function FileInput({
   accept,
   placeholder,
   id,
+  inputType,
 }: FileInputProps) {
   const { mode } = useThemeStore();
+  const { stepStatus } = useProjectInfoStore();
   const [file, setFile] = useState<File | null>(null);
 
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -27,6 +31,15 @@ export default function FileInput({
     }
   };
 
+  let fileName = '';
+  if (inputType === 'pem') {
+    fileName = stepStatus.server.pemName;
+  } else if (inputType === 'frontEnv') {
+    fileName = stepStatus.env.frontEnvName;
+  } else if (inputType === 'backEnv') {
+    fileName = stepStatus.env.backEnvName;
+  }
+
   if (mode === null) return null;
 
   return (
@@ -34,7 +47,7 @@ export default function FileInput({
       <PemInput
         type="text"
         readOnly
-        value={file?.name || ''}
+        value={file?.name || fileName}
         placeholder={placeholder || ''}
       />
       <UploadLabel htmlFor={id || 'upload'}>

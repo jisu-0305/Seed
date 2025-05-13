@@ -68,7 +68,7 @@ export default function OnBoarding() {
         <InputGroup>
           <TokenInput
             type="text"
-            placeholder="glet-s4Ks4marvgnYDPpStmDgv"
+            placeholder="vgnYDPpStmDgv"
             value={token}
             onChange={(e) => setToken(e.target.value)}
           />

@@ -11,12 +11,15 @@ export interface ProjectInfo {
   server: {
     ip: string;
     pem: boolean;
+    pemName: string;
   };
   app: Application[];
   env: {
     frontendFramework: string;
     frontEnv: boolean;
+    frontEnvName: string;
     backEnv: boolean;
+    backEnvName: string;
     node: string;
     jdk: string;
     buildTool: string;
