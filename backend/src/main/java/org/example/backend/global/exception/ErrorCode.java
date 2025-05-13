@@ -21,8 +21,6 @@ public enum ErrorCode {
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3101, "사용자를 찾을 수 없습니다."),
     OAUTH_USER_NOT_FOUND(HttpStatus.NOT_FOUND, 3102, "Oauth 서버에서 사용자를 찾을 수 없습니다."),
     GITLAB_BAD_REQUEST(HttpStatus.BAD_REQUEST, 3203, "GitLab API 요청이 실패했습니다."),
-
-
     INVITATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3204, "초대를 찾을 수 없습니다."),
     ALREADY_JOINED_PROJECT(HttpStatus.BAD_REQUEST, 3205, "이미 참여 중인 프로젝트입니다."),
     DUPLICATE_INVITATION(HttpStatus.BAD_REQUEST, 3206, "이미 초대된 사용자입니다."),
@@ -41,27 +39,24 @@ public enum ErrorCode {
     GITLAB_BAD_CREATE_BRANCH(HttpStatus.BAD_REQUEST, 3219, "깃랩 브랜치 생성에 실패했습니다."),
     GITLAB_BAD_DELETE_BRANCH(HttpStatus.BAD_REQUEST, 3220, "깃랩 브랜치 삭제를 실패했습니다."),
     PROJECT_CONFIG_NOT_FOUND(HttpStatus.BAD_REQUEST, 3221, "프로젝트 설정 정보를 찾지 못했습니다."),
-
     UNSUPPORTED_NOTIFICATION_TYPE(HttpStatus.BAD_REQUEST, 3221, "지원하지 않는 알림 타입입니다."),
-
     GITLAB_MERGE_REQUEST_FAILED(HttpStatus.BAD_REQUEST, 3222, "깃랩 mr 생성을 실패했습니다."),
     GITLAB_BRANCH_NOT_FOUND(HttpStatus.NOT_FOUND, 3223, "해당 브랜치를 조회할 수 없습니다."),
-
     GITLAB_BAD_CREATE_WEBHOOK(HttpStatus.BAD_REQUEST, 3224, "깃랩 웹훅 생성에 실패했습니다."),
     DOCKER_HEALTH_API_FAILED(HttpStatus.BAD_REQUEST, 3225, "도커 소켓 API 연결에 실패했습니다."),
     DOCKER_HEALTH_FAILED(HttpStatus.BAD_REQUEST, 3226, "도커 소켓 연결에 실패했습니다."),
-
     GITLAB_BAD_MERGE_REQUESTS(HttpStatus.BAD_REQUEST, 3227, "깃랩 Merge Requests 조회에 실패했습니다."),
     GITLAB_MR_NOT_FOUND(HttpStatus.NOT_FOUND, 3228, "해당 Merge Request를 찾을 수 없습니다."),
     GITLAB_NO_MERGE_REQUESTS(HttpStatus.NOT_FOUND,  3229, "해당 프로젝트에 Merge Request가 없습니다."),
     GITLAB_BAD_CREATE_COMMIT(HttpStatus.BAD_REQUEST, 3230, "깃랩 커밋 생성에 실패했습니다."),
     DOCKER_LOGS_API_FAILED(HttpStatus.BAD_REQUEST, 3231, "도커 로그 조회에 실패했습니다."),
     DOCKER_DEFAULT_PORT_API_FAILED(HttpStatus.BAD_REQUEST, 3232, "도커 default port 조회에 실패했습니다."),
-
-    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3232, "어플리케이션 정보를 찾지 못했습니다."),
-    PEM_NOT_FOUND(HttpStatus.NOT_FOUND, 3232, "PemFile 정보를 찾지 못했습니다."),
-    BACK_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3233, "frontEnvFile 정보를 찾지 못했습니다."),
-    FRONT_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3234, "bacakendEnvFile 정보를 찾지 못했습니다."),
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3233, "어플리케이션 정보를 찾지 못했습니다."),
+    PEM_NOT_FOUND(HttpStatus.NOT_FOUND, 3234, "PemFile 정보를 찾지 못했습니다."),
+    BACK_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3235, "frontEnvFile 정보를 찾지 못했습니다."),
+    FRONT_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3236, "bacakendEnvFile 정보를 찾지 못했습니다."),
+    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3237, "어플리케이션 정보를 찾지 못했습니다."),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, 3238, "AI report정보를 찾지 못했습니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),
