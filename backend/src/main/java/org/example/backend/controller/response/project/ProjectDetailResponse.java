@@ -22,6 +22,7 @@ public class ProjectDetailResponse {
     private String backendDirectoryName;
     private String frontendBranchName;
     private String backendBranchName;
+    private String gitlabTargetBranchName;
 
     private String nodejsVersion;
     private String frontendFramework;

@@ -1,25 +1,32 @@
 package org.example.backend.domain.docker.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.common.cache.DockerTokenCacheManager;
 import org.example.backend.common.util.DockerUriBuilder;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.DemonContainerStateCountResponse;
 import org.example.backend.controller.response.docker.ImageResponse;
-import org.example.backend.domain.docker.dto.ContainerDto;
-import org.example.backend.domain.docker.dto.DockerTag;
+import org.example.backend.domain.docker.dto.*;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.netty.http.client.HttpClient;
 
+import java.io.IOException;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.*;
 
 @Component
 @Slf4j
@@ -27,8 +34,12 @@ import java.util.List;
 public class DockerApiClientImpl implements DockerApiClient {
 
     private final WebClient dockerHubWebClient;
-    private final WebClient dockerWebClient;
+    private final WebClient dockerRegistryWebClient;
     private final DockerUriBuilder uriBuilder;
+    private final ObjectMapper objectMapper;
+    private final DockerTokenCacheManager tokenCache;
+    private static final HttpClient REDIRECTING_HTTP_CLIENT = HttpClient.create().followRedirect(true);
+    private final WebClient.Builder webClientBuilder;
 
     @Override
     public ImageResponse getImages(String query, int page, int pageSize) {
@@ -47,74 +58,221 @@ public class DockerApiClientImpl implements DockerApiClient {
     }
 
     @Override
-    public DemonContainerStateCountResponse getInfo() {
-        URI uri = uriBuilder.buildInfoUri();
+    public DemonContainerStateCountResponse getInfo(String serverIp) {
+        URI uri = uriBuilder.buildInfoUri(serverIp);
         log.debug(">> Docker 데몬 정보 조회 URI: {}", uri);
 
-        return fetchMono(dockerWebClient, uri, DemonContainerStateCountResponse.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
+        WebClient client = webClientBuilder.build();
+        return fetchMono(
+                client,
+                uri,
+                DemonContainerStateCountResponse.class,
+                ErrorCode.DOCKER_HEALTH_API_FAILED
+        );
     }
 
     @Override
-    public List<ContainerDto> getContainersByStatus(List<String> statuses) {
-        URI uri = uriBuilder.buildContainersByStatusUri(statuses);
-        log.debug(">> 상태별 컨테이너 조회 URI: {}", uri);
+    public List<ContainerDto> getContainersByStatus(String serverIp, List<String> statuses) {
+        URI uri = uriBuilder.buildContainersByStatusUri(serverIp, statuses);
+        log.debug(">>>> 상태별 컨테이너 조회 uri: {}", uri);
 
-        return fetchFlux(dockerWebClient, uri, ContainerDto.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
+        WebClient client = webClientBuilder.build();
+        return fetchFlux(
+                client,
+                uri,
+                ContainerDto.class,
+                ErrorCode.DOCKER_HEALTH_API_FAILED
+        );
     }
 
     @Override
-    public List<ContainerDto> getContainersByName(String nameFilter) {
-        URI uri = uriBuilder.buildContainersByNameUri(nameFilter);
-        log.debug(">> 이름 기반 컨테이너 조회 URI: {}", uri);
+    public List<ContainerDto> getContainersByName(String serverIp, String nameFilter) {
+        URI uri = uriBuilder.buildContainersByNameUri(serverIp, nameFilter);
+        log.debug(">>> 이름 기반 컨테이너 조회 URI: {}", uri);
 
-        return fetchFlux(dockerWebClient, uri, ContainerDto.class, ErrorCode.DOCKER_HEALTH_API_FAILED);
+        WebClient client = webClientBuilder
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+
+        return client.get()
+                .uri(uri)
+                .retrieve()
+                .bodyToFlux(ContainerDto.class)
+                .collectList()
+                .block();
+    }
+
+    @Override
+    public List<String> getContainerLogs(String serverIp, String containerId, DockerContainerLogRequest request) {
+
+        URI uri = uriBuilder.buildContainerLogsUri(serverIp, containerId, request);
+        log.debug(">> 컨테이너 로그 조회 URI: {}", uri);
+
+        WebClient client = webClientBuilder
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                .build();
+
+        return client.get()
+                .uri(uri)
+                .retrieve()
+                .bodyToFlux(DataBuffer.class)
+                .flatMap(db -> demultiplex(db.asByteBuffer()))
+                .collectList()
+                .block();
+    }
+
+    /* 공통 로직 */
+    /**
+     * 디폴트 포트 처리 로직
+     * <br>
+     *  - namespace, imageName, tag에 해당하는 도커 이미지의 디폴트 포트 목록 가져옴
+     *
+     *  <br><br>
+     *  - (인증 -> 매니페스트(이미지_컨테이너 의 메타데이터) 조회 -> digest(컨테이너 메타데이터에 있는 id값) 결정 -> blob 조회 -> 포트 추출)
+     *
+     * @param namespace
+     * @param imageName
+     * @param tag
+     * @return : imageBlob
+     */
+    @Override
+    public List<String> getImageDefaultPorts(String namespace, String imageName, String tag) {
+        try {
+            WebClient dockerAuthClient = makeDockerAuthClient(namespace, imageName);
+            ImageMetaData imageMetaData = fetchImageMetaData(dockerAuthClient, namespace, imageName, tag);
+            String blobHashId = fetchImageBlobHashId(dockerAuthClient, namespace, imageName, imageMetaData);
+            BlobMetaData blobMetaData = fetchBlobMetaData(dockerAuthClient, namespace, imageName, blobHashId);
+            return extractPorts(blobMetaData);
+        } catch (Exception ex) {
+            log.warn("Registry 접근/인증 실패 ({}), 빈 리스트 반환합니다.", ex.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     /**
-     * 지정한 컨테이너의 로그를 조회하여 문자열 리스트로 반환하는 메서드.
-     * <p>
-     * 1. DockerContainerLogRequest로 부터 uri 생성 <br>
-     * 2. WebClient로 raw DataBuffer Flux를 수신 <br>
-     * 3. {@link #demultiplex(ByteBuffer)}로 multiplexed 바이너리 프레임을 UTF‑8 문자열로 분리<br>
-     * 4. 리스트로 수집(block).
+     * - 레지스트리 인증 api를 먼저 호출해서 Bearer 토큰을 얻고, 그 토큰을 헤더에 담아 이미지를 조회할 WebClient를 구성 <br>
+     * - 토큰이 있어야 레지스트리 api 사용 가능하기 때문.  <br>
+     * - (우리는 공식 이미지만 지원할 것이므로 사용자가 계정 없어도 접근 가능함)  <br>
+     * - 도커에서는 익명 자격으로 pull 권한만 가진 짧은 수명의 토큰을 발급해 주는데, 이걸로 공식 이미지 정보 가져올 수 있음.
      *
-     * @param containerId 조회할 Docker 컨테이너의 ID
-     * @param filter      로그 필터 옵션(출력 타입, tailLines, timestamps 등)
-     * @return 파싱된 로그 라인들을 담은 List&lt;String&gt;
+     * @param namespace
+     * @param image
+     * @return
      */
-    @Override
-    public List<String> getContainerLogs(String containerId, DockerContainerLogRequest filter) {
+    private WebClient makeDockerAuthClient(String namespace, String image) {
 
-        URI uri = uriBuilder.buildContainerLogsUri(
-                containerId,
-                filter.includeStdout(),
-                filter.includeStderr(),
-                filter.tailLines(),
-                filter.sinceSeconds(),
-                filter.untilSeconds(),
-                filter.includeTimestamps(),
-                filter.includeDetails(),
-                filter.followStream()
-        );
-        log.debug(">> 컨테이너 로그 조회 URI: {}", uri);
+        // 1) 레디스 캐싱으로 토큰 관리.
+        String dockerAuthToken = tokenCache.getAnonymousToken(namespace, image);
 
-        // 1) Raw DataBuffer flux로 받기
-        Flux<DataBuffer> rawFlux = dockerWebClient.get()
-                .uri(uri)
-                .retrieve()
-                .bodyToFlux(DataBuffer.class);
-
-        // 2) Demultiplex and collect lines
-        List<String> logLines = rawFlux
-                .flatMap(dataBuffer -> demultiplex(dataBuffer.asByteBuffer()))
-                .collectList()
-                .block();
-
-        return logLines;
-
+        // 2) webClient 만들기
+        return dockerRegistryWebClient.mutate()
+                .clientConnector(new ReactorClientHttpConnector(REDIRECTING_HTTP_CLIENT))
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + dockerAuthToken)
+                .build();
     }
 
-    /* 공통 로짘 */
+    /**
+     * - 인증된 WebClient 를 사용해 특정 이미지·태그의 매니페스트(JSON_메타데이터)를 조회함.
+     *
+     * @param dockerAuthClient
+     * @param namespace
+     * @param imageName
+     * @param tag
+     * @return
+     */
+    private ImageMetaData fetchImageMetaData(WebClient dockerAuthClient, String namespace, String imageName, String tag) {
+        return dockerAuthClient.get()
+                .uri(uriBuilder.buildRegistryManifestUri(namespace, imageName, tag))
+                .header(HttpHeaders.ACCEPT,
+                        "application/vnd.docker.distribution.manifest.list.v2+json," +
+                                "application/vnd.docker.distribution.manifest.v2+json")
+                .retrieve()
+                .bodyToMono(ImageMetaData.class)
+                .block();
+    }
+
+    /**
+     * - 매니페스트에서 이미지 설정(config) blob의 digest(id)를 결정. <br>
+     * - 즉, 이미지 메타데이터들 중, port정보를 조회할 수 있게 해주는 id값.
+     *
+     * <h4>상세 설명</h4>
+     * 1. 매니페스트에 ImageBlobDetail.imageBlobHashId(도커 api에서는 config.digest임.) 필드가 이미 있으면 그대로 반환 <br>
+     * 2. 없으면(멀티 아키 매니페스트라는 의미)<br>
+     *      -> manifests 리스트를 순회하면서 linux/amd64 플랫폼 항목을 찾기 <br>
+     *      -> 찾은 항목의 id를 기반으로 다시 fetchImageMetaData(...) 호출 <br>
+     *      -> 해당 manifest의 imageBlobHashInfo.imageBlobHashId 반환 <br>
+     *
+     * @param dockerAuthClient
+     * @param namespace
+     * @param image
+     * @param imageMetaData
+     * @return
+     */
+    private String fetchImageBlobHashId(WebClient dockerAuthClient, String namespace, String image, ImageMetaData imageMetaData) {
+        return Optional.ofNullable(imageMetaData.getImageBlobHashInfo())
+                .map(ImageBlobDetail::getImageBlobHashId)
+                .orElseGet(() -> {
+                    String additionalPlatformId = imageMetaData.getAdditionalImagePlatformAndId().stream()
+                            .filter(this::isTargetPlatform)
+                            .findFirst()
+                            .orElseThrow(() -> new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "해당 플랫폼의 manifest를 찾을 수 없습니다."))
+                            .getImageHashId();
+
+                    ImageMetaData pm = fetchImageMetaData(dockerAuthClient, namespace, image, additionalPlatformId);
+                    return pm.getImageBlobHashInfo().getImageBlobHashId();
+                });
+    }
+
+    /**
+     * - 멀티 아키일 경우, 플랫폼 정보가 우리가 원하는(linux + amd64) 조합인지 검사
+     *
+     * @param imagePlatformAndId
+     * @return
+     */
+    private boolean isTargetPlatform(ImagePlatformAndId imagePlatformAndId) {
+        Platform platform = imagePlatformAndId.getImagePlatform();
+        return "linux".equals(platform.getOs())
+                && "amd64".equals(platform.getCpuArchitecture());
+    }
+
+    /**
+     * - 최종적으로 얻은 configDigest 를 사용해서 이미지 설정 blob을 바이너리(byte[])로 다운로드 <br>
+     * -> json으로 파싱해서 RegistryConfig 객체로 반환한다.
+     *
+     * @param dockerAuthClient
+     * @param namespace
+     * @param imageName
+     * @param blobHashId
+     * @return
+     */
+    private BlobMetaData fetchBlobMetaData(WebClient dockerAuthClient, String namespace, String imageName, String blobHashId) {
+        byte[] blobData = dockerAuthClient.get()
+                .uri(uriBuilder.buildRegistryBlobUri(namespace, imageName, blobHashId))
+                .accept(MediaType.APPLICATION_OCTET_STREAM)
+                .retrieve()
+                .bodyToMono(byte[].class)
+                .block();
+
+        if (blobData == null) {
+            throw new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "Config blob을 가져오지 못했습니다.");
+        }
+
+        try {
+            return objectMapper.readValue(blobData, BlobMetaData.class);
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.DOCKER_DEFAULT_PORT_API_FAILED, "Config blob 파싱에 실패했습니다.", e);
+        }
+    }
+
+    private List<String> extractPorts(BlobMetaData blobMetaData) {
+        Map<String, ?> portsMap = Optional.ofNullable(blobMetaData.getBlobMetaDataInfo())
+                .map(BlobMetaDataInfo::getDefaultPorts)
+                .orElse(Collections.emptyMap());
+
+        return new ArrayList<>(portsMap.keySet());
+    }
+
+    /* 공통 로직 */
     private <T> T fetchMono(WebClient client, URI uri, Class<T> clazz, ErrorCode errorCode) {
         try {
             return client.get()
@@ -194,16 +352,17 @@ public class DockerApiClientImpl implements DockerApiClient {
     private Flux<String> demultiplex(ByteBuffer buf) {
         List<String> out = new ArrayList<>();
         while (buf.remaining() >= 8) {
-            buf.get(); // stream type
-            buf.get(); buf.get(); buf.get(); // reserved
-            int len = buf.getInt(); // payload 길이
+            buf.get();
+            buf.get(); buf.get(); buf.get();
+            int len = buf.getInt();
             if (buf.remaining() < len) {
-                break; // 남은 데이터가 payload보다 작으면 중단
+                break;
             }
             byte[] chunk = new byte[len];
-            buf.get(chunk);              // payload 읽기
+            buf.get(chunk);
             out.add(new String(chunk, StandardCharsets.UTF_8));
         }
         return Flux.fromIterable(out);
     }
+
 }

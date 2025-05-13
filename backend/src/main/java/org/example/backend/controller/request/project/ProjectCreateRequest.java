@@ -2,7 +2,6 @@ package org.example.backend.controller.request.project;
 
 import lombok.Getter;
 import org.example.backend.domain.project.enums.ProjectStructure;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -11,6 +10,7 @@ public class ProjectCreateRequest {
     private String serverIP;
     private String repositoryUrl;
     private ProjectStructure structure;
+    private String gitlabTargetBranch;
     private String frontendBranchName;
     private String frontendDirectoryName;
     private String backendBranchName;
