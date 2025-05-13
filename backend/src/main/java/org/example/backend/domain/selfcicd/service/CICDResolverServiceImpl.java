@@ -254,24 +254,36 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         if (!patchedFiles.isEmpty()) {
             String commitMessage = "Fix: AI auto fix by SEED";
 
-            gitlabService.commitPatchedFiles(
-                    accessToken,
-                    project.getGitlabProjectId(),
-                    newProejctBranch,
-                    commitMessage,
-                    patchedFiles
-            );
+//            String commitUrl = gitlabService.commitPatchedFiles(
+//                    accessToken,
+//                    project.getGitlabProjectId(),
+//                    newProejctBranch,
+//                    commitMessage,
+//                    patchedFiles
+//            );
         }
 
          // 3-3. Jenkins 재빌드 트리거
-        jenkinsService.triggerBuild(project.getId(), newProejctBranch);
+        //jenkinsService.triggerBuild(project.getId(), accessToken, newProejctBranch);
 
         // 4. 빌드 결과 및 성공 여부에 따라 MR 생성, 반환값 필요
         // 4-1. Jenkins 빌드 결과 수집
         String status = jenkinsService.getLastBuild(projectId, accessToken).getStatus();
         boolean buildSucceeded = "SUCCESS".equalsIgnoreCase(status);
 
-        // 4-2. AI 요약 보고서 가져오기
+        // 4-2. GitLab Merge Request 생성 (빌드 성공 시)
+        if (buildSucceeded) {
+            String mergeRequestUrl = gitlabService.createMergeRequest(
+                    accessToken,
+                    project.getGitlabProjectId(),
+                    newProejctBranch,
+                    project.getGitlabTargetBranchName(),
+                    "[AI 수정 제안] 빌드 자동 복구",
+                    "AI가 수정한 코드를 기반으로 빌드가 성공했습니다. 검토 후 병합해주세요."
+            ).getWebUrl();
+        }
+
+        // 4-3. AI 요약 보고서 가져오기
         Map<String, ReportResponse> reportResponses = new HashMap<>();
 
         for (int i = 0; i < resolveErrorResponses.size(); i++) {
@@ -297,18 +309,6 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             // 앱 이름 정보가 resolveDto에 없으므로, 인덱스 기준으로 suspectedApps에서 가져옴
             String appName = suspectedApps.get(i);
             reportResponses.put(appName, reportResponse);
-        }
-
-        // 4-3. GitLab Merge Request 생성 (빌드 성공 시)
-        if (buildSucceeded) {
-            gitlabService.createMergeRequest(
-                    accessToken,
-                    project.getGitlabProjectId(),
-                    newProejctBranch,
-                    project.getGitlabTargetBranchName(),
-                    "[AI 수정 제안] 빌드 자동 복구",
-                    "AI가 수정한 코드를 기반으로 빌드가 성공했습니다. 검토 후 병합해주세요."
-            );
         }
 
         // 4-4. 반환값 고민 -> 그냥 db에 저장하는 형태로.
