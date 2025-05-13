@@ -162,7 +162,7 @@ public class ServerServiceImpl implements ServerService {
                 makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                runApplicationList(projectApplicationList),
+//                runApplicationList(projectApplicationList),
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
@@ -466,6 +466,17 @@ public class ServerServiceImpl implements ServerService {
                 "<flow-definition plugin=\"workflow-job\">",
                 "  <description>GitLab 연동 자동 배포</description>",
                 "  <keepDependencies>false</keepDependencies>",
+                "  <properties>",
+                "    <hudson.model.ParametersDefinitionProperty>",
+                "      <parameterDefinitions>",
+                "        <hudson.model.StringParameterDefinition>",
+                "          <name>BRANCH_NAME</name>",
+                "          <defaultValue>" + gitlabTargetBranchName + "</defaultValue>",
+                "          <description>Git 브랜치 이름</description>",
+                "        </hudson.model.StringParameterDefinition>",
+                "      </parameterDefinitions>",
+                "    </hudson.model.ParametersDefinitionProperty>",
+                "  </properties>",
                 "  <definition class=\"org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition\" plugin=\"workflow-cps\">",
                 "    <scm class=\"hudson.plugins.git.GitSCM\" plugin=\"git\">",
                 "      <configVersion>2</configVersion>",
@@ -477,7 +488,7 @@ public class ServerServiceImpl implements ServerService {
                 "      </userRemoteConfigs>",
                 "      <branches>",
                 "        <hudson.plugins.git.BranchSpec>",
-                "          <name>*/" + gitlabTargetBranchName +"</name>",
+                "          <name>" + gitlabTargetBranchName + "</name>",
                 "        </hudson.plugins.git.BranchSpec>",
                 "      </branches>",
                 "    </scm>",
@@ -515,123 +526,109 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) {
+
+    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName,
+                                         String gitlabTargetBranchName, String namespace, Project project) {
 
         log.info(repositoryUrl);
 
         String frontendDockerScript;
-
         switch (project.getFrontendFramework()) {
             case "vue.js":
                 frontendDockerScript =
-                        "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t vue .\n" +
-                                "                        docker stop vue || true\n" +
-                                "                        docker rm vue || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
+                        "docker build -f Dockerfile -t vue .\n" +
+                                "docker stop vue || true\n" +
+                                "docker rm vue || true\n" +
+                                "docker run -d --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue";
                 break;
-
             case "react":
                 frontendDockerScript =
-                        "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t react .\n" +
-                                "                        docker stop react || true\n" +
-                                "                        docker rm react || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
+                        "docker build -f Dockerfile -t react .\n" +
+                                "docker stop react || true\n" +
+                                "docker rm react || true\n" +
+                                "docker run -d --env-file .env --restart unless-stopped --name react -p 3000:3000 react";
                 break;
-
-            case "next.js":
             default:
                 frontendDockerScript =
-                        "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t next .\n" +
-                                "                        docker stop next || true\n" +
-                                "                        docker rm next || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
-                break;
+                        "docker build -f Dockerfile -t next .\n" +
+                                "docker stop next || true\n" +
+                                "docker rm next || true\n" +
+                                "docker run -d --env-file .env --restart unless-stopped --name next -p 3000:3000 next";
         }
 
-
-        String jenkinsfileContent =
-                "cd " + projectPath + " && cat <<EOF | sudo tee Jenkinsfile > /dev/null\n" +
-                        "pipeline {\n" +
-                        "    agent any\n" +
-                        "\n" +
-                        "    stages {\n" +
-                        "        stage('Checkout') {\n" +
-                        "            steps {\n" +
-                        "                echo '1. 워크스페이스 정리 및 소스 체크아웃'\n" +
-                        "                deleteDir()\n" +
-                        "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
-                        "                    git branch: '" + gitlabTargetBranchName + "', url: \"https://\\$GIT_USER:\\$GIT_TOKEN@lab.ssafy.com/" + namespace + "\"\n" +
-                        "                }\n" +
-                        "            }\n" +
-                        "        }\n" +
-                        "\n" +
-                        "        stage('Build Backend') {\n" +
-                        "            when {\n" +
-                        "                changeset pattern: '" + project.getBackendDirectoryName() + "/.*', comparator: 'REGEXP'\n" +
-                        "            }\n" +
-                        "            steps {\n" +
-                        "                echo '2. Backend 변경 감지, 빌드 및 배포'\n" +
-                        "                withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
-                        "                    sh '''\n" +
-                        "                        set -e\n" +
-                        "                        echo \"  - 복사: $BACKEND_ENV → ${WORKSPACE}/backend/.env\"\n" +
-                        "                        cp \"\\$BACKEND_ENV\" \"\\$WORKSPACE/" + project.getBackendDirectoryName() + "/.env\"\n" +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                dir('" + project.getBackendDirectoryName() + "') {\n" +
-                        "                    sh '''\n" +
-                        "                        set -e\n" +
-                        "                        docker build -t spring .\n" +
-                        "                        docker stop spring || true\n" +
-                        "                        docker rm spring || true\n" +
-                        "                        docker run -d -p 8080:8080 --env-file .env --name spring spring\n" +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                echo '[INFO] 백엔드 완료'\n" +
-                        "            }\n" +
-                        "        }\n" +
-                        "\n" +
-                        "        stage('Build Frontend') {\n" +
-                        "            when {\n" +
-                        "                changeset pattern: '" + project.getFrontendDirectoryName() +"/.*', comparator: 'REGEXP'\n" +
-                        "            }\n" +
-                        "            steps {\n" +
-                        "                echo '3. Frontend 변경 감지, 빌드 및 배포'\n" +
-                        "                withCredentials([file(credentialsId: \"front\", variable: 'FRONT_ENV')]) {\n" +
-                        "                    sh '''\n" +
-                        "                        set -e\n" +
-                        "                        echo \"  - 복사: $FRONT_ENV → ${WORKSPACE}/frontend/.env\"\n" +
-                        "                        cp \"\\$FRONT_ENV\" \"\\$WORKSPACE/" + project.getFrontendDirectoryName() + "/.env\"\n" +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                dir('" + project.getFrontendDirectoryName() + "') {\n" +
-                        "                    sh '''\n" +
-                        frontendDockerScript +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                echo '[INFO] 프론트엔드 완료'\n" +
-                        "            }\n" +
-                        "        }\n" +
-                        "\n" +
-                        "    }\n" +
-                        "}\n" +
-                        "EOF\n";
-
+        // Jenkinsfile heredoc 전체 명령어 생성
+        String jenkinsfileCommand = String.join("\n",
+                "cd " + projectPath + " && sudo tee Jenkinsfile > /dev/null <<'EOF'",
+                "pipeline {",
+                "    agent any",
+                "    parameters {",
+                "        string(name: 'BRANCH_NAME', defaultValue: '" + gitlabTargetBranchName + "', description: '브랜치 이름')",
+                "    }",
+                "    stages {",
+                "        stage('Checkout') {",
+                "            steps {",
+                "                echo '1. 워크스페이스 정리 및 소스 체크아웃'",
+                "                deleteDir()",
+                "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {",
+                "                    git branch: \"${params.BRANCH_NAME}\", url: \"https://${GIT_USER}:${GIT_TOKEN}@lab.ssafy.com/" + namespace + "\"",
+                "                }",
+                "            }",
+                "        }",
+                "        stage('Build Backend') {",
+                "            when {",
+                "                changeset pattern: '" + project.getBackendDirectoryName() + "/.*', comparator: 'REGEXP'",
+                "            }",
+                "            steps {",
+                "                withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {",
+                "                    sh '''",
+                "                        cp \"$BACKEND_ENV\" \"$WORKSPACE/" + project.getBackendDirectoryName() + "/.env\"",
+                "                    '''",
+                "                }",
+                "                dir('" + project.getBackendDirectoryName() + "') {",
+                "                    sh '''",
+                "                        docker build -t spring .",
+                "                        docker stop spring || true",
+                "                        docker rm spring || true",
+                "                        docker run -d -p 8080:8080 --env-file .env --name spring spring",
+                "                    '''",
+                "                }",
+                "            }",
+                "        }",
+                "        stage('Build Frontend') {",
+                "            when {",
+                "                changeset pattern: '" + project.getFrontendDirectoryName() + "/.*', comparator: 'REGEXP'",
+                "            }",
+                "            steps {",
+                "                withCredentials([file(credentialsId: \"front\", variable: 'FRONT_ENV')]) {",
+                "                    sh '''",
+                "                        cp \"$FRONT_ENV\" \"$WORKSPACE/" + project.getFrontendDirectoryName() + "/.env\"",
+                "                    '''",
+                "                }",
+                "                dir('" + project.getFrontendDirectoryName() + "') {",
+                "                    sh '''",
+                frontendDockerScript,
+                "                    '''",
+                "                }",
+                "            }",
+                "        }",
+                "    }",
+                "}",
+                "EOF"
+        );
 
         return List.of(
-                "cd /var/lib/jenkins/jobs/auto-created-deployment-job &&" +  "sudo git clone " + repositoryUrl + "&& cd " + projectName,
+                "cd /var/lib/jenkins/jobs/auto-created-deployment-job && sudo git clone " + repositoryUrl + " && cd " + projectName,
                 "sudo chmod -R 777 /var/lib/jenkins/jobs",
-                jenkinsfileContent,
-                "cd " + projectPath + "&& sudo git config user.name \"SeedBot\"",
-                "cd " + projectPath + "&& sudo git config user.email \"seedbot@auto.io\"",
-                "cd " + projectPath + "&& sudo git add Jenkinsfile",
-                "cd " + projectPath + "&& sudo git commit --allow-empty -m 'add Jenkinsfile for CI/CD with SEED'",
-                "cd " + projectPath + "&& sudo git push origin " + gitlabTargetBranchName
+                jenkinsfileCommand,
+                "cd " + projectPath + " && sudo git config user.name \"SeedBot\"",
+                "cd " + projectPath + " && sudo git config user.email \"seedbot@auto.io\"",
+                "cd " + projectPath + " && sudo git add Jenkinsfile",
+                "cd " + projectPath + " && sudo git commit --allow-empty -m 'add Jenkinsfile for CI/CD with SEED'",
+                "cd " + projectPath + " && sudo git push origin " + gitlabTargetBranchName
         );
     }
+
+
 
     private List<String> makeDockerfileForBackend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
 
