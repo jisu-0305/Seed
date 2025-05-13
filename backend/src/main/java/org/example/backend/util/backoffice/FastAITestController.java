@@ -7,7 +7,7 @@ import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.aiapi.AIApiClientImpl;
 import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
-import org.example.backend.util.aiapi.dto.aireport.ReportResponse;
+import org.example.backend.util.aiapi.dto.aireport.AIReportResponse;
 import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
 import org.example.backend.util.aiapi.dto.patchfile.PatchTextRequest;
 import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
@@ -69,8 +69,8 @@ public class FastAITestController {
     }
 
     @PostMapping("/report")
-    public ResponseEntity<ReportResponse> testReport(@RequestBody AIReportRequest reportRequest) {
-        ReportResponse response = fastAIClientImpl.requestErrorReport(reportRequest);
+    public ResponseEntity<AIReportResponse> testReport(@RequestBody AIReportRequest reportRequest) {
+        AIReportResponse response = fastAIClientImpl.requestErrorReport(reportRequest);
         return ResponseEntity.ok(response);
     }
 }

@@ -14,32 +14,32 @@ public class GitlabUriBuilder {
     @Value("${gitlab.api.base-url}")
     private String baseUrl;
 
-    public URI buildPushWebhookUri(Long projectId, String hookUrl, String wildcard) {
-        return toUri(builder("projects", projectId.toString(), "hooks")
+    public URI buildPushWebhookUri(Long gitlabProjectId, String hookUrl, String wildcard) {
+        return toUri(builder("projects", gitlabProjectId.toString(), "hooks")
                 .queryParam("url", hookUrl)
                 .queryParam("push_events", true)
                 .queryParam("enable_ssl_verification", true)
                 .queryParam("push_events_branch_filter", wildcard));
     }
 
-    public URI buildCommitUri(Long projectId) {
-        return toUri(builder("projects", projectId.toString(), "repository", "commits"));
+    public URI buildCommitUri(Long gitlabProjectId) {
+        return toUri(builder("projects", gitlabProjectId.toString(), "repository", "commits"));
     }
 
-    public URI buildMergeRequestUri(Long projectId) {
-        return toUri(builder("projects", projectId.toString(), "merge_requests"));
+    public URI buildMergeRequestUri(Long gitlabProjectId) {
+        return toUri(builder("projects", gitlabProjectId.toString(), "merge_requests"));
     }
 
-    public URI buildCreateBranchUri(Long projectId, String branchName, String baseBranchName) {
+    public URI buildCreateBranchUri(Long gitlabProjectId, String branchName, String baseBranchName) {
         return toUri(
-                builder("projects", projectId.toString(), "repository", "branches")
+                builder("projects", gitlabProjectId.toString(), "repository", "branches")
                         .queryParam("branch", branchName)
                         .queryParam("ref", baseBranchName)
         );
     }
 
-    public URI buildDeleteBranchUri(Long projectId, String branchName) {
-        return toUri(builder("projects", projectId.toString(),"repository", "branches", branchName));
+    public URI buildDeleteBranchUri(Long gitlabProjectId, String branchName) {
+        return toUri(builder("projects", gitlabProjectId.toString(),"repository", "branches", branchName));
     }
 
     public URI buildProjectsUri(int page, int perPage) {
@@ -55,8 +55,8 @@ public class GitlabUriBuilder {
         return toUri(builder("projects", namespaceAndName));
     }
 
-    public URI buildListMergedMrsUri(Long projectId, int page, int perPage) {
-        return toUri(builder("projects", projectId.toString(), "merge_requests")
+    public URI buildListMergedMrsUri(Long gitlabProjectId, int page, int perPage) {
+        return toUri(builder("projects", gitlabProjectId.toString(), "merge_requests")
                 .queryParam("page", page)
                 .queryParam("per_page", perPage)
                 .queryParam("order_by", "created_at")
@@ -65,20 +65,20 @@ public class GitlabUriBuilder {
         );
     }
 
-    public URI buildMrDetailUri(Long projectId, Long mergeRequestIid) {
-        return toUri(builder("projects", projectId.toString(), "merge_requests", mergeRequestIid.toString()));
+    public URI buildMrDetailUri(Long gitlabProjectId, Long mergeRequestIid) {
+        return toUri(builder("projects", gitlabProjectId.toString(), "merge_requests", mergeRequestIid.toString()));
     }
 
-    public URI buildCompareCommitsUri(Long projectId, String from, String to) {
+    public URI buildCompareCommitsUri(Long gitlabProjectId, String from, String to) {
         return toUri(
-                builder("projects", projectId.toString(), "repository", "compare")
+                builder("projects", gitlabProjectId.toString(), "repository", "compare")
                         .queryParam("from", from)
                         .queryParam("to", to)
         );
     }
 
     public URI buildRepositoryTreeUri(
-            Long projectId,
+            Long gitlabProjectId,
             String path,
             boolean recursive,
             int page,
@@ -86,7 +86,7 @@ public class GitlabUriBuilder {
             String branchName
     ) {
         return toUri(
-                builder("projects", projectId.toString(), "repository", "tree")
+                builder("projects", gitlabProjectId.toString(), "repository", "tree")
                         .queryParam("path", path)
                         .queryParam("recursive", recursive)
                         .queryParam("page", page)
@@ -95,15 +95,15 @@ public class GitlabUriBuilder {
         );
     }
 
-    public URI buildRawFileUri(Long projectId, String filePath, String refBranch) {
+    public URI buildRawFileUri(Long gitlabProjectId, String filePath, String refBranch) {
         return toUri(
-                builder("projects", projectId.toString(), "repository", "files", filePath, "raw")
+                builder("projects", gitlabProjectId.toString(), "repository", "files", filePath, "raw")
                         .queryParam("ref", refBranch)
         );
     }
 
-    public URI buildBranchUri(Long projectId, String branchName) {
-        return toUri(builder("projects", projectId.toString(),"repository", "branches", branchName));
+    public URI buildBranchUri(Long gitlabProjectId, String branchName) {
+        return toUri(builder("projects", gitlabProjectId.toString(),"repository", "branches", branchName));
     }
 
     /* 공통 로직 */

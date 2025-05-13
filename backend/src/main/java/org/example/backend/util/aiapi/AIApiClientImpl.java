@@ -10,7 +10,7 @@ import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
 import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
 import org.example.backend.util.aiapi.dto.patchfile.PatchTextRequest;
 import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
-import org.example.backend.util.aiapi.dto.aireport.ReportResponse;
+import org.example.backend.util.aiapi.dto.aireport.AIReportResponse;
 import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
 import org.example.backend.util.aiapi.dto.suspectapp.InferAppResponse;
 import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
@@ -196,7 +196,7 @@ public class AIApiClientImpl implements AIApiClient {
     }
 
     @Override
-    public ReportResponse requestErrorReport(AIReportRequest aiReportRequest) {
+    public AIReportResponse requestErrorReport(AIReportRequest aiReportRequest) {
         String response;
         String json;
         try {
@@ -221,7 +221,7 @@ public class AIApiClientImpl implements AIApiClient {
 
         try {
             ObjectMapper mapper = new ObjectMapper();
-            ReportResponse dto = mapper.readValue(response, ReportResponse.class);
+            AIReportResponse dto = mapper.readValue(response, AIReportResponse.class);
 
             if (dto.getSummary() == null || dto.getAppliedFiles() == null || dto.getAppliedFiles().isEmpty()) {
                 throw new BusinessException(ErrorCode.AI_REPORT_RESPONSE_MALFORMED);

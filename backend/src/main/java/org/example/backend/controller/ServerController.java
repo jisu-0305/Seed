@@ -27,12 +27,9 @@ public class ServerController {
     @PostMapping("/deployment")
     public ResponseEntity<ApiResponse<String>> registerDeployment(
             @RequestPart("request") DeploymentRegistrationRequest request,
-            @RequestPart("pemFilePath") String pemFilePath,
-            @RequestPart("frontEnvFilePath") String frontEnvFilePath,
-            @RequestPart("backEnvFilePath") String backEnvFilePath,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.registerDeployment(request, pemFilePath, frontEnvFilePath, backEnvFilePath, accessToken);
+        serverService.registerDeployment(request, accessToken);
 
         return ResponseEntity.ok(ApiResponse.success("자동 배포 설정 완료"));
     }
