@@ -79,6 +79,7 @@ public class ProjectController {
         List<ProjectExecutionGroupResponse> grouped = projectService.getMyProjectExecutionsGroupedByDate(accessToken);
         return ResponseEntity.ok(ApiResponse.success(grouped));
     }
+
     @GetMapping("/status")
     @Operation(summary = "내 전체 프로젝트 상태 조회", description = "HTTPS, 자동 배포 여부, 최신 빌드 상태 등을 포함한 내 프로젝트 상태 목록 조회", security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<List<ProjectStatusResponse>>> getMyProjectStatuses(
@@ -88,5 +89,17 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.success(statusList));
     }
 
+    @GetMapping("/applications")
+    @Operation(summary = "사용 가능한 Application 목록 검색",
+            description = "키워드로 applications 를 검색하되, 이미 해당 프로젝트에 등록된 application 은 제외합니다.",
+            security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<List<ProjectApplicationResponse>>> searchApplications(
+            @RequestParam String keyword,
+            @RequestParam Long projectId,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
+    ) {
+        List<ProjectApplicationResponse> apps = projectService.searchAvailableApplications(accessToken, projectId, keyword);
+        return ResponseEntity.ok(ApiResponse.success(apps));
+    }
 
 }
