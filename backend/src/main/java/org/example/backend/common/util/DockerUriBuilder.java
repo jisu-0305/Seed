@@ -24,6 +24,9 @@ public class DockerUriBuilder {
     @Value("${docker.registry.api.base-url}")
     private String registryApiBaseUrl;
 
+    @Value("${docker.auth.api.base-url}")
+    private String dockerAuthApiBaseUrl;
+
     public URI buildSearchRepositoriesUri(String query, int page, int pageSize) {
         return UriComponentsBuilder.fromUriString(dockerHubBaseUrl)
                 .path("/search/repositories")
@@ -39,13 +42,6 @@ public class DockerUriBuilder {
                 .pathSegment("repositories", namespace, repo, "tags")
                 .queryParam("page", page)
                 .queryParam("page_size", pageSize)
-                .build()
-                .toUri();
-    }
-
-    public URI buildRegistryTagsUri(String namespace, String repo) {
-        return UriComponentsBuilder.fromUriString(registryApiBaseUrl)
-                .pathSegment("v2", namespace, repo, "tags", "list")
                 .build()
                 .toUri();
     }
@@ -90,6 +86,47 @@ public class DockerUriBuilder {
         }
 
         return uri.buildAndExpand(containerId).toUri();
+    }
+
+    /**
+     * 매니페스트 조회용 URI
+     * GET /v2/{namespace}/{imageName}/manifests/{tag}
+     */
+    public URI buildRegistryManifestUri(String namespace, String imageName, String tag) {
+        return UriComponentsBuilder
+                .fromUriString(registryApiBaseUrl)
+                .pathSegment(namespace, imageName, "manifests", tag)
+                .build()
+                .encode()
+                .toUri();
+    }
+
+    /**
+     * 블랍(config) 조회용 URI
+     * GET /v2/{namespace}/{imageName}/blobs/{blobHashId}
+     *
+     */
+    public URI buildRegistryBlobUri(String namespace, String imageName, String blobHashId) {
+        return UriComponentsBuilder
+                .fromUriString(registryApiBaseUrl)
+                .pathSegment(namespace, imageName, "blobs", blobHashId)
+                .build()
+                .encode()
+                .toUri();
+    }
+
+    /**
+     * Docker Hub 토큰 발급용 URI 생성
+     * GET {docker.auth.api.base-url}/token?service=registry.docker.io&scope=repository:{namespace}/{imageName}:pull
+     */
+    public URI buildRegistryAuthUri(String namespace, String imageName) {
+        return UriComponentsBuilder
+                .fromUriString(dockerAuthApiBaseUrl)
+                .path("/token")
+                .queryParam("service", "registry.docker.io")
+                .queryParam("scope", "repository:" + namespace + "/" + imageName + ":pull")
+                .build()
+                .toUri();
     }
 
     private URI buildFilteredContainersUri(String key, List<String> values) {

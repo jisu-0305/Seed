@@ -10,10 +10,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Platform {
-    @JsonProperty("architecture")
-    private String cpuArchitecture;
+public class ImagePlatformAndId {
+    @JsonProperty("digest")
+    private String imageHashId;
 
-    @JsonProperty("os")
-    private String os;
+    @JsonProperty("platform")
+    private Platform imagePlatform;
 }
