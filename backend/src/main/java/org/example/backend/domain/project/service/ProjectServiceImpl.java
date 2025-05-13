@@ -1,6 +1,7 @@
 package org.example.backend.domain.project.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.project.ProjectCreateRequest;
@@ -32,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectServiceImpl implements ProjectService {
@@ -315,7 +317,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .toList();
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public List<ProjectExecutionGroupResponse> getMyProjectExecutionsGroupedByDate(String accessToken) {
@@ -345,6 +346,34 @@ public class ProjectServiceImpl implements ProjectService {
 
         return grouped.entrySet().stream()
                 .map(e -> new ProjectExecutionGroupResponse(e.getKey(), e.getValue()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectApplicationResponse> searchAvailableApplications(String accessToken, String keyword) {
+
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        List<Application> found = applicationRepository.findByImageNameContainingIgnoreCase(keyword);
+
+        Map<String, List<Integer>> portsByImage = found.stream()
+                .collect(Collectors.groupingBy(
+                        Application::getImageName,
+                        Collectors.mapping(Application::getDefaultPort, Collectors.toList())
+                ));
+
+        return portsByImage.entrySet().stream()
+                .map(entry -> ProjectApplicationResponse.builder()
+                        .imageName(entry.getKey())
+                        .defaultPorts(entry.getValue())
+                        .build()
+                )
                 .toList();
     }
 
