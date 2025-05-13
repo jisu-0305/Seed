@@ -44,4 +44,5 @@ public interface GitlabService {
 
     void commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
 
+    List<GitlabProject> getGitlabProjectsByUserId(Long userId);
 }

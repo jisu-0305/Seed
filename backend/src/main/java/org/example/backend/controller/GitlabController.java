@@ -117,6 +117,14 @@ public class GitlabController {
 
     }
 
+    /* 6-1. 프론트_userid로 깃랩 레포지토리 조회 */
+    @GetMapping("/users/{userId}/projects")
+    @Operation(summary = "프론트_ userid로 레포지토리 조회")
+    public ResponseEntity<ApiResponse<List<GitlabProject>>> getGitlabProjectsByUserId(@PathVariable Long userId) {
+        List<GitlabProject> projects = gitlabService.getGitlabProjectsByUserId(userId);
+        return ResponseEntity.ok(ApiResponse.success(projects));
+    }
+
     /* 7. 레포지토리 단건 조회 (URL) */
     @GetMapping(value = "/projects", params = "repoUrl")
     @Operation(summary = "레포지토리 조회", security = @SecurityRequirement(name = "PAT"))
