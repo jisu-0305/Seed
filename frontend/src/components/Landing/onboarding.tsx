@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
+import { registerPat } from '@/apis/user';
 import TipItem from '@/components/Common/TipItem';
 import { useModal } from '@/hooks/Common';
 import { useThemeStore } from '@/stores/themeStore';
@@ -9,14 +11,20 @@ import ModalWrapper from '../Common/Modal/ModalWrapper';
 import InformPATModal from './InformPATModal';
 
 export default function OnBoarding() {
+  const router = useRouter();
   const { mode } = useThemeStore();
   const [token, setToken] = useState('');
   const patTip = useModal();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: 토큰 등록 로직 호출
-    console.log('등록할 토큰:', token);
+
+    try {
+      await registerPat(token);
+      router.replace('/dashboard');
+    } catch (err) {
+      console.error('PAT 등록 실패', err);
+    }
   };
 
   if (mode === null) return null;
