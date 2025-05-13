@@ -54,14 +54,14 @@ public class DockerUriBuilder {
 
         String baseUrl = String.format("http://%s:%d", serverIp, engineApiPort);
 
-        String json = String.format(
+        String jsonFilter = String.format(
                 "{\"status\":[%s]}",
                 statuses.stream()
                         .map(eachStatus -> "\"" + eachStatus + "\"")
                         .collect(Collectors.joining(","))
         );
 
-        String filters = URLEncoder.encode(json, StandardCharsets.UTF_8);
+        String filters = URLEncoder.encode(jsonFilter, StandardCharsets.UTF_8);
 
         String uriString = String.format("%s/containers/json?all=true&filters=%s", baseUrl, filters);
         return URI.create(uriString);
