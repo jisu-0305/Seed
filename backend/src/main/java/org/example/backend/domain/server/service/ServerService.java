@@ -4,7 +4,7 @@ import org.example.backend.controller.request.server.DeploymentRegistrationReque
 import org.example.backend.controller.request.server.HttpsConvertRequest;
 
 public interface ServerService {
-    void registerDeployment(DeploymentRegistrationRequest request, String pemFilePath, String frontEnvFilePath, String backEnvFilePath, String accessToken);
+    void registerDeployment(DeploymentRegistrationRequest request, String accessToken);
 
     void convertHttpToHttps(HttpsConvertRequest request, String pemFilePath, String accessToken);
 }
