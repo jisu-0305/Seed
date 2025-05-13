@@ -55,8 +55,7 @@ public enum ErrorCode {
     PEM_NOT_FOUND(HttpStatus.NOT_FOUND, 3234, "PemFile 정보를 찾지 못했습니다."),
     BACK_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3235, "frontEnvFile 정보를 찾지 못했습니다."),
     FRONT_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3236, "bacakendEnvFile 정보를 찾지 못했습니다."),
-    APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3237, "어플리케이션 정보를 찾지 못했습니다."),
-    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, 3238, "AI report정보를 찾지 못했습니다."),
+    REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, 3237, "AI report정보를 찾지 못했습니다."),
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),

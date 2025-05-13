@@ -3,6 +3,7 @@ package org.example.backend.domain.gitlab.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
+import org.example.backend.controller.response.gitlab.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -62,26 +63,34 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Push 트리거 (커밋 날리기) */
     @Override
-    public void submitCommit(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String message, List<CommitAction> actions) {
-
+    public CommitResponse submitCommit(String gitlabPersonalAccessToken,
+                                       Long gitlabProjectId,
+                                       String branch,
+                                       String message,
+                                       List<CommitAction> actions) {
         URI uri = uriBuilder.buildCommitUri(gitlabProjectId);
-
         var payload = Map.of("branch", branch, "commit_message", message, "actions", actions);
 
         try {
-            gitlabWebClient.post()
+            return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
+                    .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(payload)
-                    .retrieve()
-                    .toBodilessEntity()
+                    .exchangeToMono(response -> {
+                        if (response.statusCode().is2xxSuccessful()) {
+                            return response.bodyToMono(CommitResponse.class);
+                        } else {
+                            return Mono.error(new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT));
+                        }
+                    })
                     .block();
         } catch (WebClientResponseException ex) {
+            log.error(">>> submitCommit WebClientResponseException: status={}, body={}",
+                    ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
             if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new BusinessException(ErrorCode.GITLAB_BRANCH_NOT_FOUND);
             }
-            log.error(">>> submitCommit error", ex);
             throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT);
         }
     }

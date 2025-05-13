@@ -11,7 +11,7 @@ public interface GitlabService {
 
     void createPushWebhook(String gitlabPersonalAccessToken, Long gitlabProjectId, String hookUrl, String branchFilter);
 
-    void triggerPushEvent(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch);
+    String triggerPushEvent(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch);
 
     MergeRequestCreateResponse createMergeRequest(String gitlabPersonalAccessToken,
                                                   Long gitlabProjectId,

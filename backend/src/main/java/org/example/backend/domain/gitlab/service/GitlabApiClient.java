@@ -1,5 +1,6 @@
 package org.example.backend.domain.gitlab.service;
 
+import org.example.backend.controller.response.gitlab.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -11,7 +12,7 @@ public interface GitlabApiClient {
 
     void registerPushWebhook(String gitlabPersonalAccessToken, Long gitlabProjectId, String hookUrl, String pushEventsBranchFilter);
 
-    void submitCommit(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<CommitAction> action);
+    CommitResponse submitCommit(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<CommitAction> action);
 
     MergeRequestCreateResponse submitMergeRequest(String gitlabPersonalAccessToken,
                                                   Long gitlabProjectId,
@@ -30,7 +31,7 @@ public interface GitlabApiClient {
 
     Mono<List<GitlabMergeRequest>> requestMergedMrs(String gitlabPersonalAccessToken, Long gitlabProjectId, int page, int perPage);
 
-    Mono<GitlabMergeRequest> requestMrDetail(String gitlabPersonalAccessToken, Long gitlabProjectId, Long mergeRequestIid);
+    Mono<GitlabMergeRequest> requestMrDetail(String gitlabPersonalAccessToken, Long projectId, Long mergeRequestIid);
 
     Mono<GitlabCompareResponse> requestCommitComparison(String gitlabPersonalAccessToken, Long gitlabProjectId, String from, String to);
 
