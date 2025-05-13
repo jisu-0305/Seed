@@ -35,7 +35,9 @@ export function DeployStatus({
       </TabList>
 
       <ContentWrapper>
-        {selectedTab === '빌드 기록' ? (
+        {tasksByTab[selectedTab]?.length === 0 ? (
+          <NoDataText>아직 빌드기록이 없습니다</NoDataText>
+        ) : selectedTab === '빌드 기록' ? (
           <BuildHistoryPanel projectId={pid} selectedTab={selectedTab} />
         ) : (
           <DeployTable
@@ -107,4 +109,11 @@ const ContentWrapper = styled.div`
   &::-webkit-scrollbar-track {
     background: transparent;
   }
+`;
+
+const NoDataText = styled.div`
+  color: ${({ theme }) => theme.colors.Gray3};
+  ${({ theme }) => theme.fonts.Body2};
+  text-align: center;
+  padding: 2rem;
 `;

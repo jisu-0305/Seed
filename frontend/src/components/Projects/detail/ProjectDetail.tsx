@@ -185,6 +185,7 @@ export default function ProjectDetail() {
             projectId={projectId}
             gitlab={detail.repositoryUrl}
             pemFilePath={detail.pemFilePath}
+            httpsEnabled={detail.httpsEnabled}
           />
         </SectionInfo>
 

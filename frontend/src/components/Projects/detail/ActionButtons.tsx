@@ -16,12 +16,14 @@ interface ActionButtonsProps {
   projectId: string | null;
   gitlab?: string | URL;
   pemFilePath: string;
+  httpsEnabled: boolean;
 }
 
 export function ActionButtons({
   projectId,
   gitlab,
   pemFilePath,
+  httpsEnabled,
 }: ActionButtonsProps) {
   const { mode } = useThemeStore();
   const team = useModal();
@@ -81,7 +83,11 @@ export function ActionButtons({
             <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
             지금 빌드
           </Button>
-          <Button variant="https" onClick={https.toggle}>
+          <Button
+            variant="https"
+            onClick={https.toggle}
+            disabled={httpsEnabled}
+          >
             <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
             Https 설정
           </Button>
@@ -161,6 +167,12 @@ const Button = styled.button<{ variant: Variant }>`
         : theme.colors.Blue4};
   color: ${({ theme }) => theme.colors.Black};
   ${({ theme }) => theme.fonts.Title4};
+
+  &:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
 `;
 
 const Icon = styled.img`
