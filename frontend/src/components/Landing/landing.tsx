@@ -2,6 +2,7 @@ import styled from '@emotion/styled';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'next/navigation';
 
+import { useUserStore } from '@/stores/userStore';
 import { clearUserData, fetchUserIfToken } from '@/utils/auth';
 
 type JWTPayload = { exp: number };
@@ -24,11 +25,18 @@ export default function Landing() {
     const token = localStorage.getItem('accessToken');
     if (token && isTokenValid(token)) {
       const ok = await fetchUserIfToken();
-      if (ok) {
-        router.push('/dashboard');
-      } else {
+      const { user } = useUserStore.getState();
+
+      if (!ok || !user) {
         clearUserData();
         router.push('/login');
+        return;
+      }
+
+      if (user.hasGitlabPersonalAccessToken) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/onboarding');
       }
     } else {
       clearUserData();
