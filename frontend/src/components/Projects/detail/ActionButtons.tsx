@@ -1,7 +1,9 @@
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 import { convertServer } from '@/apis/server';
+import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
 import { useModal } from '@/hooks/Common';
 import { useThemeStore } from '@/stores/themeStore';
@@ -24,6 +26,7 @@ export function ActionButtons({
   const { mode } = useThemeStore();
   const team = useModal();
   const https = useModal();
+  const [loading, setLoading] = useState(false);
 
   const router = useRouter();
 
@@ -44,11 +47,13 @@ export function ActionButtons({
     }
 
     try {
+      setLoading(true);
       const data = await convertServer(projectId, domain, email, pemFilePath);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);
     } finally {
+      setLoading(false);
       https.toggle();
     }
   };
@@ -107,6 +112,7 @@ export function ActionButtons({
         />
       </ModalWrapper>
       <ModalWrapper isShowing={https.isShowing}>
+        {loading && <LoadingSpinner />}
         <HttpsConfigModal
           isShowing={https.isShowing}
           handleClose={https.toggle}
