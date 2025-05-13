@@ -36,7 +36,7 @@ export function DeployStatus({
 
       <ContentWrapper>
         {selectedTab === '빌드 기록' ? (
-          <BuildHistoryPanel projectId={pid} />
+          <BuildHistoryPanel projectId={pid} selectedTab={selectedTab} />
         ) : (
           <DeployTable
             projectId={pid}

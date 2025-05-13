@@ -19,9 +19,13 @@ import { DeployTable } from './DeployTable';
 
 interface BuildHistoryPanelProps {
   projectId: number;
+  selectedTab: string;
 }
 
-export function BuildHistoryPanel({ projectId }: BuildHistoryPanelProps) {
+export function BuildHistoryPanel({
+  projectId,
+  selectedTab,
+}: BuildHistoryPanelProps) {
   const { mode } = useThemeStore();
 
   // 1) 빌드 목록 조회
@@ -119,6 +123,7 @@ export function BuildHistoryPanel({ projectId }: BuildHistoryPanelProps) {
               projectId={projectId}
               buildNumber={selectedBuild}
               tasks={tasks}
+              selectedTab={selectedTab}
             />
             <LinkButton
               onClick={() =>
