@@ -1,6 +1,7 @@
 export interface ProjectInfo {
   gitlab: {
     repo: string;
+    defaultBranch: string;
     structure: '모노' | '멀티' | string;
     directory: {
       client: string;
@@ -79,6 +80,7 @@ export interface ProjectDetailResponse {
 
 interface BaseProjectInfo {
   repositoryUrl: string;
+  gitlabTargetBranch: string;
   jdkVersion: string;
   serverIP: string;
   frontendFramework: string;
