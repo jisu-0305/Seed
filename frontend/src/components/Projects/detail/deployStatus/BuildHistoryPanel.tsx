@@ -1,34 +1,113 @@
 import styled from '@emotion/styled';
-import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 
-import { dummyBuilds } from '@/assets/dummy/builds';
+import {
+  BuildSummary,
+  fetchBuildDetail,
+  fetchBuildLogs,
+  fetchBuilds,
+} from '@/apis/build';
+import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
+import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
+import SmallModal from '@/components/Common/Modal/SmallModal';
+import { useModal } from '@/hooks/Common';
 import { useThemeStore } from '@/stores/themeStore';
+import type { Task } from '@/types/task';
 
 import { DeployTable } from './DeployTable';
 
-export function BuildHistoryPanel() {
-  const [selectedId, setSelectedId] = useState(dummyBuilds[0].id);
-  const selected = dummyBuilds.find((b) => b.id === selectedId)!;
+interface BuildHistoryPanelProps {
+  projectId: number;
+  selectedTab: string;
+}
 
+export function BuildHistoryPanel({
+  projectId,
+  selectedTab,
+}: BuildHistoryPanelProps) {
   const { mode } = useThemeStore();
 
+  // 1) 빌드 목록 조회
+  const {
+    data: builds = [],
+    isLoading: loadingBuilds,
+    error: buildsError,
+  } = useQuery<BuildSummary[], Error>({
+    queryKey: ['builds', projectId],
+    queryFn: () => fetchBuilds(projectId),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 2) 선택된 빌드 번호 관리
+  const [selectedBuild, setSelectedBuild] = useState<number | null>(null);
+
+  // 빌드 목록 로드 후 기본 선택 세팅
+  useEffect(() => {
+    if (builds.length > 0 && selectedBuild === null) {
+      setSelectedBuild(builds[0].buildNumber);
+    }
+  }, [builds, selectedBuild]);
+
+  // 3) 선택된 빌드 상세(스텝) 조회
+  const {
+    data: tasks = [],
+    isLoading: loadingTasks,
+    error: tasksError,
+  } = useQuery<Task[], Error>({
+    queryKey: ['buildDetail', projectId, selectedBuild],
+    queryFn: () => fetchBuildDetail(projectId, selectedBuild!),
+    enabled: selectedBuild !== null,
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // 로그 모달 상태 관리
+  const logModal = useModal();
+  const [logBuildName, setLogBuildName] = useState<string>('');
+  const [logBuildNumber, setLogBuildNumber] = useState<number>(0);
+
+  // 로그 내용 조회 (초기에는 disabled)
+  const {
+    data: logText,
+    isLoading: loadingLog,
+    error: logError,
+  } = useQuery<string, Error>({
+    queryKey: ['buildLog', projectId, logBuildNumber],
+    queryFn: () => fetchBuildLogs(projectId, logBuildNumber),
+    enabled: logModal.isShowing,
+  });
+
+  // 로그 버튼 클릭 시
+  const handleShowLog = (b: BuildSummary) => {
+    setLogBuildName(b.buildName);
+    setLogBuildNumber(b.buildNumber);
+    logModal.toggle();
+  };
+
   if (mode === null) return null;
+  if (loadingBuilds)
+    return (
+      <Wrapper>
+        <LoadingSpinner />
+      </Wrapper>
+    );
+  if (buildsError) return <NoDataText>아직 빌드기록이 없습니다</NoDataText>;
 
   return (
     <Wrapper>
       <LeftPanel>
-        {dummyBuilds.map((b) => (
+        {builds.map((b) => (
           <BuildItem
-            key={b.id}
-            active={b.id === selectedId}
-            onClick={() => setSelectedId(b.id)}
+            key={b.buildNumber}
+            active={b.buildNumber === selectedBuild}
+            onClick={() => setSelectedBuild(b.buildNumber)}
           >
             <Icon status={b.status}>
               <IcIcon src={`/assets/icons/ic_build_${mode}.svg`} alt="build" />
             </Icon>
             <Info>
               <Title>
-                #{b.id} {b.title}
+                #{b.buildNumber} {b.buildName}
               </Title>
               <Meta>
                 {b.date} • {b.time}
@@ -39,23 +118,61 @@ export function BuildHistoryPanel() {
       </LeftPanel>
 
       <RightPanel>
-        <DeployTable tasks={selected.tasks} />
-        <LinkButton href={selected.link} target="_blank">
-          GitLab 확인하기 →
-        </LinkButton>
+        {loadingTasks ? (
+          <LoadingSpinner />
+        ) : tasksError ? (
+          <div>빌드 상세 조회 실패: {tasksError.message}</div>
+        ) : (
+          <>
+            <DeployTable
+              projectId={projectId}
+              buildNumber={selectedBuild}
+              tasks={tasks}
+              selectedTab={selectedTab}
+            />
+            <LinkButton
+              onClick={() =>
+                handleShowLog(
+                  builds.find((b) => b.buildNumber === selectedBuild)!,
+                )
+              }
+            >
+              콘솔 로그 →
+            </LinkButton>
+          </>
+        )}
       </RightPanel>
+
+      <ModalWrapper isShowing={logModal.isShowing}>
+        <SmallModal
+          title={`빌드 로그 #${logBuildNumber} ${logBuildName}`}
+          isShowing={logModal.isShowing}
+          handleClose={logModal.toggle}
+        >
+          {loadingLog ? (
+            <LoadingSpinner />
+          ) : logError ? (
+            <div>로그 불러오기 실패: {logError.message}</div>
+          ) : (
+            <LogContainer>
+              <pre>{logText}</pre>
+            </LogContainer>
+          )}
+        </SmallModal>
+      </ModalWrapper>
     </Wrapper>
   );
 }
 
 const Wrapper = styled.div`
   display: flex;
-  max-height: 35rem;
+  height: 35rem;
+  width: 100%;
   overflow: hidden;
 `;
 
 const LeftPanel = styled.div`
-  width: 220px;
+  width: 22rem;
   border-right: 1px solid ${({ theme }) => theme.colors.DetailBorder2};
 
   overflow-y: auto;
@@ -146,7 +263,7 @@ const Meta = styled.div`
   color: ${({ theme }) => theme.colors.Gray3};
 `;
 
-const LinkButton = styled.a`
+const LinkButton = styled.button`
   width: 11rem;
   margin: 1.5rem 0 1rem 1.5rem;
   padding: 0.75rem 1.5rem;
@@ -160,4 +277,27 @@ const LinkButton = styled.a`
     background: ${({ theme }) => theme.colors.Text};
     color: ${({ theme }) => theme.colors.Background};
   }
+`;
+
+const LogContainer = styled.div`
+  max-height: 40rem;
+  overflow: auto;
+  background: ${({ theme }) => theme.colors.Gray0};
+  padding: 1rem;
+  margin: 2rem;
+  border-radius: 0.5rem;
+
+  pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    ${({ theme }) => theme.fonts.Body4};
+    color: ${({ theme }) => theme.colors.White};
+  }
+`;
+
+const NoDataText = styled.div`
+  color: ${({ theme }) => theme.colors.Gray3};
+  ${({ theme }) => theme.fonts.Body2};
+  text-align: center;
+  padding: 2rem;
 `;

@@ -173,6 +173,7 @@ const Text = styled.div`
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  width: 14rem;
 `;
 
 const Title = styled.div`
@@ -185,7 +186,7 @@ const Message = styled.div`
 `;
 
 const AcceptButton = styled.button`
-  width: 10rem;
+  width: 11rem;
   padding: 0.5rem 1rem;
   ${({ theme }) => theme.fonts.Body5};
   background: ${({ theme }) => theme.colors.MenuBg};

@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import { useState } from 'react';
 
 import { useThemeStore } from '@/stores/themeStore';
 import type { DeployStatusProps, DeployTabName } from '@/types/deploy';
@@ -7,10 +6,16 @@ import type { DeployStatusProps, DeployTabName } from '@/types/deploy';
 import { BuildHistoryPanel } from './BuildHistoryPanel';
 import { DeployTable } from './DeployTable';
 
-export function DeployStatus({ tasksByTab }: DeployStatusProps) {
+export function DeployStatus({
+  projectId,
+  buildNumber,
+  tasksByTab,
+  selectedTab,
+  onTabChange,
+}: DeployStatusProps) {
   const tabs = Object.keys(tasksByTab) as DeployTabName[];
-  const [active, setActive] = useState<DeployTabName>(tabs[0]);
   const { mode } = useThemeStore();
+  const pid = Number(projectId);
 
   if (mode === null) return null;
 
@@ -20,9 +25,9 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
         {tabs.map((t) => (
           <Tab
             key={t}
-            active={t === active}
+            active={t === selectedTab}
             mode={mode}
-            onClick={() => setActive(t)}
+            onClick={() => onTabChange(t)}
           >
             {t}
           </Tab>
@@ -30,10 +35,17 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
       </TabList>
 
       <ContentWrapper>
-        {active === '빌드 기록' ? (
-          <BuildHistoryPanel />
+        {selectedTab === '빌드 기록' ? (
+          <BuildHistoryPanel projectId={pid} selectedTab={selectedTab} />
+        ) : tasksByTab[selectedTab]?.length === 0 ? (
+          <NoDataText>아직 빌드기록이 없습니다</NoDataText>
         ) : (
-          <DeployTable tasks={tasksByTab[active]} />
+          <DeployTable
+            projectId={pid}
+            buildNumber={buildNumber}
+            tasks={tasksByTab[selectedTab]}
+            selectedTab={selectedTab}
+          />
         )}
       </ContentWrapper>
     </Container>
@@ -43,6 +55,7 @@ export function DeployStatus({ tasksByTab }: DeployStatusProps) {
 const Container = styled.div`
   margin-top: 1rem;
   border-radius: 1rem;
+  width: 100%;
 `;
 
 const TabList = styled.div`
@@ -97,4 +110,11 @@ const ContentWrapper = styled.div`
   &::-webkit-scrollbar-track {
     background: transparent;
   }
+`;
+
+const NoDataText = styled.div`
+  color: ${({ theme }) => theme.colors.Gray3};
+  ${({ theme }) => theme.fonts.Body2};
+  text-align: center;
+  padding: 2rem;
 `;
