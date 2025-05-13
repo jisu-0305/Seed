@@ -55,6 +55,10 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private BuildStatus buildStatus;
 
+    public void enableAutoDeployment() {
+        this.autoDeploymentEnabled = true;
+    }
+
     public void enableHttps() {
         this.httpsEnabled = true;
     }
@@ -63,6 +67,7 @@ public class Project {
         this.buildStatus = status;
         this.lastBuildAt = LocalDateTime.now();
     }
+
 
 }
 
