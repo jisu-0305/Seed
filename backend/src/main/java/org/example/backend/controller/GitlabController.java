@@ -48,15 +48,14 @@ public class GitlabController {
 
     /* 2. Push 트리거 */
     @PostMapping("/projects/{projectId}/triggers/push")
-    @Operation(summary = "push 트리거", security = @SecurityRequirement(name = "PAT"))
-    public ResponseEntity<ApiResponse<Void>> triggerPushEvent(
-            @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
+    public ResponseEntity<ApiResponse<String>> triggerPushEvent(
+            @PathVariable Long projectId,
             @RequestParam String branch,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
-        gitlabService.triggerPushEvent(gitlabPersonalAccessToken, projectId, branch);
-        return ResponseEntity.ok(ApiResponse.success());
-
+            @RequestHeader(name = "PAT_Authorization", required = false)
+            String gitlabPersonalAccessToken
+    ) {
+        String commitWebUrl = gitlabService.triggerPushEvent(gitlabPersonalAccessToken, projectId, branch);
+        return ResponseEntity.ok(ApiResponse.success(commitWebUrl));
     }
 
     /* 3. MR생성 */
@@ -116,6 +115,14 @@ public class GitlabController {
         List<GitlabProject> projects = gitlabService.getProjects(gitlabPersonalAccessToken);
         return ResponseEntity.ok(ApiResponse.success(projects));
 
+    }
+
+    /* 6-1. 프론트_userid로 깃랩 레포지토리 조회 */
+    @GetMapping("/users/{userId}/projects")
+    @Operation(summary = "프론트_ userid로 레포지토리 조회")
+    public ResponseEntity<ApiResponse<List<GitlabProject>>> getGitlabProjectsByUserId(@PathVariable Long userId) {
+        List<GitlabProject> projects = gitlabService.getGitlabProjectsByUserId(userId);
+        return ResponseEntity.ok(ApiResponse.success(projects));
     }
 
     /* 7. 레포지토리 단건 조회 (URL) */

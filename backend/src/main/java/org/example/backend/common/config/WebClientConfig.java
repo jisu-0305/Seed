@@ -36,14 +36,6 @@ public class WebClientConfig {
                 .build();
     }
 
-//    @Bean("dockerWebClient")
-//    public WebClient DockerWebClient() {
-//        return WebClient.builder()
-//                .baseUrl(dockerRegistryApiBaseUrl)
-//                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-//                .build();
-//    }
-
     @Bean("dockerWebClientBuilder")
     public WebClient.Builder dockerWebClientBuilder() {
         return WebClient.builder()

@@ -5,7 +5,7 @@ import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
 import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
 import org.example.backend.util.aiapi.dto.patchfile.PatchTextRequest;
 import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
-import org.example.backend.util.aiapi.dto.aireport.ReportResponse;
+import org.example.backend.util.aiapi.dto.aireport.AIReportResponse;
 import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
 import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
 import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
@@ -24,5 +24,5 @@ public interface AIApiClient {
 
     PatchedFile requestPatchFile(PatchFileRequest patchFileRequest);
 
-    ReportResponse requestErrorReport(AIReportRequest aiReportRequest);
+    AIReportResponse requestErrorReport(AIReportRequest aiReportRequest);
 }

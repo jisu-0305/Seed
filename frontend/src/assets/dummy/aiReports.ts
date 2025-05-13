@@ -4,7 +4,7 @@ import type { AiReport } from '@/types/aiReport';
 export const dummyReports: AiReport[] = [
   {
     id: '119',
-    title: '[BE] 순환 참조 에러 해결',
+    title: 'BasicServiceImpl과 SecondaryServiceImpl 간 순환 의존성 해결',
     date: 'Apr 22, 2025',
     status: 'In Progress',
     summary: `BasicServiceImpl과 SecondaryServiceImpl이 서로 생성자 주입(Constructor Injection)으로 참조하며 순환 의존성 문제가 발생했습니다.
@@ -17,7 +17,7 @@ export const dummyReports: AiReport[] = [
   },
   {
     id: '118',
-    title: '[BE] Missing Tag 해결',
+    title: 'SecondaryServiceImpl에 @Lazy 적용으로 순환 빈 의존성 해결',
     date: 'Apr 22, 2025',
     status: 'Merged',
     summary: `Spring Data JPA에서 @Entity에 @Table(name=...)가 빠져 발생한 매핑 에러를 수정했습니다.`,
@@ -27,7 +27,7 @@ export const dummyReports: AiReport[] = [
   },
   {
     id: '117',
-    title: '[BE] 스프링 빈 순환 의존성',
+    title: 'Bean 순환 의존성 해결을 위한 Lazy 적용',
     date: 'Apr 22, 2025',
     status: 'Rejected',
     summary: `스프링 빈 간 순환 의존성 문제를 @Lazy 어노테이션으로 해결했습니다.`,
@@ -38,7 +38,7 @@ export const dummyReports: AiReport[] = [
 
   {
     id: '116',
-    title: '[BE] 순환 참조 에러 해결6',
+    title: '순환 빈 의존성 해결 보고서',
     date: 'Apr 22, 2025',
     status: 'In Progress',
     summary: `BasicServiceImpl과 SecondaryServiceImpl이 서로 생성자 주입(Constructor Injection)으로 참조하며 순환 의존성 문제가 발생했습니다.
@@ -51,7 +51,7 @@ export const dummyReports: AiReport[] = [
   },
   {
     id: '115',
-    title: '[BE] 순환 참조 에러 해결5',
+    title: '순환 의존성 해결을 위한 @Lazy 적용',
     date: 'Apr 22, 2025',
     status: 'In Progress',
     summary: `BasicServiceImpl과 SecondaryServiceImpl이 서로 생성자 주입(Constructor Injection)으로 참조하며 순환 의존성 문제가 발생했습니다.
