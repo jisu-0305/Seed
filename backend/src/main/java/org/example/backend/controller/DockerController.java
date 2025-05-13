@@ -72,6 +72,16 @@ public class DockerController {
         return ResponseEntity.ok(ApiResponse.success(statuses));
     }
 
+    @PostMapping("/servers/{serverIp:.+}/run/{containerName}")
+    @Operation(summary = "특정 이릅을 가지는 컨테이너 재실행 등 작업 (run, stop, pause)",
+            description = "기본적으로는 action 없어도 해당 컨테이너에 대한 run 실행.")
+    public ResponseEntity<ApiResponse<Void>> controlContainer(
+            @PathVariable String serverIp,
+            @PathVariable String containerName) {
+        dockerService.controlContainer(serverIp, containerName);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     @GetMapping("/servers/{serverIp:.+}/logs/{appName}")
     @Operation(summary = "컨테이너 로그 조회")
     public ResponseEntity<ApiResponse<List<DockerContainerLogResponse>>> getContainerLogs(

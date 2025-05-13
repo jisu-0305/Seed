@@ -8,7 +8,8 @@ public enum ErrorCode {
 
     // 1xxx: 파라미터 관련 오류
     INVALID_PARAMETER(HttpStatus.BAD_REQUEST, 1001, "잘못된 파라미터입니다."),
-    INVALID_AUTHORIZATION_HEADER(HttpStatus.BAD_REQUEST, 1101, "Authorization 헤더 형식이 잘못되었습니다."),
+    INVALID_AUTHORIZATION_HEADER(HttpStatus.BAD_REQUEST, 1102, "Authorization 헤더 형식이 잘못되었습니다."),
+    INVALID_REQUEST(HttpStatus.BAD_REQUEST, 1103, "지원하지 않는 요청입니다."),
 
     // 2xxx: 비즈니스 로직 관련 오류
     BUSINESS_ERROR(HttpStatus.BAD_REQUEST, 2001, "비즈니스 로직 오류가 발생했습니다."),
@@ -56,6 +57,8 @@ public enum ErrorCode {
     BACK_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3235, "frontEnvFile 정보를 찾지 못했습니다."),
     FRONT_ENV_NOT_FOUND(HttpStatus.NOT_FOUND, 3236, "bacakendEnvFile 정보를 찾지 못했습니다."),
     REPORT_NOT_FOUND(HttpStatus.NOT_FOUND, 3237, "AI report정보를 찾지 못했습니다."),
+    DOCKER_CONTROL_FAILED(HttpStatus.NOT_FOUND, 3238, "도커 컨테이너 제어에 실패했습니다."),
+
 
     // 4xxx: 인증/권한 관련 오류
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, 4001, "인증이 필요합니다."),

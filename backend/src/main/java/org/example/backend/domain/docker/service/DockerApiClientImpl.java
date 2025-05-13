@@ -121,6 +121,45 @@ public class DockerApiClientImpl implements DockerApiClient {
                 .block();
     }
 
+    @Override
+    public void startContainer(String serverIp, String containerId) {
+        URI uri = uriBuilder.buildStartContainerUri(serverIp, containerId);
+        log.debug(">> 컨테이너 시작 URI: {}", uri);
+
+        WebClient client = webClientBuilder.build();
+        client.post()
+                .uri(uri)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
+
+    @Override
+    public void pauseContainer(String serverIp, String containerId) {
+        URI uri = uriBuilder.buildPauseContainerUri(serverIp, containerId);
+        log.debug(">> 컨테이너 일시정지 URI: {}", uri);
+
+        WebClient client = webClientBuilder.build();
+        client.post()
+                .uri(uri)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
+
+    @Override
+    public void stopContainer(String serverIp, String containerId) {
+        URI uri = uriBuilder.buildStopContainerUri(serverIp, containerId);
+        log.debug(">> 컨테이너 중지 URI: {}", uri);
+
+        WebClient client = webClientBuilder.build();
+        client.post()
+                .uri(uri)
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
+
     /* 공통 로직 */
     /**
      * 디폴트 포트 처리 로직
