@@ -22,6 +22,7 @@ interface ProjectInfoStore {
 const initialStatus: ProjectInfo = {
   gitlab: {
     repo: '',
+    defaultBranch: '',
     structure: '모노',
     directory: {
       client: '',
