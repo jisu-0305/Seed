@@ -19,8 +19,11 @@ import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
 import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectApplication;
+import org.example.backend.domain.project.entity.ProjectFile;
+import org.example.backend.domain.project.enums.FileType;
 import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectApplicationRepository;
+import org.example.backend.domain.project.repository.ProjectFileRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.domain.server.entity.HttpsLog;
 import org.example.backend.domain.server.repository.HttpsLogRepository;
@@ -56,10 +59,12 @@ public class ServerServiceImpl implements ServerService {
     private final ApplicationRepository applicationRepository;
 
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
+    private final ProjectApplicationRepository projectApplicationRepository;
+    private final ProjectFileRepository projectFileRepository;
 
     @Override
     public void registerDeployment(
-            DeploymentRegistrationRequest request, String pemFilePath, String frontEnvFilePath, String backEnvFilePath, String accessToken) {
+            DeploymentRegistrationRequest request, String accessToken) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -70,23 +75,28 @@ public class ServerServiceImpl implements ServerService {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
+        ProjectFile pemFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.PEM)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PEM_NOT_FOUND));
+
+        ProjectFile frontEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.FRONT_ENV)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FRONT_ENV_NOT_FOUND));
+
+        ProjectFile backEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.BACKEND_ENV)
+                .orElseThrow(() -> new BusinessException(ErrorCode.BACK_ENV_NOT_FOUND));
+
         String host = project.getServerIP();
         Session sshSession = null;
 
-        // pem 조회
-        File pemFile = new File(project.getPemFilePath());
-        File frontEnvFile = new File(project.getFrontendEnvFilePath());
-        File backEnvFile = new File(project.getBackendEnvFilePath());
 
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
-            sshSession = createSessionWithPem(pemFile, host);
+            sshSession = createSessionWithPem(pemFileEntity.getData(), host);
             log.info("세션 생성 성공");
 
             // 2) 명령어 실행
             log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(user, project, frontEnvFile, backEnvFile, project.getGitlabTargetBranchName())) {
+            for (String cmd : serverInitializeCommands(user, project, frontEnvFileEntity.getData(), backEnvFileEntity.getData(), project.getGitlabTargetBranchName())) {
                 log.info("명령 수행:\n{}", cmd);
                 String output = execCommand(sshSession, cmd);
                 log.info("명령 결과:\n{}", output);
@@ -124,8 +134,11 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(User user, Project project, File frontEnvFile, File backEnvFile, String gitlabTargetBranchName) {
-        GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), "https://lab.ssafy.com/potential1205/seed-test1");
+    private List<String> serverInitializeCommands(User user, Project project, byte[] frontEnvFile, byte[] backEnvFile, String gitlabTargetBranchName) {
+        String url = project.getRepositoryUrl();
+        String repositoryUrl = url.substring(0, url.length() - 4);
+
+        GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), repositoryUrl);
 
         String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
         String namespace = user.getUserIdentifyId() + "/" + gitlabProject.getName() + ".git";
@@ -134,13 +147,12 @@ public class ServerServiceImpl implements ServerService {
         log.info(gitlabProject.toString());
 
         // 어플리케이션 목록
-//         List<Application> applicationList = applicationRepository.findAllByProjectId(project.getId());
+         List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
                 updatePackageManager(),
                 setSwapMemory(),
                 setJDK(),
-                setNodejs(),
                 setDocker(),
                 setNginx(project.getServerIP()),
                 setJenkins(),
@@ -150,7 +162,7 @@ public class ServerServiceImpl implements ServerService {
                 makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                //runApplicationList(applicationList),
+                runApplicationList(projectApplicationList),
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
@@ -173,6 +185,13 @@ public class ServerServiceImpl implements ServerService {
     // 2. 스왑 메모리 설정
     private List<String> setSwapMemory() {
         return List.of(
+                // 기존 파일 제거
+                "if [ -f /swapfile ]; then sudo swapoff /swapfile; fi",
+                "sudo sed -i '/\\/swapfile/d' /etc/fstab",
+                "sudo rm -f /swapfile",
+                "free -h",
+
+                // 스왑 메모리 설정
                 "sudo fallocate -l 4G /swapfile",
                 "sudo chmod 600 /swapfile",
                 "sudo mkswap /swapfile",
@@ -230,12 +249,12 @@ public class ServerServiceImpl implements ServerService {
                 // 5-4. 서비스 활성화 및 시작
                 "sudo systemctl enable docker",
                 "sudo systemctl start docker",
-                "docker --version",
+                "docker --version"
 
                 // 5-5. Docker 데몬 TCP 포트 허용
-                "echo '{\"hosts\": [\"unix:///var/run/docker.sock\", \"tcp://0.0.0.0:3789\"]}' | sudo tee /etc/docker/daemon.json > /dev/null",
-                "sudo systemctl daemon-reload",
-                "sudo systemctl restart docker"
+//                "echo '{\"hosts\": [\"unix:///var/run/docker.sock\", \"tcp://0.0.0.0:3789\"]}' | sudo tee /etc/docker/daemon.json > /dev/null",
+//                "sudo systemctl daemon-reload",
+//                "sudo systemctl restart docker"
         );
     }
 
@@ -395,57 +414,49 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins credentials 생성
-    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, File frontEnvFile, File backEnvFile) {
-        try {
-//            String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile.getBytes());
-//            String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile.getBytes());
+    private List<String> setJenkinsConfiguration(String gitlabUsername, String gitlabToken, byte[] frontEnvFile, byte[] backEnvFile) {
+        String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile);
+        String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile);
 
-            String frontEnvFileStr = Base64.getEncoder().encodeToString(Files.readAllBytes(frontEnvFile.toPath()));
-            String backEnvFileStr = Base64.getEncoder().encodeToString(Files.readAllBytes(backEnvFile.toPath()));
+        log.info(gitlabToken);
 
-            log.info(gitlabToken);
+        return List.of(
+                // CLI 다운로드
+                "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
 
-            return List.of(
-                    // CLI 다운로드
-                    "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
+                // GitLab Personal Access Token 등록
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>gitlab-token</id>\n" +
+                        "  <description>GitLab token</description>\n" +
+                        "  <username>" + gitlabUsername + "</username>\n" +
+                        "  <password>" + gitlabToken + "</password>\n" +
+                        "</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
+                        "EOF",
 
-                    // GitLab Personal Access Token 등록
-                    "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
-                            "<com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
-                            "  <scope>GLOBAL</scope>\n" +
-                            "  <id>gitlab-token</id>\n" +
-                            "  <description>GitLab token</description>\n" +
-                            "  <username>" + gitlabUsername + "</username>\n" +
-                            "  <password>" + gitlabToken + "</password>\n" +
-                            "</com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl>\n" +
-                            "EOF",
+                // 백엔드 환경변수 등록 (파일 기반)
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>backend</id>\n" +
+                        "  <description></description>\n" +
+                        "  <fileName>.env</fileName>\n" +
+                        "  <secretBytes>" + backEnvFileStr + "</secretBytes>\n" +
+                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "EOF",
 
-                    // 백엔드 환경변수 등록 (파일 기반)
-                    "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
-                            "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                            "  <scope>GLOBAL</scope>\n" +
-                            "  <id>backend</id>\n" +
-                            "  <description></description>\n" +
-                            "  <fileName>.env</fileName>\n" +
-                            "  <secretBytes>" + backEnvFileStr + "</secretBytes>\n" +
-                            "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                            "EOF",
-
-                    // 프론트엔드 환경변수 등록 (파일 기반)
-                    "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
-                            "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                            "  <scope>GLOBAL</scope>\n" +
-                            "  <id>front</id>\n" +
-                            "  <description></description>\n" +
-                            "  <fileName>.env</fileName>\n" +
-                            "  <secretBytes>" + frontEnvFileStr + "</secretBytes>\n" +
-                            "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
-                            "EOF"
-            );
-
-        } catch (IOException e) {
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR, "환경변수 파일 인코딩 실패: " + e.getMessage());
-        }
+                // 프론트엔드 환경변수 등록 (파일 기반)
+                "cat <<EOF | java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-credentials-by-xml system::system::jenkins _\n" +
+                        "<org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "  <scope>GLOBAL</scope>\n" +
+                        "  <id>front</id>\n" +
+                        "  <description></description>\n" +
+                        "  <fileName>.env</fileName>\n" +
+                        "  <secretBytes>" + frontEnvFileStr + "</secretBytes>\n" +
+                        "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
+                        "EOF"
+        );
     }
 
     private List<String> makeJenkinsJob(String jobName, String gitRepoUrl, String credentialsId, String gitlabTargetBranchName) {
@@ -605,31 +616,6 @@ public class ServerServiceImpl implements ServerService {
                         "            }\n" +
                         "        }\n" +
                         "\n" +
-                        "        stage('Build AI') {\n" +
-                        "            when {\n" +
-                        "                changeset pattern: 'ai/.*', comparator: 'REGEXP'\n" +
-                        "            }\n" +
-                        "            steps {\n" +
-                        "                echo '4. AI 변경 감지, 빌드 시작'\n" +
-                        "                withCredentials([file(credentialsId: \"ai\", variable: 'AI_ENV')]) {\n" +
-                        "                    sh '''\n" +
-                        "                        set -e\n" +
-                        "                        echo \"  - 복사: $AI_ENV → ${WORKSPACE}/ai/.env\"\n" +
-                        "                        cp \"\\$AI_ENV\" \"\\$WORKSPACE/ai/.env\"\n" +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                dir('ai') {\n" +
-                        "                    sh '''\n" +
-                        "                        set -e\n" +
-                        "                        docker build -t my-ai-app .\n" +
-                        "                        docker stop ai || true\n" +
-                        "                        docker rm ai || true\n" +
-                        "                        docker run -d --restart unless-stopped --name ai -p 8001:8001 -v $(pwd)/app/uploads:/app/uploads --env-file .env my-ai-app\n" +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                echo '[INFO] AI 완료'\n" +
-                        "            }\n" +
-                        "        }\n" +
                         "    }\n" +
                         "}\n" +
                         "EOF\n";
@@ -851,6 +837,9 @@ public class ServerServiceImpl implements ServerService {
         Project project = projectRepository.findById(request.getProjectId())
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
+        ProjectFile pemFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.PEM)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
         if (!userProjectRepository.existsByProjectIdAndUserId(project.getId(), user.getId())) {
             throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
         }
@@ -858,12 +847,11 @@ public class ServerServiceImpl implements ServerService {
         String host = project.getServerIP();
         Session sshSession = null;
 
-        File pemFile = new File(project.getPemFilePath());
 
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
-            sshSession = createSessionWithPem(pemFile, host);
+            sshSession = createSessionWithPem(pemFileEntity.getData(), host);
             log.info("세션 생성 성공");
 
             // 2) 명령어 실행
@@ -1076,11 +1064,9 @@ public class ServerServiceImpl implements ServerService {
                 .build());
     }
 
-    private Session createSessionWithPem(File pemFile, String host) throws JSchException, IOException {
-        byte[] keyBytes = Files.readAllBytes(pemFile.toPath());
-
+    private Session createSessionWithPem(byte[] pemFile, String host) throws JSchException, IOException {
         JSch jsch = new JSch();
-        jsch.addIdentity("ec2-key", keyBytes, null, null);
+        jsch.addIdentity("ec2-key", pemFile, null, null);
 
         Session session = jsch.getSession("ubuntu", host, 22);
         Properties cfg = new Properties();
