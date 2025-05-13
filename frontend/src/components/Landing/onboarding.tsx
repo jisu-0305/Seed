@@ -3,11 +3,13 @@ import React, { useState } from 'react';
 
 import TipItem from '@/components/Common/TipItem';
 import { useModal } from '@/hooks/Common';
+import { useThemeStore } from '@/stores/themeStore';
 
 import ModalWrapper from '../Common/Modal/ModalWrapper';
 import InformPATModal from './InformPATModal';
 
 export default function OnBoarding() {
+  const { mode } = useThemeStore();
   const [token, setToken] = useState('');
   const patTip = useModal();
 
@@ -17,21 +19,32 @@ export default function OnBoarding() {
     console.log('등록할 토큰:', token);
   };
 
+  if (mode === null) return null;
+
   return (
     <PageWrapper>
       <Header>
         <Logo src="/assets/cactus.png" alt="SEED Logo" />
         <TitleGroup>
-          <MainTitle>SEED</MainTitle>
+          <LogoText
+            src={
+              mode === 'light'
+                ? '/assets/icons/ic_logoText.svg'
+                : '/assets/icons/ic_logoText_white.svg'
+            }
+            alt="logoText"
+          />
           <SubTitle>배포가 어려운 당신을 위한 솔루션</SubTitle>
         </TitleGroup>
       </Header>
 
       <Content>
-        <p>환영합니다! SEED 서비스에 오신 것을 환영합니다.</p>
-        <p>
+        <ContentText>
+          환영합니다! SEED 서비스에 오신 것을 환영합니다.
+        </ContentText>
+        <ContentText>
           원활한 서비스 이용을 위해 GitLab 개인 액세스 토큰(PAT)을 등록해주세요.
-        </p>
+        </ContentText>
 
         <TipArea>
           <TipItem
@@ -51,13 +64,12 @@ export default function OnBoarding() {
             value={token}
             onChange={(e) => setToken(e.target.value)}
           />
-          <SubmitButton type="submit">등록하기 &gt;</SubmitButton>
+          <SubmitButton type="submit">등록하기</SubmitButton>
         </InputGroup>
         <NoteList>
-          <li>
-            발급받은 토큰은 SEED 서비스를 위한 액세스 권한에만 사용됩니다.
-          </li>
-          <li>토큰은 외부에 유출되지 않도록 안전하게 보관해주세요.</li>
+          발급받은 토큰은 SEED 서비스를 위한 액세스 권한에만 사용됩니다.
+          <br />
+          토큰은 외부에 유출되지 않도록 안전하게 보관해주세요.
         </NoteList>
       </Form>
 
@@ -72,23 +84,25 @@ export default function OnBoarding() {
 }
 
 const PageWrapper = styled.div`
-  padding: 4rem;
-  margin: 0 auto;
-  max-width: 100rem;
-  font-family: 'Noto Sans KR', sans-serif;
-  color: #333;
+  margin: auto;
+  max-width: 90rem;
+  height: calc(100vh - 7rem);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 `;
 
 const Header = styled.header`
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 2rem;
-  margin-bottom: 3rem;
 `;
 
 const Logo = styled.img`
-  width: 8rem;
-  height: 8rem;
+  width: 20rem;
+  height: 20rem;
   object-fit: contain;
 `;
 
@@ -97,26 +111,27 @@ const TitleGroup = styled.div`
   flex-direction: column;
 `;
 
-const MainTitle = styled.h1`
-  margin: 0;
-  font-size: 4rem;
-  font-weight: bold;
+const LogoText = styled.img`
+  height: 10rem;
+
+  padding-top: 0.2rem;
 `;
 
 const SubTitle = styled.h2`
-  margin: 0.5rem 0 0;
-  font-size: 1.5rem;
-  color: #ffac2f;
+  margin: 1.5rem 0 0;
+  ${({ theme }) => theme.fonts.EnTitle1};
+  color: ${({ theme }) => theme.colors.Main_Carrot};
 `;
 
-const Content = styled.section`
-  line-height: 1.6;
-  font-size: 1.125rem;
-  margin-bottom: 3rem;
+const Content = styled.div`
+  padding: 0rem 10rem;
+  margin-bottom: 5rem;
+  margin-top: 5rem;
+`;
 
-  p + p {
-    margin-top: 1rem;
-  }
+const ContentText = styled.div`
+  ${({ theme }) => theme.fonts.Head7};
+  margin-top: 1rem;
 `;
 
 const TipArea = styled.div`
@@ -126,55 +141,53 @@ const TipArea = styled.div`
 const Form = styled.form`
   display: flex;
   flex-direction: column;
+  padding: 0rem 10rem;
 `;
 
 const FormLabel = styled.label`
-  font-size: 1.25rem;
-  font-weight: 600;
+  ${({ theme }) => theme.fonts.Title3};
   margin-bottom: 1rem;
 `;
 
 const InputGroup = styled.div`
   display: flex;
-  gap: 1rem;
   align-items: center;
+  width: 50rem;
+  gap: 1.5rem;
   margin-bottom: 1rem;
 `;
 
 const TokenInput = styled.input`
   flex: 1;
   padding: 1rem;
-  font-size: 1rem;
-  border: 2px solid #ffac2f;
-  border-radius: 0.5rem;
+  ${({ theme }) => theme.fonts.Body4};
+  color: ${({ theme }) => theme.colors.Text};
+  border: 2px solid ${({ theme }) => theme.colors.Main_Carrot};
+  border-radius: 1rem;
   outline: none;
 
   &:focus {
-    border-color: #e6952b;
+    border-color: ${({ theme }) => theme.colors.Carrot2};
   }
 `;
 
 const SubmitButton = styled.button`
   padding: 1rem 2rem;
-  font-size: 1rem;
-  background-color: #ffac2f;
-  color: #fff;
+  ${({ theme }) => theme.fonts.Body4};
+  color: ${({ theme }) => theme.colors.White};
+  background-color: ${({ theme }) => theme.colors.Main_Carrot};
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 1rem;
   cursor: pointer;
 
   &:hover {
-    background-color: #e6952b;
+    background-color: ${({ theme }) => theme.colors.Carrot2};
   }
 `;
 
-const NoteList = styled.ul`
+const NoteList = styled.div`
   margin: 0;
   padding-left: 1.25rem;
-  font-size: 0.875rem;
-  color: #666;
-
-  li + li {
-    margin-top: 0.5rem;
-  }
+  ${({ theme }) => theme.fonts.Body4};
+  color: ${({ theme }) => theme.colors.Gray3};
 `;
