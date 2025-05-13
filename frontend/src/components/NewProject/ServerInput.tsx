@@ -37,12 +37,13 @@ export default function ServerInput() {
     setServerStatus({
       ip: ipParts.map((p) => p || '').join('.'),
       pem: server.pem,
+      pemName: server.pemName,
     });
   };
 
   const handlePemChange = (file: File) => {
     if (file) {
-      setServerStatus({ ip: server.ip, pem: !!file });
+      setServerStatus({ ip: server.ip, pem: !!file, pemName: file.name });
       setPemFile(file);
     }
   };

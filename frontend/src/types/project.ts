@@ -11,6 +11,7 @@ export interface ProjectInfo {
   server: {
     ip: string;
     pem: boolean;
+    pemName: string;
   };
   app: Application[];
   env: {
