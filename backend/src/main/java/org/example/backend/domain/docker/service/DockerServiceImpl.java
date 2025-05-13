@@ -22,7 +22,7 @@ public class DockerServiceImpl implements DockerService {
     private final DockerApiClient dockerApiClient;
 
     @Override
-    public ImageResponse getImages(String image) {
+    public ImageResponse getDockerImages(String image) {
         int page = 1;
         int pageSize = 100;
 
@@ -45,7 +45,7 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<TagResponse> getTag(String image) {
+    public List<TagResponse> getDockerImageTags(String image) {
         String namespace = "library";
         int page = 1;
         int pageSize = 100;
@@ -150,6 +150,21 @@ public class DockerServiceImpl implements DockerService {
         return rawLines.stream()
                 .map(DockerContainerLogResponse::of)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag) {
+
+        String namespace = "library";
+
+        String[] splitImageAndTag = imageAndTag.split(":", 2);
+        String imageName = splitImageAndTag[0];
+        String tag = (splitImageAndTag.length == 2 && !splitImageAndTag[1].isBlank()) ? splitImageAndTag[1] : "latest";
+
+        List<String> ports = dockerApiClient.getImageDefaultPorts(namespace, imageName, tag);
+
+        return List.of(new ImageDefaultPortResponse(imageName + ":" + tag, ports));
+
     }
 
 }

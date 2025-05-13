@@ -2,7 +2,6 @@ package org.example.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,20 +25,30 @@ public class DockerController {
     private final DockerService dockerService;
 
     @GetMapping("/images/{image}")
-    @Operation(summary = "도커 이미지 조회_공식만", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "도커 이미지 조회_공식만")
     public ResponseEntity<ApiResponse<ImageResponse>> searchDockerImages(
             @Parameter(description = "검색어 (예: ubuntu, nginx)", example = "redis")
             @PathVariable("image") String image) {
-        ImageResponse response = dockerService.getImages(image);
+        ImageResponse response = dockerService.getDockerImages(image);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     @GetMapping("/images/{image}/tags")
-    @Operation(summary = "도커 이미지 태그 조회 (linux/amd64 필터링)", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "도커 이미지 태그 조회 (linux/amd64 필터링)")
     public ResponseEntity<ApiResponse<List<TagResponse>>> searchDockerImageTags(
             @Parameter(description = "검색어 (예: ubuntu, nginx)", example = "redis")
             @PathVariable("image") String image) {
-        List<TagResponse> responses = dockerService.getTag(image);
+        List<TagResponse> responses = dockerService.getDockerImageTags(image);
+        return ResponseEntity.ok(ApiResponse.success(responses));
+    }
+
+    @GetMapping("/images/{imageAndTag}/default-ports")
+    @Operation(summary = "도커 이미지 기본 포트 조회", description = "이미지의 태그에 해당하는 기본 포트를 반환함.(태그 생략하면 latest로 처리됨)")
+    public ResponseEntity<ApiResponse<List<ImageDefaultPortResponse>>> searchDockerImageDefaultPorts(
+            @Parameter(description = "[이미지 이름] 또는 [이름:태그] (태그 생략 시 latest로 처리, 예: nginx, nginx:1.21, nginx:latest)", example = "nginx")
+            @PathVariable("imageAndTag") String imageAndTag
+    ) {
+        List<ImageDefaultPortResponse> responses = dockerService.getDockerImageDefaultPorts(imageAndTag);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 

@@ -6,14 +6,16 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Platform {
-    @JsonProperty("architecture")
-    private String cpuArchitecture;
+public class ImageMetaData {
+    @JsonProperty("config")
+    private ImageBlobDetail imageBlobHashInfo;
 
-    @JsonProperty("os")
-    private String os;
+    @JsonProperty("manifests")
+    private List<ImagePlatformAndId> additionalImagePlatformAndId;
 }

@@ -56,6 +56,7 @@ public enum ErrorCode {
     GITLAB_NO_MERGE_REQUESTS(HttpStatus.NOT_FOUND,  3229, "해당 프로젝트에 Merge Request가 없습니다."),
     GITLAB_BAD_CREATE_COMMIT(HttpStatus.BAD_REQUEST, 3230, "깃랩 커밋 생성에 실패했습니다."),
     DOCKER_LOGS_API_FAILED(HttpStatus.BAD_REQUEST, 3231, "도커 로그 조회에 실패했습니다."),
+    DOCKER_DEFAULT_PORT_API_FAILED(HttpStatus.BAD_REQUEST, 3232, "도커 default port 조회에 실패했습니다."),
 
     APPLICATION_NOT_FOUND(HttpStatus.NOT_FOUND, 3232, "어플리케이션 정보를 찾지 못했습니다."),
     PEM_NOT_FOUND(HttpStatus.NOT_FOUND, 3232, "PemFile 정보를 찾지 못했습니다."),

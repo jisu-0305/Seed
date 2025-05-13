@@ -6,8 +6,9 @@ import org.example.backend.controller.response.docker.*;
 import java.util.List;
 
 public interface DockerService {
-    ImageResponse getImages(String image);
-    List<TagResponse> getTag(String image);
+    ImageResponse getDockerImages(String image);
+    List<TagResponse> getDockerImageTags(String image);
+    List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag);
     List<DemonHealthyCheckResponse> checkHealth(String serverIp);
     List<AppHealthyCheckResponse> getAppStatus(String serverIp, String appName);
     List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request);

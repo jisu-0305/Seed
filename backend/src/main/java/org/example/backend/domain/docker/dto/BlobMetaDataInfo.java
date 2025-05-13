@@ -6,14 +6,13 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Map;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Platform {
-    @JsonProperty("architecture")
-    private String cpuArchitecture;
-
-    @JsonProperty("os")
-    private String os;
+public class BlobMetaDataInfo {
+    @JsonProperty("ExposedPorts")
+    private Map<String, ?> defaultPorts;
 }
