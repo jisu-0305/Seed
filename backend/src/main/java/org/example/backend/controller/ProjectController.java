@@ -95,10 +95,9 @@ public class ProjectController {
             security = @SecurityRequirement(name = "JWT"))
     public ResponseEntity<ApiResponse<List<ProjectApplicationResponse>>> searchApplications(
             @RequestParam String keyword,
-            @RequestParam Long projectId,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
     ) {
-        List<ProjectApplicationResponse> apps = projectService.searchAvailableApplications(accessToken, projectId, keyword);
+        List<ProjectApplicationResponse> apps = projectService.searchAvailableApplications(accessToken, keyword);
         return ResponseEntity.ok(ApiResponse.success(apps));
     }
 

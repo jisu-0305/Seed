@@ -351,21 +351,27 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ProjectApplicationResponse> searchAvailableApplications(String accessToken, Long projectId, String keyword) {
+    public List<ProjectApplicationResponse> searchAvailableApplications(String accessToken, String keyword) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
-        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
-            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
 
         List<Application> found = applicationRepository.findByImageNameContainingIgnoreCase(keyword);
 
-        return found.stream()
-                .map(app -> ProjectApplicationResponse.builder()
-                        .imageName(app.getImageName())
-                        .defaultPort(app.getDefaultPort())
+        Map<String, List<Integer>> portsByImage = found.stream()
+                .collect(Collectors.groupingBy(
+                        Application::getImageName,
+                        Collectors.mapping(Application::getDefaultPort, Collectors.toList())
+                ));
+
+        return portsByImage.entrySet().stream()
+                .map(entry -> ProjectApplicationResponse.builder()
+                        .imageName(entry.getKey())
+                        .defaultPorts(entry.getValue())
                         .build()
                 )
                 .toList();

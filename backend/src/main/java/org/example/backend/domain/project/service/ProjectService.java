@@ -14,5 +14,5 @@ public interface ProjectService {
     void markHttpsConverted(Long projectId);
     List<ProjectStatusResponse> getMyProjectStatuses(String accessToken);
     List<ProjectExecutionGroupResponse> getMyProjectExecutionsGroupedByDate(String accessToken);
-    List<ProjectApplicationResponse> searchAvailableApplications(String accessToken, Long projectId, String keyword);
+    List<ProjectApplicationResponse> searchAvailableApplications(String accessToken, String keyword);
 }
