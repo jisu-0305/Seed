@@ -2,6 +2,7 @@ package org.example.backend.domain.gitlab.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.controller.response.gitlab.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -20,8 +21,6 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GitlabServiceImpl implements GitlabService {
 
-//    private final UserRepository userRepository;
-//  private final RedisSessionManager redisSessionManager;
     private final GitlabApiClient gitlabApiClient;
 
     /* Push _ webhook 생성 */
@@ -33,39 +32,37 @@ public class GitlabServiceImpl implements GitlabService {
 
     /* Push 트리거 */
     @Override
-    public void triggerPushEvent(String gitlabPersonalAccessToken, Long projectId, String branch) {
+    public String triggerPushEvent(String gitlabPersonalAccessToken, Long projectId, String branch) {
 
-        // 유효성 검사
-        String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
-        branchValidCheck(validGitlabAccessToken, projectId, branch);
+        String validToken = tokenValidCheck(gitlabPersonalAccessToken);
+        branchValidCheck(validToken, projectId, branch);
 
-        // 유니크한 파일명
-        String filePath = String.format(
-                "trigger-%d-%s.txt",
-                Instant.now().toEpochMilli(),
-                UUID.randomUUID()
-        );
+        String filePath = String.format("trigger-%d-%s.txt", Instant.now().toEpochMilli(), UUID.randomUUID());
 
-        // 더미 파일 생성
         CommitAction create = CommitAction.builder()
                 .action("create")
                 .filePath(filePath)
                 .content("triggered at " + Instant.now())
                 .build();
 
-        // 바로 삭제
         CommitAction delete = CommitAction.builder()
                 .action("delete")
                 .filePath(filePath)
                 .build();
 
         List<CommitAction> actions = List.of(create, delete);
-        String commitMessage = "chore: trigger Jenkins build by SEED";
 
-        gitlabApiClient.submitCommit(validGitlabAccessToken, projectId, branch, commitMessage, actions);
+        CommitResponse resp = gitlabApiClient.submitCommit(
+                validToken,
+                projectId,
+                branch,
+                "chore: trigger Jenkins build by SEED",
+                actions
+        );
 
-        log.debug(">>>>>>>>> 푸시 트리거 동작 완료 for projectId={}, branch={}, filePath={}", projectId, branch, filePath);
+        log.debug("푸시 트리거 완료: project={}, branch={}, webUrl={}", projectId, branch, resp.getWebUrl());
 
+        return resp.getWebUrl();
     }
 
     /* MR생성 */
@@ -215,17 +212,6 @@ public class GitlabServiceImpl implements GitlabService {
 
         return gitlabPersonalAccessToken;
 
-//        SessionInfoDto session = redisSessionManager.getSession(gitlabPersonalAccessToken);
-//        Long userId = session.getUserId();
-//
-//        User user = userRepository.findById(userId)
-//                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-//
-//        if (user.getGitlabAccessToken().isBlank()) {
-//           throw new BusinessException(ErrorCode.OAUTH_TOKEN_NOT_FOUND);
-//        }
-//
-//        return user.getGitlabAccessToken();
     }
 
     private void branchValidCheck(String gitlabPersonalAccessToken, Long projectId, String branch) {
