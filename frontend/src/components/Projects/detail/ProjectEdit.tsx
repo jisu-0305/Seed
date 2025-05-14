@@ -66,6 +66,13 @@ export default function ProjectEdit() {
               완료
             </SmallButton>
           </StButtonWrapper>
+          <StDeleteWrapper>
+            <DeleteButton>프로젝트 삭제하기</DeleteButton>
+            <StCautionWrapper>
+              <IcIcon src="/assets/icons/ic_caution.svg" alt="caution" />
+              프로젝트 삭제는 되돌릴 수 없습니다.
+            </StCautionWrapper>
+          </StDeleteWrapper>
         </SideBarWrapper>
       </Content>
     </Wrapper>
@@ -134,4 +141,57 @@ const StButtonWrapper = styled.aside`
   gap: 2rem;
 
   padding-top: 3rem;
+`;
+
+const StDeleteWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const DeleteButton = styled.button`
+  margin-top: 5rem;
+  padding: 1rem 5rem;
+  ${({ theme }) => theme.fonts.Title5};
+  color: ${({ theme }) => theme.colors.White};
+  background-color: ${({ theme }) => theme.colors.RedBtn};
+  border: none;
+  border-radius: 1rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.RedBtnHover};
+  }
+
+  &:hover + div {
+    visibility: visible;
+    opacity: 1;
+  }
+`;
+
+const IcIcon = styled.img`
+  width: 3rem;
+
+  margin-right: 0.5rem;
+`;
+
+const StCautionWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+
+  width: 30rem;
+  padding: 1rem;
+  margin-top: 2rem;
+
+  color: ${({ theme }) => theme.colors.Black1};
+  ${({ theme }) => theme.fonts.Head5};
+
+  background-color: ${({ theme }) => theme.colors.Red4};
+  border-radius: 1rem;
+
+  visibility: hidden;
 `;
