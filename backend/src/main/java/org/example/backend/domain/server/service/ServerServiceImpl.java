@@ -57,8 +57,7 @@ public class ServerServiceImpl implements ServerService {
     private final ProjectFileRepository projectFileRepository;
 
     @Override
-    public void registerDeployment(
-            Long projectId, String accessToken) {
+    public void registerDeployment(Long projectId, String accessToken) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
