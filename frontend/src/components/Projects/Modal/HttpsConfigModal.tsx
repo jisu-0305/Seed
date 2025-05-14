@@ -37,7 +37,7 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
             type="text"
             value={domain}
             onChange={(e) => setDomain(e.target.value)}
-            placeholder="example.com"
+            placeholder="example.com 으로 입력해주세요"
             required
           />
         </Label>
@@ -54,7 +54,7 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
         </Label>
 
         <SubmitButton type="submit">설정하기</SubmitButton>
-        <ModalTipItem text="서비스의 DNS와 소유자의 이메일 주소를 입력해주세요" />
+        <ModalTipItem text="서비스의 DNS 이름과 소유자의 이메일 주소를 입력해주세요" />
       </Form>
     </SmallModal>
   );
