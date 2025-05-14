@@ -596,7 +596,7 @@ public class ServerServiceImpl implements ServerService {
         String frontendDockerScript;
 
         switch (project.getFrontendFramework()) {
-            case "vue.js":
+            case "Vue.js":
                 frontendDockerScript =
                         "                        set -e\n" +
                                 "                        docker build -f Dockerfile -t vue .\n" +
@@ -605,7 +605,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker run -d --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
                 break;
 
-            case "react":
+            case "React":
                 frontendDockerScript =
                         "                        set -e\n" +
                                 "                        docker build -f Dockerfile -t react .\n" +
@@ -614,7 +614,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker run -d --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
                 break;
 
-            case "next.js":
+            case "Next.js":
             default:
                 frontendDockerScript =
                         "                        set -e\n" +
@@ -844,7 +844,7 @@ public class ServerServiceImpl implements ServerService {
         String frontendDockerfileContent;
 
         switch (project.getFrontendFramework()) {
-            case "vue.js":
+            case "Vue.js":
                 frontendDockerfileContent =
                         "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                                 "FROM node:22-alpine\n" +
@@ -857,7 +857,7 @@ public class ServerServiceImpl implements ServerService {
                 break;
 
 
-            case "react":
+            case "React":
                 frontendDockerfileContent =
                         "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                                 "FROM node:22-alpine\n" +
@@ -870,7 +870,7 @@ public class ServerServiceImpl implements ServerService {
                 break;
 
 
-            case "next.js":
+            case "Next.js":
             default:
                 frontendDockerfileContent =
                         "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
