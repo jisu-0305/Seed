@@ -70,6 +70,7 @@ export default function GitlabInput() {
 
     setGitlabStatus({
       ...gitlab,
+      id: selected ? selected.id : 0,
       repo: url,
       defaultBranch: selected ? selected.default_branch : '',
     });

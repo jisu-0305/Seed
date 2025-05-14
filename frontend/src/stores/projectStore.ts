@@ -32,6 +32,7 @@ interface ProjectInfoStore {
 
 const initialStatus: ProjectInfo = {
   gitlab: {
+    id: 0,
     repo: '',
     defaultBranch: '',
     structure: '모노',
@@ -96,6 +97,7 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
         set({
           stepStatus: {
             gitlab: {
+              id: 0,
               repo: detail.repositoryUrl,
               defaultBranch:
                 detail.structure === 'MONO'
