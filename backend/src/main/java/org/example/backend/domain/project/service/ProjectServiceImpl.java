@@ -66,6 +66,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .serverIP(request.getServerIP())
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
+                .gitlabProjectId(request.getGitlabProjectId())
                 .structure(request.getStructure())
                 .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())

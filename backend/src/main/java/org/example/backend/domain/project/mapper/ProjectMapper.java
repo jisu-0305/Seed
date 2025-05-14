@@ -20,6 +20,7 @@ public class ProjectMapper {
                 .id(project.getId())
                 .projectName(project.getProjectName())
                 .createdAt(project.getCreatedAt())
+                .gitlabProjectId(project.getGitlabProjectId())
                 .memberList(memberList)
                 .autoDeploymentEnabled(autoDeploymentEnabled)
                 .httpsEnabled(httpsEnabled)
