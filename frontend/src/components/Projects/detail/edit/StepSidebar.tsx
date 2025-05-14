@@ -1,17 +1,33 @@
 import styled from '@emotion/styled';
 import { useState } from 'react';
 
-import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
+import {
+  ApplicationWithDefaults,
+  EnvInfo,
+  GitlabInfo,
+  ServerInfo,
+} from '@/types/project';
 import { parseRepoName } from '@/utils/parseRepoName';
 
-export default function StepSidebar() {
-  const { stepStatus: status } = useProjectInfoStore();
+export interface StepSidebarProps {
+  gitlab: GitlabInfo;
+  server: ServerInfo;
+  apps: ApplicationWithDefaults[];
+  env: EnvInfo;
+}
+
+export default function StepSidebar({
+  gitlab,
+  server,
+  apps,
+  env,
+}: StepSidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { mode } = useThemeStore();
 
-  const appCnt = status.app.length;
-  const mainAppName = status.app[0]?.imageName || '-';
+  const appCnt = apps.length;
+  const mainAppName = apps[0]?.imageName || '-';
 
   const toggleExpand = () => {
     setIsExpanded((prev) => !prev);
@@ -23,11 +39,11 @@ export default function StepSidebar() {
       <Section>
         <Row>
           <Label>GitLab Repo</Label>
-          <Value>{parseRepoName(status.gitlab.repo) || '-'}</Value>
+          <Value>{parseRepoName(gitlab.repo) || '-'}</Value>
         </Row>
         <Row>
           <Label>폴더 구조</Label>
-          <Value>{status.gitlab.structure}</Value>
+          <Value>{gitlab.structure}</Value>
         </Row>
       </Section>
 
@@ -37,13 +53,13 @@ export default function StepSidebar() {
       <Section>
         <Row>
           <Label>IP</Label>
-          <Value>{status.server.ip || '-'}</Value>
+          <Value>{server.ip || '-'}</Value>
         </Row>
         <Row>
           <Label>.pem</Label>
           <Icon
             src={
-              status.server.pem
+              server.pem
                 ? `/assets/icons/ic_checked_${mode}_true.svg`
                 : `/assets/icons/ic_checked_${mode}_false.svg`
             }
@@ -79,7 +95,7 @@ export default function StepSidebar() {
         </Row>
 
         {isExpanded &&
-          status.app.map((app) => (
+          apps.map((app) => (
             <Row key={app.imageName}>
               <AppTag>{app.imageName}</AppTag>
             </Row>
@@ -94,7 +110,7 @@ export default function StepSidebar() {
           <Label>환경설정</Label>
           <Icon
             src={
-              status.env
+              env
                 ? `/assets/icons/ic_checked_${mode}_true.svg`
                 : `/assets/icons/ic_checked_${mode}_false.svg`
             }
