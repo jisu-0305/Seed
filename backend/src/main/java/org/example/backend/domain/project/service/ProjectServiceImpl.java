@@ -207,7 +207,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(UserProject::getProjectId)
                 .toList();
 
-        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
+        Map<Long, Project> projectMap = projectRepository.findByIdIn(projectIdList).stream()
                 .collect(Collectors.toMap(Project::getId, p -> p));
 
         List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);
