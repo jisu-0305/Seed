@@ -31,12 +31,9 @@ import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
@@ -75,7 +72,7 @@ public class ServerServiceImpl implements ServerService {
         ProjectFile pemFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.PEM)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PEM_NOT_FOUND));
 
-        ProjectFile frontEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.FRONT_ENV)
+        ProjectFile frontEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.FRONTEND_ENV)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FRONT_ENV_NOT_FOUND));
 
         ProjectFile backEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.BACKEND_ENV)
@@ -99,6 +96,7 @@ public class ServerServiceImpl implements ServerService {
             }
 
             // 3) 성공 로그
+            project.enableAutoDeployment();
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
             // 3) Jenkins 토큰 발급
@@ -127,8 +125,6 @@ public class ServerServiceImpl implements ServerService {
                 sshSession.disconnect();
             }
         }
-
-        project.enableAutoDeployment();
     }
 
     // 서버 배포 프로세스
@@ -148,20 +144,20 @@ public class ServerServiceImpl implements ServerService {
          List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
-                updatePackageManager(),
-                setSwapMemory(),
-                setJDK(),
-                setDocker(),
-                //runApplicationList(projectApplicationList, backEnvFile)
-                setNginx(project.getServerIP()),
-                setJenkins(),
-                setJenkinsConfigure(),
-                makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
-                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
-                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
-                makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
+                //updatePackageManager(),
+                //setSwapMemory(),
+                //setJDK(),
+                //setDocker(),
+                runApplicationList(projectApplicationList, backEnvFile)
+                //setNginx(project.getServerIP()),
+                //setJenkins(),
+                //setJenkinsConfigure(),
+                //makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
+                //setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
+                //makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
+                //makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                //makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                //makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
 
@@ -260,9 +256,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     private List<String> runApplicationList(List<ProjectApplication> projectApplicationList, byte[] backendEnvFile) {
-
         try {
-
             Map<String, String> envMap = parseEnvFile(backendEnvFile);
             for (String key : envMap.keySet()) {
                 System.out.println(key + "=" + envMap.get(key));
