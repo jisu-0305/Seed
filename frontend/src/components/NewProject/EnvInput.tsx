@@ -14,6 +14,18 @@ export default function EnvInput() {
   const { env } = stepStatus;
 
   const { setBackEnvFile, setFrontEnvFile } = useProjectFileStore();
+  const { frontEnvFile, backEnvFile } = useProjectFileStore();
+
+  // 실 파일 존재 여부와 스토어 플래그 동기화
+  useEffect(() => {
+    setEnvStatus({
+      ...env,
+      frontEnv: Boolean(frontEnvFile),
+      frontEnvName: frontEnvFile?.name ?? '',
+      backEnv: Boolean(backEnvFile),
+      backEnvName: backEnvFile?.name ?? '',
+    });
+  }, [frontEnvFile, backEnvFile]);
 
   // const handleNodeVersionChange = (e: ChangeEvent<HTMLInputElement>) => {
   //   setEnvStatus({ ...env, node: e.target.value });

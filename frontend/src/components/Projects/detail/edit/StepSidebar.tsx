@@ -59,7 +59,7 @@ export default function StepSidebar({
           <Label>.pem</Label>
           <Icon
             src={
-              server.pem
+              server
                 ? `/assets/icons/ic_checked_${mode}_true.svg`
                 : `/assets/icons/ic_checked_${mode}_false.svg`
             }
@@ -96,9 +96,12 @@ export default function StepSidebar({
 
         {isExpanded &&
           apps.map((app) => (
-            <Row key={app.imageName}>
-              <AppTag>{app.imageName}</AppTag>
-            </Row>
+            <AppRow key={app.imageName}>
+              <AppInfo>
+                <strong>{app.imageName}</strong> : {app.tag}
+              </AppInfo>
+              <PortInfo>: {app.port}</PortInfo>
+            </AppRow>
           ))}
       </Section>
 
@@ -110,7 +113,7 @@ export default function StepSidebar({
           <Label>환경설정</Label>
           <Icon
             src={
-              env
+              env.frontEnv && env.backEnv
                 ? `/assets/icons/ic_checked_${mode}_true.svg`
                 : `/assets/icons/ic_checked_${mode}_false.svg`
             }
@@ -173,3 +176,24 @@ const Divider = styled.hr`
 `;
 
 const Icon = styled.img``;
+
+const AppRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2rem;
+
+  margin-bottom: 1rem;
+`;
+
+const AppInfo = styled.div`
+  ${({ theme }) => theme.fonts.Body3};
+
+  strong {
+    ${({ theme }) => theme.fonts.Title6};
+  }
+`;
+
+const PortInfo = styled.div`
+  ${({ theme }) => theme.fonts.Body3};
+`;
