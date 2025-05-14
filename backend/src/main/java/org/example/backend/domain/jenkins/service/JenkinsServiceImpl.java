@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.common.auth.ProjectAccessValidator;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.response.jenkins.*;
@@ -37,10 +38,9 @@ public class JenkinsServiceImpl implements JenkinsService {
     private final JenkinsClient jenkinsClient;
     private final ObjectMapper objectMapper;
     private final ProjectRepository projectRepository;
-    private ProjectExecutionRepository projectExecutionRepository;
     private final JenkinsInfoRepository jenkinsInfoRepository;
-    private final UserProjectRepository userProjectRepository;
-    private final RedisSessionManager redisSessionManager;
+    private final ProjectExecutionRepository projectExecutionRepository;
+    private final ProjectAccessValidator projectAccessValidator;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd").withZone(ZoneId.systemDefault());
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss").withZone(ZoneId.systemDefault());
@@ -50,7 +50,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public List<JenkinsBuildListResponse> getBuildList(Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode builds = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "api/json?tree=builds[number,result,timestamp]"))
                 .path("builds");
@@ -70,7 +70,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public JenkinsBuildListResponse getLastBuild(Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json"));
 
@@ -85,7 +85,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public JenkinsBuildDetailResponse getBuildDetail(int buildNumber, Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
 
         String wfapiJson = jenkinsClient.fetchBuildInfo(info, buildNumber + "/wfapi/describe");
@@ -105,13 +105,13 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public String getBuildLog(int buildNumber, Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         return jenkinsClient.fetchBuildLog(getJenkinsInfo(projectId), buildNumber);
     }
 
     @Override
     public String getBuildStatus(int buildNumber, Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
         return build.path("result").asText();
@@ -119,13 +119,13 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public void triggerBuild(Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         jenkinsClient.triggerBuild(getJenkinsInfo(projectId));
     }
 
     @Override
     public List<JenkinsBuildChangeResponse> getBuildChanges(int buildNumber, Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode root = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json?tree=changeSets[items[commitId,author[fullName],msg,timestamp]]"));
         JsonNode changeSets = root.path("changeSets");
@@ -146,7 +146,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public List<JenkinsBuildChangeSummaryResponse> getBuildChangesWithSummary(int buildNumber, Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode root = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json?tree=changeSets[items[commitId,author[fullName],msg,timestamp,paths[file]]]"));
         JsonNode changeSets = root.path("changeSets");
@@ -178,7 +178,7 @@ public class JenkinsServiceImpl implements JenkinsService {
     @Override
     @Transactional
     public void logLastBuildResultToProject(Long projectId, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode lastBuild = safelyParseJson(
                 jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json")
@@ -204,7 +204,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public void issueAndSaveToken(Long projectId, String serverIp, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         try {
             String jenkinsUrl = "http://" + serverIp + ":9090";
             String jenkinsJobName = "drum-dummy1";
@@ -233,7 +233,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public String getStepLogById(Long projectId, int buildNumber, String stepNumber, String accessToken) {
-        validateUserInProject(projectId, accessToken);
+        projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
 
         // 전체 콘솔 로그 조회
@@ -477,14 +477,5 @@ public class JenkinsServiceImpl implements JenkinsService {
     private JenkinsInfo getJenkinsInfo(Long projectId) {
         return jenkinsInfoRepository.findByProjectId(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JENKINS_INFO_NOT_FOUND));
-    }
-
-    private void validateUserInProject(Long projectId, String accessToken) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
-        Long userId = session.getUserId();
-
-        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
-            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
-        }
     }
 }

@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.example.backend.controller.request.DeploymentReportSavedRequest;
 import org.example.backend.domain.aireport.enums.ReportStatus;
 import org.example.backend.util.aiapi.dto.aireport.AIReportResponse;
 import java.time.LocalDateTime;
@@ -39,7 +40,7 @@ public class AIDeploymentReport {
 
     private LocalDateTime createdAt;
 
-    public static AIDeploymentReport of(Long projectId, String title, AIReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
+    public static AIDeploymentReport fromAiReportResponse(Long projectId, String title, AIReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
         return AIDeploymentReport.builder()
                 .projectId(projectId)
                 .title(title)
@@ -48,6 +49,19 @@ public class AIDeploymentReport {
                 .commitUrl(commitUrl)
                 .mergeRequestUrl(mergeRequestUrl)
                 .status(status)
+                .createdAt(LocalDateTime.now())
+                .build();
+    }
+
+    public static AIDeploymentReport fromBackofficeRequest(DeploymentReportSavedRequest request) {
+        return AIDeploymentReport.builder()
+                .projectId(request.getProjectId())
+                .title(request.getTitle())
+                .summary(request.getSummary())
+                .additionalNotes(request.getAdditionalNotes())
+                .commitUrl(request.getCommitUrl())
+                .mergeRequestUrl(request.getMergeRequestUrl())
+                .status(request.getStatus())
                 .createdAt(LocalDateTime.now())
                 .build();
     }

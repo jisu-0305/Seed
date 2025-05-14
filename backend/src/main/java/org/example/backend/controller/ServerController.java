@@ -56,5 +56,4 @@ public class ServerController {
 
         return ApiResponse.success(logs);
     }
-
 }
