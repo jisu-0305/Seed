@@ -31,12 +31,9 @@ import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
@@ -75,7 +72,7 @@ public class ServerServiceImpl implements ServerService {
         ProjectFile pemFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.PEM)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PEM_NOT_FOUND));
 
-        ProjectFile frontEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.FRONT_ENV)
+        ProjectFile frontEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.FRONTEND_ENV)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FRONT_ENV_NOT_FOUND));
 
         ProjectFile backEnvFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.BACKEND_ENV)
@@ -83,7 +80,6 @@ public class ServerServiceImpl implements ServerService {
 
         String host = project.getServerIP();
         Session sshSession = null;
-
 
         try {
             // 1) 원격 서버 세션 등록
@@ -100,6 +96,7 @@ public class ServerServiceImpl implements ServerService {
             }
 
             // 3) 성공 로그
+            project.enableAutoDeployment();
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
             // 3) Jenkins 토큰 발급
@@ -128,8 +125,6 @@ public class ServerServiceImpl implements ServerService {
                 sshSession.disconnect();
             }
         }
-
-        project.enableAutoDeployment();
     }
 
     // 서버 배포 프로세스
@@ -152,7 +147,7 @@ public class ServerServiceImpl implements ServerService {
                 //updatePackageManager(),
                 //setSwapMemory(),
                 //setJDK(),
-                setDocker(),
+                //setDocker(),
                 runApplicationList(projectApplicationList, backEnvFile)
                 //setNginx(project.getServerIP()),
                 //setJenkins(),
@@ -261,9 +256,11 @@ public class ServerServiceImpl implements ServerService {
     }
 
     private List<String> runApplicationList(List<ProjectApplication> projectApplicationList, byte[] backendEnvFile) {
-
         try {
             Map<String, String> envMap = parseEnvFile(backendEnvFile);
+            for (String key : envMap.keySet()) {
+                System.out.println(key + "=" + envMap.get(key));
+            }
 
             return projectApplicationList.stream()
                     .flatMap(app -> {
@@ -285,22 +282,25 @@ public class ServerServiceImpl implements ServerService {
                         // 환경변수 Map 순회
                         // key값은 db에서 꺼내와야함
                         // value는 .env에서 꺼내와야함
-
                         Application application = applicationRepository.findById(app.getApplicationId())
                                 .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
                         List<String> applicationEnvList = application.getEnvVariableList();
 
-
-
-                        if (envMap != null) {
-                            envMap.forEach((key, val) ->
+                        if (applicationEnvList != null && !applicationEnvList.isEmpty()) {
+                            for (String key : applicationEnvList) {
+                                String value = envMap.get(key);
+                                if (value != null) {
                                     runSb.append("-e ")
                                             .append(key)
                                             .append("=")
-                                            .append(val)
-                                            .append(" ")
-                            );
+                                            .append(value)
+                                            .append(" ");
+                                } else {
+                                    // 필요 시, 값이 없을 때 로그 출력 또는 예외 처리
+                                    System.out.println("Warning: .env 파일에 " + key + " 값이 없습니다.");
+                                }
+                            }
                         }
 
                         // 마지막에 이미지:태그

@@ -84,7 +84,7 @@ public class ProjectServiceImpl implements ProjectService {
             ProjectFile newFrontendEnvFile = ProjectFile.builder()
                     .projectId(project.getId())
                     .fileName(frontEnvFile.getOriginalFilename())
-                    .fileType(FileType.FRONT_ENV)
+                    .fileType(FileType.FRONTEND_ENV)
                     .contentType(frontEnvFile.getContentType())
                     .data(frontEnvFile.getBytes())
                     .build();
