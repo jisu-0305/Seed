@@ -29,7 +29,7 @@ public class AIDeploymentReportServiceImpl implements AIDeploymentReportService 
         projectProjectAccessValidator.validateUserInProject(projectId, accessToken);
         return reportRepository.findAllByProjectIdOrderByCreatedAtDesc(projectId)
                 .stream()
-                .map(r -> new DeploymentReportResponse(r.getId(), r.getTitle(), r.getStatus(), r.getCreatedAt()))
+                .map(aiDeploymentReport -> new DeploymentReportResponse(aiDeploymentReport.getId(), aiDeploymentReport.getTitle(), aiDeploymentReport.getStatus(), aiDeploymentReport.getCreatedAt()))
                 .collect(Collectors.toList());
     }
 
@@ -53,7 +53,7 @@ public class AIDeploymentReportServiceImpl implements AIDeploymentReportService 
         AIDeploymentReport saved = reportRepository.save(report);
 
         List<AppliedFile> files = request.getAppliedFileNames().stream()
-                .map(name -> new AppliedFile(name, saved.getId()))
+                .map(fileName -> new AppliedFile(fileName, saved.getId()))
                 .toList();
 
         appliedFileRepository.saveAll(files);
