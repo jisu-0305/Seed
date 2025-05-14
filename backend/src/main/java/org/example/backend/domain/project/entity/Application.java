@@ -25,6 +25,8 @@ public class Application {
 
     private int defaultPort;
 
+    private String description;
+
     @ElementCollection
     private List<String> envVariableList = new ArrayList<>();
 }
