@@ -5,32 +5,15 @@ import FileInput from '@/components/Common/FileInput';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
-const dummyApps = [
-  {
-    imageName: 'redis',
-    tag: 'latest',
-    port: 8081,
-  },
-  {
-    imageName: 'mysql',
-    tag: 'stable',
-    port: 3306,
-  },
-  {
-    imageName: 'elastic search',
-    tag: 'latest',
-    port: 9200,
-  },
-];
-
 export default function ProjectEditInput() {
   const { mode } = useThemeStore();
 
-  const { stepStatus, setServerStatus, setEnvStatus, setAppStatus } =
-    useProjectInfoStore();
-  const { server } = stepStatus;
-  const { env } = stepStatus;
-  const apps = dummyApps;
+  const {
+    stepStatus: { server, env, app: apps },
+    setServerStatus,
+    setEnvStatus,
+    setAppStatus,
+  } = useProjectInfoStore();
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [tag, setTag] = useState('latest');
@@ -47,6 +30,7 @@ export default function ProjectEditInput() {
     setServerStatus({
       ip: ipParts.map((p) => p || '').join('.'),
       pem: server.pem,
+      pemName: server.pemName,
     });
   };
 
