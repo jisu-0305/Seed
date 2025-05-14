@@ -53,6 +53,11 @@ export interface Application {
   port: number;
 }
 
+// defaultPorts 가 필요한 곳에서만 쓰는 서브타입
+export interface ApplicationWithDefaults extends Application {
+  defaultPorts: number[];
+}
+
 export interface ProjectDetailData {
   id: number;
   ownerId: number;

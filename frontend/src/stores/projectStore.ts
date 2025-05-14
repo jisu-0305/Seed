@@ -2,7 +2,16 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 import { fetchProjects } from '@/apis/project';
-import { ProjectInfo, ProjectSummary } from '@/types/project';
+import {
+  ApplicationWithDefaults,
+  ProjectInfo as _PI,
+  ProjectSummary,
+} from '@/types/project';
+
+// ❗️ 원본 _PI 에서 app 필드만 ApplicationWithDefaults[] 로 교체
+type ProjectInfo = Omit<_PI, 'app'> & {
+  app: ApplicationWithDefaults[];
+};
 
 interface ProjectInfoStore {
   stepStatus: ProjectInfo;
