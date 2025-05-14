@@ -2,14 +2,24 @@ package org.example.backend.util.backoffice;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.backend.util.fastai.FastAIClientImpl;
-import org.example.backend.util.fastai.dto.FilepathRequest;
-import org.example.backend.util.fastai.dto.PatchFileRequest;
-import org.example.backend.util.fastai.dto.PatchTextRequest;
-import org.example.backend.util.fastai.dto.ResolveRequest;
+import org.example.backend.domain.gitlab.dto.PatchedFile;
+import org.example.backend.global.exception.BusinessException;
+import org.example.backend.global.exception.ErrorCode;
+import org.example.backend.util.aiapi.AIApiClientImpl;
+import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
+import org.example.backend.util.aiapi.dto.aireport.AIReportResponse;
+import org.example.backend.util.aiapi.dto.patchfile.PatchFileRequest;
+import org.example.backend.util.aiapi.dto.patchfile.PatchTextRequest;
+import org.example.backend.util.aiapi.dto.resolvefile.ResolveErrorResponse;
+import org.example.backend.util.aiapi.dto.resolvefile.ResolveRequest;
+import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
+import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("api/test/fastai")
@@ -17,30 +27,30 @@ import org.springframework.web.bind.annotation.*;
 @Slf4j
 public class FastAITestController {
 
-    private final FastAIClientImpl fastAIClientImpl;
+    private final AIApiClientImpl fastAIClientImpl;
+
+    @PostMapping("/infer")
+    public ResponseEntity<List<String>> testInferAppRequest(@RequestBody InferAppRequest request) {
+        List<String> response = fastAIClientImpl.requestInferApplications(request);
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping("/filepath")
-    public ResponseEntity<String> testFilepathRequest(@ModelAttribute FilepathRequest filepathRequest) {
+    public ResponseEntity<SuspectFileResponse> testFilepathRequest(@ModelAttribute SuspectFileRequest filepathRequest) {
         if (!StringUtils.hasText(filepathRequest.getDiffRaw()) ||
                 !StringUtils.hasText(filepathRequest.getTree()) ||
                 !StringUtils.hasText(filepathRequest.getLog())) {
-            return ResponseEntity.badRequest().body("All fields (diffRaw, tree, log) are required.");
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        String response = fastAIClientImpl.requestSuspectFiles(
-                filepathRequest.getDiffRaw(),
-                filepathRequest.getTree(),
-                filepathRequest.getLog()
-        );
+        SuspectFileResponse response = fastAIClientImpl.requestSuspectFiles(filepathRequest);
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/resolve")
-    public ResponseEntity<String> testResolveRequest(@ModelAttribute ResolveRequest resolveRequest) {
-        String response = fastAIClientImpl.requestResolveError(
-                resolveRequest.getErrorSummary(),
-                resolveRequest.getCause(),
-                resolveRequest.getResolutionHint(),
+    public ResponseEntity<ResolveErrorResponse> testResolveRequest(@ModelAttribute ResolveRequest resolveRequest) {
+        ResolveErrorResponse response = fastAIClientImpl.requestResolveError(
+                resolveRequest.getSuspectFileInnerResponse(),
                 resolveRequest.getFilesRaw()
         );
         return ResponseEntity.ok(response);
@@ -48,27 +58,19 @@ public class FastAITestController {
 
     @PostMapping("/patch")
     public ResponseEntity<String> testPatchText(@ModelAttribute PatchTextRequest patchTextRequest) {
-        String response = fastAIClientImpl.requestPatchText(
-                patchTextRequest.getOriginalCode(),
-                patchTextRequest.getInstruction()
-        );
-        return ResponseEntity.ok(response);
+        String instruction = fastAIClientImpl.requestPatchText(patchTextRequest);
+        return ResponseEntity.ok(instruction);
     }
 
     @PostMapping("/patch/file")
-    public ResponseEntity<String> testPatchFile(@ModelAttribute PatchFileRequest patchFileRequest) {
-        String response = fastAIClientImpl.requestPatchFile(
-                patchFileRequest.getPath(),
-                patchFileRequest.getOriginalCode(),
-                patchFileRequest.getInstruction()
-        );
-        System.out.println("patch file response: " + response);
-        return ResponseEntity.ok(response);
+    public ResponseEntity<PatchedFile> testPatchFile(@ModelAttribute PatchFileRequest patchFileRequest) {
+        PatchedFile patchedFile = fastAIClientImpl.requestPatchFile(patchFileRequest);
+        return ResponseEntity.ok(patchedFile);
     }
 
     @PostMapping("/report")
-    public ResponseEntity<String> testReport(@RequestBody String reportJson) {
-        String response = fastAIClientImpl.requestErrorReport(reportJson);
+    public ResponseEntity<AIReportResponse> testReport(@RequestBody AIReportRequest reportRequest) {
+        AIReportResponse response = fastAIClientImpl.requestErrorReport(reportRequest);
         return ResponseEntity.ok(response);
     }
 }

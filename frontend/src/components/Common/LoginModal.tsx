@@ -1,7 +1,7 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import React from 'react';
 
 import { logout } from '@/apis/user';
@@ -11,8 +11,11 @@ import { clearUserData } from '@/utils/auth';
 
 const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const user = useUserStore((s) => s.user);
   const { mode } = useThemeStore();
+
+  const isOnboarding = pathname.startsWith('/onboarding');
 
   if (mode === null) return null;
 
@@ -45,6 +48,16 @@ const LoginModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 alt="avatar"
               />
               <UserName>{user.userName}</UserName>
+              {!isOnboarding && (
+                <EditButton
+                  onClick={() => {
+                    router.replace('/user');
+                  }}
+                >
+                  토큰
+                  <PenIcon src={`/assets/icons/ic_pen_${mode}.svg`} alt="pen" />
+                </EditButton>
+              )}
             </ProfileSection>
 
             <List>
@@ -77,7 +90,7 @@ const Modal = styled.div`
   position: absolute;
   top: 7.1rem;
   right: 0.5rem;
-  width: 17rem;
+  width: 18rem;
   background: ${({ theme }) => theme.colors.ModalBg};
   border-radius: 1rem;
   padding: 1.5rem 3rem;
@@ -88,17 +101,19 @@ const Modal = styled.div`
 const ProfileSection = styled.div`
   display: flex;
   align-items: center;
+  width: 100%;
   margin-bottom: 1rem;
+  gap: 2rem;
 `;
 
 const Avatar = styled.img`
   width: 3rem;
   height: 3rem;
   border-radius: 50%;
-  margin-right: 2rem;
 `;
 
-const UserName = styled.span`
+const UserName = styled.div`
+  width: fit-content;
   ${({ theme }) => theme.fonts.Title5};
 `;
 
@@ -126,4 +141,20 @@ const Icon = styled.img`
 const GitlabIcon = styled.img`
   width: 2rem;
   margin-right: 1.2rem;
+`;
+
+const EditButton = styled.button`
+  display: flex;
+  align-items: center;
+  padding: 0.3rem 0.8rem;
+  ${({ theme }) => theme.fonts.Body5};
+  border-radius: 5rem;
+  background-color: ${({ theme }) => theme.colors.MenuBg};
+  color: ${({ theme }) => theme.colors.MenuText};
+`;
+
+const PenIcon = styled.img`
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: 0.4rem;
 `;

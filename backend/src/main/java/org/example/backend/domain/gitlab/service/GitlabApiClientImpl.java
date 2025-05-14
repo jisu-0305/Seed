@@ -3,6 +3,7 @@ package org.example.backend.domain.gitlab.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.GitlabUriBuilder;
+import org.example.backend.controller.response.gitlab.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -31,9 +32,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Push _ webhook 생성 */
     @Override
-    public void registerPushWebhook(String gitlabPersonalAccessToken, Long projectId, String hookUrl, String branchFilter) {
+    public void registerPushWebhook(String gitlabPersonalAccessToken, Long gitlabProjectId, String hookUrl, String branchFilter) {
 
-        URI uri = uriBuilder.buildPushWebhookUri(projectId, hookUrl, branchFilter);
+        URI uri = uriBuilder.buildPushWebhookUri(gitlabProjectId, hookUrl, branchFilter);
 
         Map<String, Object> body = Map.of(
                 "url", hookUrl,
@@ -62,26 +63,34 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Push 트리거 (커밋 날리기) */
     @Override
-    public void submitCommit(String gitlabPersonalAccessToken, Long projectId, String branch, String message, List<CommitAction> actions) {
-
-        URI uri = uriBuilder.buildCommitUri(projectId);
-
+    public CommitResponse submitCommit(String gitlabPersonalAccessToken,
+                                       Long gitlabProjectId,
+                                       String branch,
+                                       String message,
+                                       List<CommitAction> actions) {
+        URI uri = uriBuilder.buildCommitUri(gitlabProjectId);
         var payload = Map.of("branch", branch, "commit_message", message, "actions", actions);
 
         try {
-            gitlabWebClient.post()
+            return gitlabWebClient.post()
                     .uri(uri)
-                    .headers(header -> header.set("Private-Token", gitlabPersonalAccessToken))
+                    .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
                     .contentType(MediaType.APPLICATION_JSON)
                     .bodyValue(payload)
-                    .retrieve()
-                    .toBodilessEntity()
+                    .exchangeToMono(response -> {
+                        if (response.statusCode().is2xxSuccessful()) {
+                            return response.bodyToMono(CommitResponse.class);
+                        } else {
+                            return Mono.error(new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT));
+                        }
+                    })
                     .block();
         } catch (WebClientResponseException ex) {
+            log.error(">>> submitCommit WebClientResponseException: status={}, body={}",
+                    ex.getStatusCode(), ex.getResponseBodyAsString(), ex);
             if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
                 throw new BusinessException(ErrorCode.GITLAB_BRANCH_NOT_FOUND);
             }
-            log.error(">>> submitCommit error", ex);
             throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT);
         }
     }
@@ -89,14 +98,14 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     /* MR생성 */
     @Override
     public MergeRequestCreateResponse submitMergeRequest(String gitlabPersonalAccessToken,
-                                                         Long projectId,
+                                                         Long gitlabProjectId,
                                                          String sourceBranch,
                                                          String targetBranch,
                                                          String title,
                                                          String description
     ) {
 
-        URI uri = uriBuilder.buildMergeRequestUri(projectId);
+        URI uri = uriBuilder.buildMergeRequestUri(gitlabProjectId);
 
         var form = BodyInserters.fromFormData("source_branch", sourceBranch)
                 .with("target_branch", targetBranch)
@@ -126,9 +135,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 브랜치 생성 */
     @Override
-    public GitlabBranch submitBranchCreation(String gitlabPersonalAccessToken, Long projectId, String branch, String refBranch) {
+    public GitlabBranch submitBranchCreation(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String refBranch) {
 
-        URI uri = uriBuilder.buildCreateBranchUri(projectId, branch, refBranch);
+        URI uri = uriBuilder.buildCreateBranchUri(gitlabProjectId, branch, refBranch);
 
         try {
             return gitlabWebClient.post()
@@ -148,9 +157,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /*브랜치 삭제*/
     @Override
-    public void submitBranchDeletion(String gitlabPersonalAccessToken, Long projectId, String branch) {
+    public void submitBranchDeletion(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch) {
 
-        URI uri = uriBuilder.buildDeleteBranchUri(projectId, branch);
+        URI uri = uriBuilder.buildDeleteBranchUri(gitlabProjectId, branch);
 
         try {
             gitlabWebClient.delete()
@@ -215,9 +224,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Diff 1 ) 최신 MR 기준 diff 조회 */
     @Override
-    public Mono<List<GitlabMergeRequest>> requestMergedMrs(String gitlabPersonalAccessToken, Long projectId, int page, int perPage) {
+    public Mono<List<GitlabMergeRequest>> requestMergedMrs(String gitlabPersonalAccessToken, Long gitlabProjectId, int page, int perPage) {
 
-        URI uri = uriBuilder.buildListMergedMrsUri(projectId, page, perPage);
+        URI uri = uriBuilder.buildListMergedMrsUri(gitlabProjectId, page, perPage);
 
         return gitlabWebClient.get()
                 .uri(uri)
@@ -231,9 +240,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     }
 
     @Override
-    public Mono<GitlabMergeRequest> requestMrDetail(String gitlabPersonalAccessToken, Long projectId, Long mergeRequestIid) {
+    public Mono<GitlabMergeRequest> requestMrDetail(String gitlabPersonalAccessToken, Long gitlabProjectId, Long mergeRequestIid) {
 
-        URI uri = uriBuilder.buildMrDetailUri(projectId, mergeRequestIid);
+        URI uri = uriBuilder.buildMrDetailUri(gitlabProjectId, mergeRequestIid);
 
         return gitlabWebClient.get()
                 .uri(uri)
@@ -250,9 +259,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* Diff 1, 2 ) 커밋 간 변경사항 조회 */
     @Override
-    public Mono<GitlabCompareResponse> requestCommitComparison(String gitlabPersonalAccessToken, Long projectId, String from, String to) {
+    public Mono<GitlabCompareResponse> requestCommitComparison(String gitlabPersonalAccessToken, Long gitlabProjectId, String from, String to) {
 
-        URI uri = uriBuilder.buildCompareCommitsUri(projectId, from, to);
+        URI uri = uriBuilder.buildCompareCommitsUri(gitlabProjectId, from, to);
 
         return gitlabWebClient.get()
                 .uri(uri)
@@ -271,7 +280,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
     @Override
     public List<GitlabTree> requestRepositoryTree(
             String gitlabPersonalAccessToken,
-            Long projectId,
+            Long gitlabProjectId,
             String path,
             boolean recursive,
             int page,
@@ -279,7 +288,7 @@ public class GitlabApiClientImpl implements GitlabApiClient {
             String branchName
     ) {
 
-        URI uri = uriBuilder.buildRepositoryTreeUri(projectId, path, recursive, page, perPage, branchName);
+        URI uri = uriBuilder.buildRepositoryTreeUri(gitlabProjectId, path, recursive, page, perPage, branchName);
 
         try {
             return gitlabWebClient.get()
@@ -300,9 +309,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 파일 원본 조회  */
     @Override
-    public String requestRawFileContent(String gitlabPersonalAccessToken, Long projectId, String path, String refBranch) {
+    public String requestRawFileContent(String gitlabPersonalAccessToken, Long gitlabProjectId, String path, String refBranch) {
 
-        URI uri = uriBuilder.buildRawFileUri(projectId, path, refBranch);
+        URI uri = uriBuilder.buildRawFileUri(gitlabProjectId, path, refBranch);
 
         try {
             return gitlabWebClient.get()
@@ -322,9 +331,9 @@ public class GitlabApiClientImpl implements GitlabApiClient {
 
     /* 브랜치 조회 */
     @Override
-    public void validateBranchExists(String gitlabPersonalAccessToken, Long projectId, String branchName) {
+    public void validateBranchExists(String gitlabPersonalAccessToken, Long gitlabProjectId, String branchName) {
 
-        URI uri = uriBuilder.buildBranchUri(projectId, branchName);
+        URI uri = uriBuilder.buildBranchUri(gitlabProjectId, branchName);
 
         try {
             gitlabWebClient.get()

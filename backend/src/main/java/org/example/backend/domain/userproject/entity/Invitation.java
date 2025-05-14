@@ -2,6 +2,7 @@ package org.example.backend.domain.userproject.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.backend.domain.userproject.enums.InvitationStateType;
 
 import java.time.LocalDateTime;
 
@@ -26,6 +27,9 @@ public class Invitation {
 
     private LocalDateTime expiresAt;
 
+    @Enumerated(EnumType.STRING)
+    private InvitationStateType state;
+
     public static Invitation create(Long projectId, Long senderId, Long receiverId) {
         return Invitation.builder()
                 .projectId(projectId)
@@ -33,6 +37,12 @@ public class Invitation {
                 .receiverId(receiverId)
                 .createdAt(LocalDateTime.now())
                 .expiresAt(LocalDateTime.now().plusDays(7))
+                .state(InvitationStateType.PENDING)
                 .build();
     }
+
+    public void accept() {
+        this.state = InvitationStateType.ACCEPTED;
+    }
+
 }

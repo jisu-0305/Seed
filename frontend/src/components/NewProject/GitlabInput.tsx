@@ -10,16 +10,22 @@ interface Repo {
   name: string;
   path_with_namespace: string;
   http_url_to_repo: string;
+  default_branch: string;
 }
 
 export default function GitlabInput() {
   const [repoList, setRepoList] = useState<Repo[]>([]);
 
-  const { stepStatus, setGitlabStatus, setOnNextValidate } =
+  const { stepStatus, setGitlabStatus, setOnNextValidate, resetProjectStatus } =
     useProjectInfoStore();
   const { gitlab } = stepStatus;
 
   const { mode } = useThemeStore();
+
+  // 페이지가 마운트될 때 한 번만 초기화
+  useEffect(() => {
+    resetProjectStatus();
+  }, [resetProjectStatus]);
 
   // repo 조회
   useEffect(() => {
@@ -27,15 +33,47 @@ export default function GitlabInput() {
   }, []);
 
   const fetchUserRepos = async () => {
-    const { data } = await getUserRepos();
-    setRepoList(data);
+    const userStr = sessionStorage.getItem('user');
+    if (!userStr) {
+      console.error('세션스토리지에 “user” 키가 없습니다.');
+      return;
+    }
+
+    let parsed: { state: { user: { userId: number } } };
+    try {
+      parsed = JSON.parse(userStr);
+    } catch (e) {
+      console.error('“user” JSON 파싱 실패', e);
+      return;
+    }
+
+    const userId = parsed.state?.user?.userId;
+    if (typeof userId !== 'number') {
+      console.error('parsed.state.user.userId가 유효하지 않습니다.', parsed);
+      return;
+    }
+
+    getUserRepos(userId)
+      .then((data) => {
+        setRepoList(data);
+      })
+      .catch((err) => {
+        console.error('레포 조회 실패', err);
+      });
   };
 
   // input 핸들러
   const handleRepoChange = (e: ChangeEvent<HTMLSelectElement>) => {
     const url = e.target.value;
 
-    setGitlabStatus({ ...gitlab, repo: url });
+    const selected = repoList.find((repo) => repo.http_url_to_repo === url);
+
+    setGitlabStatus({
+      ...gitlab,
+      id: selected ? selected.id : 0,
+      repo: url,
+      defaultBranch: selected ? selected.default_branch : '',
+    });
   };
 
   // const handleInput = (e: ChangeEvent<HTMLInputElement>) => {

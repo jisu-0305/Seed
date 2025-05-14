@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { useProjectStore } from '@/stores/projectStore';
 import { formatDateTime } from '@/utils/getFormattedTime';
 
+import { LoadingSpinner } from '../Common/LoadingSpinner';
 import { ProjectCard } from './ProjectCard';
 
 export default function Projects() {
@@ -17,7 +18,7 @@ export default function Projects() {
     loadProjects();
   }, [loadProjects]);
 
-  if (loading) return <p>로딩 중…</p>;
+  if (loading) return <LoadingSpinner />;
   if (error) return <p>{error}</p>;
 
   if (projects.length === 0) {

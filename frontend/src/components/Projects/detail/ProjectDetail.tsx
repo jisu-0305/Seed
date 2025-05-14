@@ -2,13 +2,18 @@ import styled from '@emotion/styled';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import {
+  fetchBuildDetail,
+  fetchHttpsBuildLogs,
+  fetchLastBuild,
+  HttpsBuildLog,
+} from '@/apis/build';
 import { fetchProjectDetail } from '@/apis/project';
-import { tasksByTab as dummyTasks } from '@/assets/dummy/builds';
-import { useProjectStore } from '@/stores/projectStore';
+import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
 import { ProjectDetailData, ProjectSummary } from '@/types/project';
-import type { Task } from '@/types/task';
+import type { Task, TaskStatus } from '@/types/task';
 import { formatDateTime } from '@/utils/getFormattedTime';
 
 import { AvatarList } from '../AvatarList';
@@ -21,10 +26,17 @@ export default function ProjectDetail() {
   const params = useParams();
   const rawId = params?.id;
   const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const loadProjectInfo = useProjectInfoStore((s) => s.loadProjectInfo);
 
   const router = useRouter();
 
   const { projects, loadProjects } = useProjectStore();
+  const [selectedTab, setSelectedTab] = useState<DeployTabName>(
+    DeployTabNames[0],
+  );
+  const [defaultBuildNumber, setdefaultBuildNumber] = useState<number | null>(
+    null,
+  );
 
   const [detail, setDetail] = useState<
     ProjectDetailData &
@@ -56,6 +68,9 @@ export default function ProjectDetail() {
 
     fetchProjectDetail(id)
       .then((data) => {
+        loadProjectInfo({
+          ...data,
+        });
         setDetail({
           ...data,
           memberList: summary?.memberList ?? [],
@@ -74,7 +89,6 @@ export default function ProjectDetail() {
       });
   }, [projectId, projects, router]);
 
-  // 1) state로 관리
   const [tasksByTab, setTasksByTab] = useState<Record<DeployTabName, Task[]>>(
     // 초기에는 모든 탭 빈 배열
     DeployTabNames.reduce(
@@ -86,18 +100,46 @@ export default function ProjectDetail() {
     ),
   );
 
-  // 2) 마운트 시에 "API 호출" (여기서는 더미)
+  const refreshTasks = async () => {
+    if (!projectId) return;
+    const id = Number(projectId);
+    if (Number.isNaN(id)) return;
+
+    if (selectedTab === 'Https 세팅') {
+      fetchHttpsBuildLogs(id)
+        .then((logs: HttpsBuildLog[]) => {
+          const tasks: Task[] = logs.map<Task>((log) => ({
+            stepNumber: log.stepNumber,
+            stepName: log.stepName,
+            duration: new Date(log.createdAt).toLocaleTimeString(),
+            status: log.status as TaskStatus,
+          }));
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: tasks }));
+        })
+        .catch((err) => {
+          console.error('HTTPS 빌드 로그 로딩 실패', err);
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: [] }));
+        });
+    } else if (selectedTab === '최근 빌드') {
+      // 1) 최근 빌드 요약 호출
+      fetchLastBuild(id)
+        .then((summary) => {
+          setdefaultBuildNumber(summary.buildNumber);
+          return fetchBuildDetail(id, summary.buildNumber);
+        })
+        .then((tasks) => {
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: tasks }));
+        })
+        .catch((err) => {
+          console.error('최근 빌드 로딩 실패', err);
+          setTasksByTab((prev) => ({ ...prev, [selectedTab]: [] }));
+        });
+    }
+  };
+
   useEffect(() => {
-    // 실제 API 호출이라면 fetch(...) 후 json 파싱
-    // 예: fetch(`/api/projects/${id}/deploy-tasks`).then(res => res.json()).then(data => setTasksByTab(data));
-
-    // 더미 데이터를 가져와서 500ms 뒤에 세팅
-    const timer = setTimeout(() => {
-      setTasksByTab(dummyTasks);
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [projectId]);
+    refreshTasks();
+  }, [projectId, selectedTab]);
 
   if (loading) return <p>로딩 중…</p>;
   if (error) return <p>{error}</p>;
@@ -147,11 +189,22 @@ export default function ProjectDetail() {
             buildTool={detail.jdkBuildTool}
           />
 
-          <ActionButtons projectId={projectId} gitlab={detail.repositoryUrl} />
+          <ActionButtons
+            projectId={projectId}
+            gitlab={detail.repositoryUrl}
+            pemFilePath={detail.pemFilePath}
+            httpsEnabled={detail.httpsEnabled}
+          />
         </SectionInfo>
 
         <SubTitle>Deploy Status</SubTitle>
-        <DeployStatus tasksByTab={tasksByTab} />
+        <DeployStatus
+          projectId={projectId}
+          buildNumber={defaultBuildNumber}
+          tasksByTab={tasksByTab}
+          selectedTab={selectedTab}
+          onTabChange={setSelectedTab}
+        />
       </Section>
     </SectionWrapper>
   );

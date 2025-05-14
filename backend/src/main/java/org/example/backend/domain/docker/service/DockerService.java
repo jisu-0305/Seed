@@ -1,15 +1,17 @@
 package org.example.backend.domain.docker.service;
 
-import org.example.backend.controller.response.docker.AppHealthyCheckResponse;
-import org.example.backend.controller.response.docker.DemonHealthyCheckResponse;
-import org.example.backend.controller.response.docker.ImageResponse;
-import org.example.backend.controller.response.docker.TagResponse;
+import org.example.backend.controller.request.docker.DockerContainerLogRequest;
+import org.example.backend.controller.response.docker.*;
 
 import java.util.List;
 
 public interface DockerService {
-    ImageResponse getImages(String image);
-    List<TagResponse> getTag(String image);
-    List<DemonHealthyCheckResponse> checkHealth();
-    List<AppHealthyCheckResponse> getAppStatus(String appName);
+    ImageResponse getDockerImages(String image);
+    List<TagResponse> getDockerImageTags(String image);
+    List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag);
+    List<DemonHealthyCheckResponse> checkHealth(String serverIp);
+    List<AppHealthyCheckResponse> getAppStatus(String serverIp, String appName);
+    List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request);
+    void controlContainer(String serverIp, String containerName);
+    void controlContainer(String serverIp, String containerName, String action);
 }

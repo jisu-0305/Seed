@@ -112,3 +112,17 @@ export async function fetchProjectUsers(
 
   return users;
 }
+
+/**
+ * GitLab 개인 액세스 토큰(PAT)을 서버에 등록합니다.
+ * @param token - 유저가 입력한 PAT 문자열
+ */
+export async function registerPat(token: string): Promise<void> {
+  await client.post('/users/pat', token, {
+    headers: {
+      'Content-Type': 'text/plain',
+    },
+    // transformRequest를 지정하면 axios가 data를 JSON.stringify하지 않고 그대로 보냅니다.
+    transformRequest: [(data) => data],
+  });
+}

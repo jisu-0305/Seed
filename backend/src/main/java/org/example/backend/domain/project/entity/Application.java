@@ -6,6 +6,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Getter
 @NoArgsConstructor
@@ -18,12 +21,10 @@ public class Application {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long projectId;
-
     private String imageName;
 
-    private String tag;
+    private int defaultPort;
 
-    private int port;
-
+    @ElementCollection
+    private List<String> envVariableList = new ArrayList<>();
 }

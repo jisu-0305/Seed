@@ -1,6 +1,8 @@
 export interface ProjectInfo {
   gitlab: {
+    id: number;
     repo: string;
+    defaultBranch: string;
     structure: '모노' | '멀티' | string;
     directory: {
       client: string;
@@ -10,12 +12,15 @@ export interface ProjectInfo {
   server: {
     ip: string;
     pem: boolean;
+    pemName: string;
   };
   app: Application[];
   env: {
     frontendFramework: string;
     frontEnv: boolean;
+    frontEnvName: string;
     backEnv: boolean;
+    backEnvName: string;
     node: string;
     jdk: string;
     buildTool: string;
@@ -40,13 +45,18 @@ export interface ProjectMember {
   userName: string;
   userIdentifyId: string;
   profileImageUrl: string;
-  status: 'accepted' | 'pending' | 'rejected';
+  status: 'ACCEPTED' | 'PENDING' | 'OWNER' | 'UNKNOWN';
 }
 
 export interface Application {
   imageName: string;
   tag: string;
   port: number;
+}
+
+// defaultPorts 가 필요한 곳에서만 쓰는 서브타입
+export interface ApplicationWithDefaults extends Application {
+  defaultPorts: number[];
 }
 
 export interface ProjectDetailData {
@@ -78,7 +88,9 @@ export interface ProjectDetailResponse {
 }
 
 interface BaseProjectInfo {
+  gitlab_project_id: number;
   repositoryUrl: string;
+  gitlabTargetBranch: string;
   jdkVersion: string;
   serverIP: string;
   frontendFramework: string;
@@ -109,4 +121,33 @@ export interface ProjectCardInfo {
   autoDeploymentEnabled: boolean;
   buildStatus: BuildStatus;
   lastBuildAt: string;
+}
+
+// —————— 서브타입 정의 ——————
+export interface GitlabInfo {
+  id: number;
+  repo: string;
+  defaultBranch: string;
+  structure: '모노' | '멀티' | string;
+  directory: {
+    client: string;
+    server: string;
+  };
+}
+
+export interface ServerInfo {
+  ip: string;
+  pem: boolean;
+  pemName: string;
+}
+
+export interface EnvInfo {
+  frontendFramework: string;
+  frontEnv: boolean;
+  frontEnvName: string;
+  backEnv: boolean;
+  backEnvName: string;
+  node: string;
+  jdk: string;
+  buildTool: string;
 }

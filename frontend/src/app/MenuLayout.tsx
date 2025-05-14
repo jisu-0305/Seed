@@ -37,7 +37,8 @@ export function MenuLayout({ children }: { children: ReactNode }) {
         <LayoutWrapper>
           {pathName !== '/' &&
             pathName !== '/login' &&
-            pathName !== '/oauth/callback' && <SideBar />}
+            pathName !== '/oauth/callback' &&
+            pathName !== '/onboarding' && <SideBar />}
           <RightArea>
             <ContentWrapper>{children}</ContentWrapper>
           </RightArea>

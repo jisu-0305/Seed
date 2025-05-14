@@ -12,6 +12,7 @@ public class InvitationMapper {
                 .projectId(invitation.getProjectId())
                 .receiverId(invitation.getReceiverId())
                 .expiresAt(invitation.getExpiresAt())
+                .state(invitation.getState())
                 .notificationType(notificationType)
                 .build();
     }

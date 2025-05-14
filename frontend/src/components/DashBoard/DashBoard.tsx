@@ -33,6 +33,8 @@ export default function HomePage() {
         <SectionTitle>Workspace</SectionTitle>
         {isLoading ? (
           <p>로딩 중...</p>
+        ) : projectCards?.length === 0 ? (
+          <EmptyMessage>아직 프로젝트가 없습니다</EmptyMessage>
         ) : (
           <Swiper
             spaceBetween={28}
@@ -139,6 +141,7 @@ const SectionTitle = styled.h2`
 const WorkspaceSection = styled.section`
   margin-bottom: 4.8rem;
   width: 100%;
+  min-height: 20rem;
   overflow: hidden;
 
   .swiper-slide {
@@ -195,4 +198,11 @@ const TaskBox = styled.div`
   gap: 1.5rem;
 
   padding-bottom: 2rem;
+`;
+
+const EmptyMessage = styled.div`
+  padding: 2rem;
+  text-align: center;
+  ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Text};
 `;

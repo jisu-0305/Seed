@@ -1,6 +1,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 
+import { useUserStore } from '@/stores/userStore';
 import { fetchUserIfToken } from '@/utils/auth';
 
 export default function OAuthCallback() {
@@ -11,14 +12,26 @@ export default function OAuthCallback() {
 
   useEffect(() => {
     (async () => {
-      if (token && refresh) {
-        localStorage.setItem('accessToken', token);
-        localStorage.setItem('refreshToken', refresh);
-
-        const ok = await fetchUserIfToken();
-        router.replace(ok ? '/dashboard' : '/login');
-      } else {
+      if (!token || !refresh) {
         router.replace('/login');
+        return;
+      }
+
+      localStorage.setItem('accessToken', token);
+      localStorage.setItem('refreshToken', refresh);
+
+      const ok = await fetchUserIfToken();
+      const { user } = useUserStore.getState();
+
+      if (!ok || !user) {
+        router.replace('/login');
+        return;
+      }
+
+      if (user.hasGitlabPersonalAccessToken) {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/onboarding');
       }
     })();
   }, [token, refresh, router]);

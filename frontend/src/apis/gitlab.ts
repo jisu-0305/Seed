@@ -1,12 +1,19 @@
 import { client } from './axios';
 
-export async function getUserRepos() {
-  const { data } = await client.get('/gitlab/projects');
-  return data;
+export async function getUserRepos(userId: number) {
+  const { data } = await client.get(`/gitlab/users/${userId}/projects`);
+  return data.data;
 }
 
 export async function getDockerImage(image: string) {
   const { data } = await client.get(`/docker/images/${image}`);
+  return data;
+}
+
+export async function getProjectApplications(keyword: string) {
+  const { data } = await client.get('/projects/applications', {
+    params: { keyword },
+  });
   return data;
 }
 

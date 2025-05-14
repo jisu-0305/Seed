@@ -1,11 +1,9 @@
 package org.example.backend.domain.server.service;
 
-import org.example.backend.controller.request.server.DeploymentRegistrationRequest;
-import org.example.backend.controller.request.server.InitServerRequest;
-import org.springframework.web.multipart.MultipartFile;
+import org.example.backend.controller.request.server.HttpsConvertRequest;
 
 public interface ServerService {
-    void registerDeployment(DeploymentRegistrationRequest request, MultipartFile pemFile, MultipartFile frontEnvFile, MultipartFile backEnvFile, String accessToken);
+    void registerDeployment(Long projectId, String accessToken);
 
-    void resetServer(InitServerRequest request, MultipartFile pemFile);
+    void convertHttpToHttps(HttpsConvertRequest request, String accessToken);
 }

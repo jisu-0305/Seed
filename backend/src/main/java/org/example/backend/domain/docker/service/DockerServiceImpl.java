@@ -2,9 +2,12 @@ package org.example.backend.domain.docker.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.*;
+import org.example.backend.domain.docker.dto.ContainerDto;
 import org.example.backend.domain.docker.dto.DockerImage;
 import org.example.backend.domain.docker.dto.DockerTag;
+import org.example.backend.domain.docker.enums.ContainerActionType;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -20,7 +23,7 @@ public class DockerServiceImpl implements DockerService {
     private final DockerApiClient dockerApiClient;
 
     @Override
-    public ImageResponse getImages(String image) {
+    public ImageResponse getDockerImages(String image) {
         int page = 1;
         int pageSize = 100;
 
@@ -43,7 +46,7 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<TagResponse> getTag(String image) {
+    public List<TagResponse> getDockerImageTags(String image) {
         String namespace = "library";
         int page = 1;
         int pageSize = 100;
@@ -69,9 +72,9 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<DemonHealthyCheckResponse> checkHealth() {
+    public List<DemonHealthyCheckResponse> checkHealth(String serverIp) {
 
-        DemonContainerStateCountResponse info = dockerApiClient.getInfo();
+        DemonContainerStateCountResponse info = dockerApiClient.getInfo(serverIp);
 
         if (info == null) {
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_FAILED);
@@ -85,14 +88,16 @@ public class DockerServiceImpl implements DockerService {
 
         try {
             List<String> statuses = List.of("paused","exited");
-            return dockerApiClient.getContainersByStatus(statuses).stream()
-                    .map(c -> {
-                        String name = c.getNames().stream().findFirst().orElse("");
+            return dockerApiClient.getContainersByStatus(serverIp, statuses).stream()
+                    .map(container -> {
+                        String rawName = container.getNames().stream().findFirst().orElse("");
+                        String name = rawName.startsWith("/") ? rawName.substring(1) : rawName;
+
                         return new DemonHealthyCheckResponse(
                                 name,
-                                c.getState(),
-                                c.getImage(),
-                                c.getImageId()
+                                container.getState(),
+                                container.getImage(),
+                                container.getImageId()
                         );
                     })
                     .collect(Collectors.toList());
@@ -103,10 +108,10 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<AppHealthyCheckResponse> getAppStatus(String appName) {
+    public List<AppHealthyCheckResponse> getAppStatus(String serverIp, String appName) {
 
         try {
-            var containers = dockerApiClient.getContainersByName(appName);
+            var containers = dockerApiClient.getContainersByName(serverIp, appName);
 
             if (containers.isEmpty()) {
                 throw new BusinessException(ErrorCode.RESOURCE_NOT_FOUND,
@@ -115,7 +120,9 @@ public class DockerServiceImpl implements DockerService {
 
             return containers.stream()
                     .map(container -> {
-                        String name = container.getNames().stream().findFirst().orElse("");
+                        String rawName = container.getNames().stream().findFirst().orElse("");
+                        String name = rawName.startsWith("/") ? rawName.substring(1) : rawName;
+
                         return new AppHealthyCheckResponse(
                                 name,
                                 container.getImage(),
@@ -132,5 +139,67 @@ public class DockerServiceImpl implements DockerService {
             throw new BusinessException(ErrorCode.DOCKER_HEALTH_API_FAILED);
         }
     }
+
+    @Override
+    public List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request) {
+
+        String containerId = resolveContainerId(serverIp, appName);
+        List<String> rawLines = dockerApiClient.getContainerLogs(serverIp, containerId, request);
+
+        return rawLines.stream()
+                .map(DockerContainerLogResponse::of)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void controlContainer(String serverIp, String containerName) {
+        controlContainer(serverIp, containerName, null);
+    }
+
+    @Override
+    public void controlContainer(String serverIp, String containerName, String action) {
+
+        String containerId = resolveContainerId(serverIp, containerName);
+        ContainerActionType actionType = ContainerActionType.from(action);
+
+        try {
+            switch (actionType) {
+                case STOP  -> dockerApiClient.stopContainer(serverIp, containerId);
+                case PAUSE -> dockerApiClient.pauseContainer(serverIp, containerId);
+                case RUN   -> dockerApiClient.startContainer(serverIp, containerId);
+            }
+        } catch (Exception e) {
+            log.error("controlContainer 실패 action={} name={}", action, containerName, e);
+            throw new BusinessException(ErrorCode.DOCKER_CONTROL_FAILED);
+        }
+    }
+
+    @Override
+    public List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag) {
+
+        String namespace = "library";
+
+        String[] splitImageAndTag = imageAndTag.split(":", 2);
+        String imageName = splitImageAndTag[0];
+        String tag = (splitImageAndTag.length == 2 && !splitImageAndTag[1].isBlank()) ? splitImageAndTag[1] : "latest";
+
+        List<String> ports = dockerApiClient.getImageDefaultPorts(namespace, imageName, tag);
+
+        return List.of(new ImageDefaultPortResponse(imageName + ":" + tag, ports));
+
+    }
+
+    /* 공통 로직 */
+    private String resolveContainerId(String serverIp, String containerName) {
+        List<ContainerDto> containers = dockerApiClient.getContainersByName(serverIp, containerName);
+        if (containers.isEmpty()) {
+            throw new BusinessException(
+                    ErrorCode.RESOURCE_NOT_FOUND,
+                    String.format("애플리케이션 이름 '%s' 에 해당하는 컨테이너가 없습니다.", containerName)
+            );
+        }
+        return containers.get(0).getId();
+    }
+
 
 }
