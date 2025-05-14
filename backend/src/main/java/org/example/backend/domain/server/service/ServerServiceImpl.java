@@ -84,7 +84,6 @@ public class ServerServiceImpl implements ServerService {
         String host = project.getServerIP();
         Session sshSession = null;
 
-
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
@@ -149,20 +148,20 @@ public class ServerServiceImpl implements ServerService {
          List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
-                //updatePackageManager(),
-                //setSwapMemory(),
-                //setJDK(),
+                updatePackageManager(),
+                setSwapMemory(),
+                setJDK(),
                 setDocker(),
-                runApplicationList(projectApplicationList, backEnvFile)
-                //setNginx(project.getServerIP()),
-                //setJenkins(),
-                //setJenkinsConfigure(),
-                //makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
-                //setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
-                //makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
-                //makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                //makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                //makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
+                //runApplicationList(projectApplicationList, backEnvFile)
+                setNginx(project.getServerIP()),
+                setJenkins(),
+                setJenkinsConfigure(),
+                makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
+                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
+                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
+                makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
 
@@ -263,7 +262,11 @@ public class ServerServiceImpl implements ServerService {
     private List<String> runApplicationList(List<ProjectApplication> projectApplicationList, byte[] backendEnvFile) {
 
         try {
+
             Map<String, String> envMap = parseEnvFile(backendEnvFile);
+            for (String key : envMap.keySet()) {
+                System.out.println(key + "=" + envMap.get(key));
+            }
 
             return projectApplicationList.stream()
                     .flatMap(app -> {
@@ -285,22 +288,25 @@ public class ServerServiceImpl implements ServerService {
                         // 환경변수 Map 순회
                         // key값은 db에서 꺼내와야함
                         // value는 .env에서 꺼내와야함
-
                         Application application = applicationRepository.findById(app.getApplicationId())
                                 .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
                         List<String> applicationEnvList = application.getEnvVariableList();
 
-
-
-                        if (envMap != null) {
-                            envMap.forEach((key, val) ->
+                        if (applicationEnvList != null && !applicationEnvList.isEmpty()) {
+                            for (String key : applicationEnvList) {
+                                String value = envMap.get(key);
+                                if (value != null) {
                                     runSb.append("-e ")
                                             .append(key)
                                             .append("=")
-                                            .append(val)
-                                            .append(" ")
-                            );
+                                            .append(value)
+                                            .append(" ");
+                                } else {
+                                    // 필요 시, 값이 없을 때 로그 출력 또는 예외 처리
+                                    System.out.println("Warning: .env 파일에 " + key + " 값이 없습니다.");
+                                }
+                            }
                         }
 
                         // 마지막에 이미지:태그
