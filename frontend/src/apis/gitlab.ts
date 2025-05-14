@@ -10,6 +10,13 @@ export async function getDockerImage(image: string) {
   return data;
 }
 
+export async function getProjectApplications(keyword: string) {
+  const { data } = await client.get('/projects/applications', {
+    params: { keyword },
+  });
+  return data;
+}
+
 export async function getImageTag(image: string) {
   const { data } = await client.get(`/docker/images/${image}/tags`);
   return data;

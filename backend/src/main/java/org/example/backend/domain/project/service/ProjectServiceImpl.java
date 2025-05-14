@@ -84,7 +84,7 @@ public class ProjectServiceImpl implements ProjectService {
             ProjectFile newFrontendEnvFile = ProjectFile.builder()
                     .projectId(project.getId())
                     .fileName(frontEnvFile.getOriginalFilename())
-                    .fileType(FileType.FRONT_ENV)
+                    .fileType(FileType.FRONTEND_ENV)
                     .contentType(frontEnvFile.getContentType())
                     .data(frontEnvFile.getBytes())
                     .build();
@@ -207,7 +207,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(UserProject::getProjectId)
                 .toList();
 
-        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
+        Map<Long, Project> projectMap = projectRepository.findByIdIn(projectIdList).stream()
                 .collect(Collectors.toMap(Project::getId, p -> p));
 
         List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);

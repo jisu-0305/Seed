@@ -9,7 +9,7 @@ import {
   HttpsBuildLog,
 } from '@/apis/build';
 import { fetchProjectDetail } from '@/apis/project';
-import { useProjectStore } from '@/stores/projectStore';
+import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
 import { ProjectDetailData, ProjectSummary } from '@/types/project';
@@ -26,6 +26,7 @@ export default function ProjectDetail() {
   const params = useParams();
   const rawId = params?.id;
   const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const loadProjectInfo = useProjectInfoStore((s) => s.loadProjectInfo);
 
   const router = useRouter();
 
@@ -67,6 +68,9 @@ export default function ProjectDetail() {
 
     fetchProjectDetail(id)
       .then((data) => {
+        loadProjectInfo({
+          ...data,
+        });
         setDetail({
           ...data,
           memberList: summary?.memberList ?? [],

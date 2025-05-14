@@ -25,6 +25,7 @@ public class ProjectFile {
 
     private String contentType;
 
+    @Enumerated(EnumType.STRING)
     private FileType fileType;
 
     @Lob

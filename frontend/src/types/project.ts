@@ -53,6 +53,11 @@ export interface Application {
   port: number;
 }
 
+// defaultPorts 가 필요한 곳에서만 쓰는 서브타입
+export interface ApplicationWithDefaults extends Application {
+  defaultPorts: number[];
+}
+
 export interface ProjectDetailData {
   id: number;
   ownerId: number;
@@ -114,4 +119,32 @@ export interface ProjectCardInfo {
   autoDeploymentEnabled: boolean;
   buildStatus: BuildStatus;
   lastBuildAt: string;
+}
+
+// —————— 서브타입 정의 ——————
+export interface GitlabInfo {
+  repo: string;
+  defaultBranch: string;
+  structure: '모노' | '멀티' | string;
+  directory: {
+    client: string;
+    server: string;
+  };
+}
+
+export interface ServerInfo {
+  ip: string;
+  pem: boolean;
+  pemName: string;
+}
+
+export interface EnvInfo {
+  frontendFramework: string;
+  frontEnv: boolean;
+  frontEnvName: string;
+  backEnv: boolean;
+  backEnvName: string;
+  node: string;
+  jdk: string;
+  buildTool: string;
 }

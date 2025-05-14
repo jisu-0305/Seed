@@ -1,98 +1,91 @@
 import styled from '@emotion/styled';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import FileInput from '@/components/Common/FileInput';
-import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { ApplicationWithDefaults, EnvInfo, ServerInfo } from '@/types/project';
 
-const dummyApps = [
-  {
-    imageName: 'redis',
-    tag: 'latest',
-    port: 8081,
-  },
-  {
-    imageName: 'mysql',
-    tag: 'stable',
-    port: 3306,
-  },
-  {
-    imageName: 'elastic search',
-    tag: 'latest',
-    port: 9200,
-  },
-];
+export interface ProjectEditInputProps {
+  server: ServerInfo;
+  env: EnvInfo;
+  apps: ApplicationWithDefaults[];
 
-export default function ProjectEditInput() {
+  // 변경된 값을 상위(스토어)에 반영할 콜백
+  onChangeServer: (s: ServerInfo) => void;
+  onChangeEnv: (e: EnvInfo) => void;
+  onChangeApps: (a: ApplicationWithDefaults[]) => void;
+}
+
+export default function ProjectEditInput({
+  server,
+  env,
+  apps,
+  onChangeServer,
+  onChangeEnv,
+  onChangeApps,
+}: ProjectEditInputProps) {
   const { mode } = useThemeStore();
-
-  const { stepStatus, setServerStatus, setEnvStatus, setAppStatus } =
-    useProjectInfoStore();
-  const { server } = stepStatus;
-  const { env } = stepStatus;
-  const apps = dummyApps;
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [tag, setTag] = useState('latest');
   const [port, setPort] = useState(8080);
 
-  const handleIpChange = (index: number, value: string) => {
-    const numeric = value.replace(/\D/g, '');
+  // IP 입력 처리
+  const [ipParts, setIpParts] = useState<string[]>(() => server.ip.split('.'));
+  useEffect(() => {
+    setIpParts(server.ip.split('.'));
+  }, [server.ip]);
 
-    if (numeric !== '' && parseInt(numeric, 10) > 255) return;
+  const handleIpChange = (idx: number, val: string) => {
+    const num = val.replace(/\D/g, '');
+    if (num !== '' && +num > 255) return;
 
-    const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
-    ipParts[index] = numeric;
-
-    setServerStatus({
-      ip: ipParts.map((p) => p || '').join('.'),
-      pem: server.pem,
-    });
+    const updated = [...ipParts];
+    updated[idx] = num;
+    onChangeServer({ ...server, ip: updated.join('.') });
   };
 
-  const handleSelectApp = (index: number) => {
-    setSelectedIndex(index);
-    setTag(apps[index].tag);
-    setPort(apps[index].port);
-  };
+  // selectedIndex 바뀔 때 초기화
+  useEffect(() => {
+    if (selectedIndex !== null) {
+      const app = apps[selectedIndex];
+      setTag(app.tag);
+      setPort(app.port);
+    }
+  }, [selectedIndex, apps]);
 
-  const handleDeleteApp = (index: number) => {
-    const updated = [...apps];
-    updated.splice(index, 1);
-    setAppStatus(updated);
+  const handleSelectApp = (idx: number) => {
+    setSelectedIndex(idx);
+  };
+  const handleDeleteApp = (idx: number) => {
+    const updated = apps.filter((_, i) => i !== idx);
+    onChangeApps(updated);
     setSelectedIndex(null);
   };
-
   const handleTagChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setTag(e.target.value);
-
+    const newTag = e.target.value;
+    setTag(newTag);
     if (selectedIndex !== null) {
       const updated = [...apps];
-      updated[selectedIndex].tag = e.target.value;
-      setAppStatus(updated);
+      updated[selectedIndex] = { ...updated[selectedIndex], tag: newTag };
+      onChangeApps(updated);
     }
   };
-
   const handlePortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const portNum = Number(e.target.value);
-    setPort(portNum);
-
+    const newPort = Number(e.target.value);
+    setPort(newPort);
     if (selectedIndex !== null) {
       const updated = [...apps];
-      updated[selectedIndex].port = portNum;
-      setAppStatus(updated);
+      updated[selectedIndex] = { ...updated[selectedIndex], port: newPort };
+      onChangeApps(updated);
     }
   };
 
-  const handleClientEnvChange = (file: File) => {
-    setEnvStatus({ ...env, frontEnv: !!file });
-  };
-
-  const handleServerEnvChange = (file: File) => {
-    setEnvStatus({ ...env, frontEnv: !!file });
-  };
-
-  const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
+  // Env 파일 처리
+  const handleClientEnvChange = (file: File) =>
+    onChangeEnv({ ...env, frontEnv: true, frontEnvName: file.name });
+  const handleServerEnvChange = (file: File) =>
+    onChangeEnv({ ...env, backEnv: true, backEnvName: file.name });
 
   return (
     <Container>
@@ -102,15 +95,15 @@ export default function ProjectEditInput() {
         </Title>
 
         <IpInputWrapper>
-          {ipParts.map((val, i) => (
+          {ipParts.map((part, i) => (
             // eslint-disable-next-line react/no-array-index-key
-            <React.Fragment key={`${val}-${i}`}>
+            <React.Fragment key={i}>
               <IpBox
                 maxLength={3}
-                value={val}
+                value={part}
                 onChange={(e) => handleIpChange(i, e.target.value)}
               />
-              {i !== ipParts.length - 1 && '.'}
+              {i < 3 && '.'}
             </React.Fragment>
           ))}
         </IpInputWrapper>
