@@ -30,17 +30,17 @@ public class ServerController {
 
     @PostMapping("/deployment")
     public ResponseEntity<ApiResponse<Void>> registerDeployment(
-            @RequestPart("request") DeploymentRegistrationRequest request,
+            @RequestParam Long projectId,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.registerDeployment(request, accessToken);
+        serverService.registerDeployment(projectId, accessToken);
 
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     @PostMapping(value = "/convert")
     public ResponseEntity<ApiResponse<String>> convertHttps(
-            @RequestPart("request") HttpsConvertRequest request,
+            @RequestBody HttpsConvertRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
         serverService.convertHttpToHttps(request, accessToken);

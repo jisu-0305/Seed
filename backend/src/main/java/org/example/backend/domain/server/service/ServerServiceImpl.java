@@ -58,7 +58,7 @@ public class ServerServiceImpl implements ServerService {
 
     @Override
     public void registerDeployment(
-            DeploymentRegistrationRequest request, String accessToken) {
+            Long projectId, String accessToken) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -66,7 +66,7 @@ public class ServerServiceImpl implements ServerService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        Project project = projectRepository.findById(request.getProjectId())
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
         ProjectFile pemFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.PEM)
