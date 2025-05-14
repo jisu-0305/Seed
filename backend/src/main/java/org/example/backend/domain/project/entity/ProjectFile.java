@@ -12,7 +12,7 @@ import org.example.backend.domain.project.enums.FileType;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "projectfiles")
+@Table(name = "project_files")
 public class ProjectFile {
 
     @Id

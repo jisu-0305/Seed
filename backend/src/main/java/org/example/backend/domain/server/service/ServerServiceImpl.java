@@ -14,6 +14,7 @@ import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
+import org.example.backend.domain.project.entity.Application;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectApplication;
 import org.example.backend.domain.project.entity.ProjectFile;
@@ -30,9 +31,12 @@ import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Stream;
@@ -98,7 +102,7 @@ public class ServerServiceImpl implements ServerService {
             // 3) 성공 로그
             log.info("모든 인프라 설정 세팅을 완료했습니다.");
 
-//            // 3) Jenkins 토큰 발급
+            // 3) Jenkins 토큰 발급
             log.info("Jenkins API 토큰 발급 시작");
             issueAndSaveToken(project.getId(), project.getServerIP(), sshSession);
             log.info("Jenkins API 토큰 발급 완료");
@@ -145,20 +149,20 @@ public class ServerServiceImpl implements ServerService {
          List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
-                updatePackageManager(),
-                setSwapMemory(),
-                setJDK(),
+                //updatePackageManager(),
+                //setSwapMemory(),
+                //setJDK(),
                 setDocker(),
-                setNginx(project.getServerIP()),
-                setJenkins(),
-                setJenkinsConfigure(),
-                makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
-                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
-                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
-                makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                runApplicationList(projectApplicationList),
-                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
+                runApplicationList(projectApplicationList, backEnvFile)
+                //setNginx(project.getServerIP()),
+                //setJenkins(),
+                //setJenkinsConfigure(),
+                //makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
+                //setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
+                //makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
+                //makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                //makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                //makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
 
@@ -254,6 +258,81 @@ public class ServerServiceImpl implements ServerService {
                 "sudo systemctl enable docker",
                 "sudo systemctl restart docker"
         );
+    }
+
+    private List<String> runApplicationList(List<ProjectApplication> projectApplicationList, byte[] backendEnvFile) {
+
+        try {
+            Map<String, String> envMap = parseEnvFile(backendEnvFile);
+
+            return projectApplicationList.stream()
+                    .flatMap(app -> {
+                        String image = app.getImageName();
+                        int port  = app.getPort();
+                        String tag   = app.getTag();
+
+                        // stop, rm 명령
+                        String stop = "sudo docker stop " + image + " || true";
+                        String rm   = "sudo docker rm "   + image + " || true";
+
+                        // run 명령 빌드
+                        StringBuilder runSb = new StringBuilder();
+                        runSb.append("sudo docker run -d ")
+                                .append("--restart unless-stopped ")
+                                .append("--name ").append(image).append(" ")
+                                .append("-p ").append(port).append(":").append(port).append(" ");
+
+                        // 환경변수 Map 순회
+                        // key값은 db에서 꺼내와야함
+                        // value는 .env에서 꺼내와야함
+
+                        Application application = applicationRepository.findById(app.getApplicationId())
+                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+                        List<String> applicationEnvList = application.getEnvVariableList();
+
+
+
+                        if (envMap != null) {
+                            envMap.forEach((key, val) ->
+                                    runSb.append("-e ")
+                                            .append(key)
+                                            .append("=")
+                                            .append(val)
+                                            .append(" ")
+                            );
+                        }
+
+                        // 마지막에 이미지:태그
+                        runSb.append(image).append(":").append(tag);
+
+                        String run = runSb.toString();
+
+                        return Stream.of(stop, rm, run);
+                    })
+                    .toList();
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private Map<String, String> parseEnvFile(byte[] envFileBytes) throws IOException {
+        Map<String, String> envMap = new HashMap<>();
+        String content = new String(envFileBytes, StandardCharsets.UTF_8);
+
+        try (BufferedReader reader = new BufferedReader(new StringReader(content))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith("#")) continue;
+                String[] parts = line.split("=", 2);
+                if (parts.length == 2) {
+                    envMap.put(parts[0].trim(), parts[1].trim());
+                }
+            }
+        }
+        return envMap;
     }
 
     // 7. Nginx 설치
@@ -820,54 +899,6 @@ public class ServerServiceImpl implements ServerService {
                 "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
                 "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && sudo git push origin " + gitlabTargetBranchName
         );
-    }
-
-    private List<String> runApplicationList(List<ProjectApplication> projectApplicationList) {
-
-        return projectApplicationList.stream()
-                .flatMap(app -> {
-                    String image = app.getImageName();
-                    int port  = app.getPort();
-                    String tag   = app.getTag();
-
-                    // stop, rm 명령
-                    String stop = "sudo docker stop " + image + " || true";
-                    String rm   = "sudo docker rm "   + image + " || true";
-
-                    // run 명령 빌드
-                    StringBuilder runSb = new StringBuilder();
-                    runSb.append("sudo docker run -d ")
-                            .append("--restart unless-stopped ")
-                            .append("--name ").append(image).append(" ")
-                            .append("-p ").append(port).append(":").append(port).append(" ");
-
-                    // 환경변수 Map 순회
-                    // key값은 db에서 꺼내와야함
-                    // value는 .env에서 꺼내와야함
-                    Map<String,String> envMap = Map.of(
-                            "MYSQL_ROOT_PASSWORD", "seed",
-                            "MYSQL_USER", "ssafy",
-                            "MYSQL_PASSWORD", "ssafy"
-                    );
-
-                    if (envMap != null) {
-                        envMap.forEach((key, val) ->
-                                runSb.append("-e ")
-                                        .append(key)
-                                        .append("=")
-                                        .append(val)
-                                        .append(" ")
-                        );
-                    }
-
-                    // 마지막에 이미지:태그
-                    runSb.append(image).append(":").append(tag);
-
-                    String run = runSb.toString();
-
-                    return Stream.of(stop, rm, run);
-                })
-                .toList();
     }
 
     private List<String> makeGitlabWebhook(String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
