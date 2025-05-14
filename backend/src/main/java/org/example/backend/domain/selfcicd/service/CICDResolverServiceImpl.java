@@ -36,17 +36,13 @@ import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class CICDResolverServiceImpl implements CICDResolverService {
-
 
     private final JenkinsService jenkinsService;
     private final DockerService dockerService;
@@ -59,32 +55,33 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final ProjectAccessValidator projectProjectAccessValidator;
     private final AIApiClient fastAIClient;
 
+    //여기서 사용하는 accessToekn은 gitlabPersonalAccessToken임
     @Override
     public void handleSelfHealingCI(Long projectId, String accessToken) {
-        projectProjectAccessValidator.validateUserInProject(projectId, accessToken);
         // 1. 프로젝트 조회
         Project project = getProject(projectId);
 
         // 1-1. 마지막 Jenkins 빌드 정보 및 에러 로그 조회
-//        JenkinsBuildListResponse build = getLastBuildInfo(projectId, accessToken);
-//        String errorLog = getErrorLog(projectId, build.getBuildNumber(), accessToken);
+        int buildNumber = getLastBuildInfo(projectId);
+        String errorLog = getErrorLog(projectId, buildNumber);
 
-        // 1-2. 프로젝트에 포함된 앱 이름 목록 조회
-//        List<String> appNames = getProjectAppNames(project.getId());
+//        // 1-2. 프로젝트에 포함된 앱 이름 목록 조회 -> 그 참고로 appName없을수도 아님 아마도? default로 쓰는건 projects안에 fronted_framework로 받아야함, 해당 내용에 docker이미지 이름이랑 동일할거임
+        List<String> appNames = getProjectAppNames(project);
+        System.out.println("appNames"+appNames.toString());
+//        // 1-3. Gitlab 최신 MR의 diff 정보 조회
+        GitlabCompareResponse gitDiff = getGitDiff(project, accessToken);
 
-        // 1-3. Gitlab 최신 MR의 diff 정보 조회
-//        GitlabCompareResponse gitDiff = getGitDiff(project, accessToken);
-
-        // 1-4. AI API 호출하여 의심되는 앱 추론
+        //현재 jenkins 관련된거 다 jwtToken안받게 메서드 설정!
+//        // 1-4. AI API 호출하여 의심되는 앱 추론
 //        List<String> suspectedApps = inferSuspectedApps(appNames, gitDiff, errorLog);
-
-        // 1-5. 의심 앱들의 GitLab 트리 정보 조회
+//
+//        // 1-5. 의심 앱들의 GitLab 트리 정보 조회
 //        Map<String, List<GitlabTree>> appTrees = getGitTrees(suspectedApps, project, accessToken);
-
-        // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
+//
+//        // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
 //        Map<String, String> appLogs = getDockerLogs(project, suspectedApps, gitDiff);
-
-        // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
+//
+//        // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
 //        List<PatchedFile> patchedFiles = new ArrayList<>();
 //        List<ResolveErrorResponse> resolveResults = new ArrayList<>();
 //        for (String app : suspectedApps) {
@@ -93,29 +90,29 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 //                    resolveFilesAndPatch(project, accessToken, app, gitDiff, appLogs.get(app), appTrees.get(app), patchedFiles)
 //            );
 //        }
-
-        // 3-1. GitLab에 새로운 브랜치 생성 (ex. ai/fix/123456789)
+//
+//        // 3-1. GitLab에 새로운 브랜치 생성 (ex. ai/fix/123456789)
 //        String newBranch = createFixBranch(project, accessToken);
-
-        // 3-2. GitLab에 수정된 파일들 커밋
+//
+//        // 3-2. GitLab에 수정된 파일들 커밋
 //        commitPatchedFiles(project, accessToken, newBranch, patchedFiles);
-
-        // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
+//
+//        // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
 //        triggerRebuild(projectId, accessToken, newBranch);
-
-        // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
-        // 4-1. Jenkins 빌드 결과 상태 확인
+//
+//        // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
+//        // 4-1. Jenkins 빌드 결과 상태 확인
 //        ReportStatus reportStatus  = getBuildStatus(projectId, accessToken);
-
-        // 4-2. 빌드 성공 시 GitLab MR 생성
+//
+//        // 4-2. 빌드 성공 시 GitLab MR 생성
 //        if (reportStatus == ReportStatus.SUCCESS) {
 //            createMergeRequest(project, accessToken, newBranch);
 //        }
-
-        // 4-3. AI 요약 보고서 생성 요청 및 수신
+//
+//        // 4-3. AI 요약 보고서 생성 요청 및 수신
 //        Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps);
-
-        // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
+//
+//        // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
 //        saveReports(projectId, reportResponses);
     }
 
@@ -126,20 +123,28 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 1-1. 마지막 Jenkins 빌드 번호 반환
-    private JenkinsBuildListResponse getLastBuildInfo(Long projectId, String accessToken) {
-        return jenkinsService.getLastBuild(projectId, accessToken);
+    private int getLastBuildInfo(Long projectId) {
+        return jenkinsService.getLastBuildNumberWithOutLogin(projectId);
     }
 
     // 1-1. 실패한 Jenkins 로그 조회
-    private String getErrorLog(Long projectId, int buildNumber, String accessToken) {
-        return jenkinsService.getBuildLog(buildNumber, projectId, accessToken);
+    private String getErrorLog(Long projectId, int buildNumber) {
+        return jenkinsService.getBuildLogWithOutLogin(buildNumber, projectId);
     }
 
     // 1-2. 해당 프로젝트의 어플리케이션 목록 조회
-    private List<String> getProjectAppNames(Long projectId) {
-        return projectApplicationRepository.findAllByProjectId(projectId).stream()
-                .map(ProjectApplication::getImageName)
-                .toList();
+    private List<String> getProjectAppNames(Project project) {
+        List<String> appNames = new ArrayList<>(
+                projectApplicationRepository.findAllByProjectId(project.getId()).stream()
+                        .map(ProjectApplication::getImageName)
+                        .filter(Objects::nonNull)
+                        .toList()
+        );
+
+        appNames.add("spring");
+        appNames.add(project.getFrontendFramework());
+
+        return appNames;
     }
 
     // 1-3. Git diff 정보 가져오기

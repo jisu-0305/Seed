@@ -69,6 +69,20 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
+    public int getLastBuildNumberWithOutLogin(Long projectId){
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json"));
+
+        return JenkinsBuildListResponse.builder()
+                .buildNumber(build.path("number").asInt())
+                .buildName("MR 빌드")
+                .date(DATE_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
+                .time(TIME_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
+                .status(build.path("result").asText())
+                .build().getBuildNumber();
+    }
+
+    @Override
     public JenkinsBuildListResponse getLastBuild(Long projectId, String accessToken) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
@@ -101,6 +115,11 @@ public class JenkinsServiceImpl implements JenkinsService {
                 .overallStatus(buildInfo.path("result").asText())
                 .stepList(steps)
                 .build();
+    }
+
+    @Override
+    public String getBuildLogWithOutLogin(int buildNumber, Long projectId){
+        return jenkinsClient.fetchBuildLog(getJenkinsInfo(projectId), buildNumber);
     }
 
     @Override

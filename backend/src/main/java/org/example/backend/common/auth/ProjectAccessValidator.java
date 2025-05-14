@@ -15,8 +15,8 @@ public class ProjectAccessValidator {
     private final RedisSessionManager redisSessionManager;
     private final UserProjectRepository userProjectRepository;
 
-    public void validateUserInProject(Long projectId, String accessToken) {
-        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+    public void validateUserInProject(Long projectId, String jwtToken) {
+        SessionInfoDto session = redisSessionManager.getSession(jwtToken);
         Long userId = session.getUserId();
         if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
             throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
