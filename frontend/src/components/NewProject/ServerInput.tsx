@@ -20,7 +20,15 @@ export default function ServerInput() {
     useProjectInfoStore();
   const { server } = stepStatus;
 
-  const { setPemFile } = useProjectFileStore();
+  const { pemFile, setPemFile } = useProjectFileStore();
+
+  useEffect(() => {
+    setServerStatus({
+      ...server,
+      pem: Boolean(pemFile),
+      pemName: pemFile?.name ?? '',
+    });
+  }, [pemFile]);
 
   const pemTip = useModal();
   const ipTip = useModal();

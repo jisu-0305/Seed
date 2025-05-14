@@ -16,11 +16,16 @@ interface Repo {
 export default function GitlabInput() {
   const [repoList, setRepoList] = useState<Repo[]>([]);
 
-  const { stepStatus, setGitlabStatus, setOnNextValidate } =
+  const { stepStatus, setGitlabStatus, setOnNextValidate, resetProjectStatus } =
     useProjectInfoStore();
   const { gitlab } = stepStatus;
 
   const { mode } = useThemeStore();
+
+  // 페이지가 마운트될 때 한 번만 초기화
+  useEffect(() => {
+    resetProjectStatus();
+  }, [resetProjectStatus]);
 
   // repo 조회
   useEffect(() => {
@@ -65,6 +70,7 @@ export default function GitlabInput() {
 
     setGitlabStatus({
       ...gitlab,
+      id: selected ? selected.id : 0,
       repo: url,
       defaultBranch: selected ? selected.default_branch : '',
     });

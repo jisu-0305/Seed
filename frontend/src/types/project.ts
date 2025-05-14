@@ -1,5 +1,6 @@
 export interface ProjectInfo {
   gitlab: {
+    id: number;
     repo: string;
     defaultBranch: string;
     structure: '모노' | '멀티' | string;
@@ -87,6 +88,7 @@ export interface ProjectDetailResponse {
 }
 
 interface BaseProjectInfo {
+  gitlab_project_id: number;
   repositoryUrl: string;
   gitlabTargetBranch: string;
   jdkVersion: string;
@@ -123,6 +125,7 @@ export interface ProjectCardInfo {
 
 // —————— 서브타입 정의 ——————
 export interface GitlabInfo {
+  id: number;
   repo: string;
   defaultBranch: string;
   structure: '모노' | '멀티' | string;

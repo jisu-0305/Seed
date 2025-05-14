@@ -1,7 +1,13 @@
 import styled from '@emotion/styled';
 import React, { useEffect, useState } from 'react';
 
+import { getImageTag } from '@/apis/gitlab';
 import FileInput from '@/components/Common/FileInput';
+import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
+import CustomDropdown from '@/components/NewProject/CustomDropdown';
+import SearchDockerImageModal from '@/components/NewProject/Modal/SearchDockerImageModal';
+import { useModal } from '@/hooks/Common';
+import { useProjectFileStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { ApplicationWithDefaults, EnvInfo, ServerInfo } from '@/types/project';
 
@@ -25,67 +31,124 @@ export default function ProjectEditInput({
   onChangeApps,
 }: ProjectEditInputProps) {
   const { mode } = useThemeStore();
+  const search = useModal();
 
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [tag, setTag] = useState('latest');
-  const [port, setPort] = useState(8080);
+  const { setBackEnvFile, setFrontEnvFile } = useProjectFileStore();
+  const { frontEnvFile, backEnvFile } = useProjectFileStore();
 
-  // IP 입력 처리
+  // 실 파일 존재 여부와 스토어 플래그 동기화
+  useEffect(() => {
+    onChangeEnv({
+      ...env,
+      frontEnv: Boolean(frontEnvFile),
+      frontEnvName: frontEnvFile?.name ?? '',
+      backEnv: Boolean(backEnvFile),
+      backEnvName: backEnvFile?.name ?? '',
+    });
+  }, [frontEnvFile, backEnvFile]);
+
+  // IP 파트
   const [ipParts, setIpParts] = useState<string[]>(() => server.ip.split('.'));
-  useEffect(() => {
-    setIpParts(server.ip.split('.'));
-  }, [server.ip]);
-
-  const handleIpChange = (idx: number, val: string) => {
-    const num = val.replace(/\D/g, '');
-    if (num !== '' && +num > 255) return;
-
-    const updated = [...ipParts];
-    updated[idx] = num;
-    onChangeServer({ ...server, ip: updated.join('.') });
+  useEffect(() => setIpParts(server.ip.split('.')), [server.ip]);
+  const handleIpChange = (i: number, v: string) => {
+    const num = v.replace(/\D/g, '');
+    if (num && +num > 255) return;
+    const u = [...ipParts];
+    u[i] = num;
+    setIpParts(u);
+    onChangeServer({ ...server, ip: u.join('.') });
   };
 
-  // selectedIndex 바뀔 때 초기화
+  // 앱 선택 + 태그 리스트
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [tagList, setTagList] = useState<string[]>([]);
+
   useEffect(() => {
-    if (selectedIndex !== null) {
-      const app = apps[selectedIndex];
-      setTag(app.tag);
-      setPort(app.port);
+    if (
+      selectedIndex !== null &&
+      (selectedIndex < 0 || selectedIndex >= apps.length)
+    ) {
+      setSelectedIndex(null);
     }
-  }, [selectedIndex, apps]);
+  }, [apps, selectedIndex]);
 
-  const handleSelectApp = (idx: number) => {
-    setSelectedIndex(idx);
+  const fetchImageTag = async (imageName: string) => {
+    const { data } = await getImageTag(imageName);
+    const tags = data.map((t: { name: string }) => t.name);
+    setTagList(tags);
+    return tags[0]!;
   };
-  const handleDeleteApp = (idx: number) => {
-    const updated = apps.filter((_, i) => i !== idx);
+
+  // 앱 추가
+  const handleAddApp = async (img: ApplicationWithDefaults) => {
+    const idx = apps.findIndex((a) => a.imageName === img.imageName);
+    if (idx > -1) {
+      setSelectedIndex(idx);
+      fetchImageTag(img.imageName);
+      return;
+    }
+    const initialTag = await fetchImageTag(img.imageName);
+    const initialPort = img.defaultPorts[0] || 8080;
+    const newApp: ApplicationWithDefaults = {
+      ...img,
+      tag: initialTag,
+      port: initialPort,
+    };
+    const updated = [...apps, newApp];
     onChangeApps(updated);
-    setSelectedIndex(null);
+    setSelectedIndex(updated.length - 1);
   };
-  const handleTagChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const newTag = e.target.value;
-    setTag(newTag);
-    if (selectedIndex !== null) {
-      const updated = [...apps];
-      updated[selectedIndex] = { ...updated[selectedIndex], tag: newTag };
-      onChangeApps(updated);
-    }
+
+  const handleSelectApp = (index: number) => {
+    setSelectedIndex(index);
+    fetchImageTag(apps[index].imageName);
   };
-  const handlePortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newPort = Number(e.target.value);
-    setPort(newPort);
-    if (selectedIndex !== null) {
-      const updated = [...apps];
-      updated[selectedIndex] = { ...updated[selectedIndex], port: newPort };
-      onChangeApps(updated);
+
+  // 앱 삭제
+  const handleDeleteApp = (index: number) => {
+    const updated = [...apps];
+    updated.splice(index, 1);
+    onChangeApps(updated);
+
+    if (selectedIndex === index) {
+      setSelectedIndex(null);
     }
   };
 
-  // Env 파일 처리
-  const handleClientEnvChange = (file: File) =>
-    onChangeEnv({ ...env, frontEnv: true, frontEnvName: file.name });
-  const handleServerEnvChange = (file: File) =>
-    onChangeEnv({ ...env, backEnv: true, backEnvName: file.name });
+  // 태그 선택
+  const handleTagChange = (value: string) => {
+    if (selectedIndex == null) return;
+    const u = [...apps];
+    u[selectedIndex].tag = value;
+    onChangeApps(u);
+  };
+
+  // 포트 선택
+  const handlePortSelect = (value: string) => {
+    if (selectedIndex == null) return;
+    const portNum = Number(value);
+    const used = new Set(
+      apps.map((a, idx) => (idx === selectedIndex ? null : a.port)),
+    );
+    if (used.has(portNum)) {
+      alert('이미 사용 중인 포트입니다.');
+      return;
+    }
+    const u = [...apps];
+    u[selectedIndex].port = portNum;
+    onChangeApps(u);
+  };
+
+  // Env 파일
+  const handleClientEnvChange = (file: File) => {
+    onChangeEnv({ ...env, frontEnv: !!file, frontEnvName: file.name });
+    setFrontEnvFile(file);
+  };
+
+  const handleServerEnvChange = (file: File) => {
+    onChangeEnv({ ...env, backEnv: !!file, backEnvName: file.name });
+    setBackEnvFile(file);
+  };
 
   return (
     <Container>
@@ -125,7 +188,7 @@ export default function ProjectEditInput({
           ))}
         </RegisteredList>
 
-        <SearchWrapper>
+        <SearchWrapper onClick={search.toggle}>
           <SearchInput placeholder="어플리케이션을 검색해주세요." readOnly />
           <SearchIcon
             src={`/assets/icons/ic_search_${mode}.svg`}
@@ -133,7 +196,7 @@ export default function ProjectEditInput({
           />
         </SearchWrapper>
 
-        {selectedIndex !== null && (
+        {selectedIndex !== null && apps[selectedIndex] && (
           <>
             <Row>
               <Label>선택한 어플리케이션</Label>
@@ -146,22 +209,19 @@ export default function ProjectEditInput({
             <Row>
               <SelectWrapper>
                 <Label>Tag</Label>
-                <Select value={tag} onChange={handleTagChange}>
-                  <option value="latest">latest</option>
-                  <option value="stable">stable</option>
-                </Select>
-                <ArrowIcon
-                  src={`/assets/icons/ic_arrow_down_${mode}.svg`}
-                  alt="arrow"
+                <CustomDropdown
+                  options={tagList}
+                  value={apps[selectedIndex].tag || ''}
+                  onChange={handleTagChange}
                 />
               </SelectWrapper>
 
               <SelectWrapper>
                 <Label>포트번호</Label>
-                <PortInput
-                  type="number"
-                  value={port}
-                  onChange={handlePortChange}
+                <CustomDropdown
+                  options={apps[selectedIndex].defaultPorts.map(String)}
+                  value={String(apps[selectedIndex].port)}
+                  onChange={handlePortSelect}
                 />
               </SelectWrapper>
             </Row>
@@ -169,21 +229,35 @@ export default function ProjectEditInput({
         )}
       </Section>
 
+      <ModalWrapper isShowing={search.isShowing}>
+        <SearchDockerImageModal
+          isShowing={search.isShowing}
+          handleClose={search.toggle}
+          onSelect={(img) => {
+            handleAddApp(img);
+          }}
+        />
+      </ModalWrapper>
+
       <Section>
         <Row>
           <Label>Client 환경변수</Label>
           <FileInput
+            id="front"
             handleFileChange={handleClientEnvChange}
             accept=".env"
             placeholder="frontend.env"
+            inputType="frontEnv"
           />
         </Row>
         <Row>
           <Label>Server 환경변수</Label>
           <FileInput
+            id="back"
             handleFileChange={handleServerEnvChange}
             accept=".env"
             placeholder="backend.env"
+            inputType="backEnv"
           />
         </Row>
       </Section>
@@ -348,48 +422,4 @@ const SelectWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
-`;
-
-const Select = styled.select`
-  width: 15rem;
-  padding: 1rem;
-  padding-right: 4rem;
-
-  ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Text};
-  text-align: center;
-
-  background-color: ${({ theme }) => theme.colors.InputBackground};
-  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
-  border-radius: 1rem;
-
-  appearance: none;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  cursor: pointer;
-`;
-
-const ArrowIcon = styled.img`
-  position: absolute;
-  right: 3rem;
-  top: 55%;
-  transform: translateY(-50%);
-
-  pointer-events: none;
-`;
-
-const PortInput = styled.input`
-  width: 8rem;
-  padding: 1rem;
-
-  ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Text};
-  text-align: center;
-
-  background-color: ${({ theme }) => theme.colors.InputBackground};
-  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
-  border-radius: 1rem;
 `;
