@@ -141,7 +141,7 @@ public class ServerServiceImpl implements ServerService {
         log.info(gitlabProject.toString());
 
         // 어플리케이션 목록
-         List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
+        List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
                 //updatePackageManager(),
