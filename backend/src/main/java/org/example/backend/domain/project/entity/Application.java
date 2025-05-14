@@ -6,8 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -26,11 +26,5 @@ public class Application {
     private int defaultPort;
 
     @ElementCollection
-    @CollectionTable(
-            name = "application_env",
-            joinColumns = @JoinColumn(name = "application_id")
-    )
-    @MapKeyColumn(name = "env_key")
-    @Column(name = "env_value")
-    private Map<String, String> envVariables = new HashMap<>();
+    private List<String> envVariableList = new ArrayList<>();
 }
