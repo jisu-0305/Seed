@@ -3,6 +3,7 @@ import { useState } from 'react';
 
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { parseRepoName } from '@/utils/parseRepoName';
 
 export default function StepSidebar() {
   const { stepStatus: status } = useProjectInfoStore();
@@ -22,7 +23,7 @@ export default function StepSidebar() {
       <Section>
         <Row>
           <Label>GitLab Repo</Label>
-          <Value>{status.gitlab.repo || '-'}</Value>
+          <Value>{parseRepoName(status.gitlab.repo) || '-'}</Value>
         </Row>
         <Row>
           <Label>폴더 구조</Label>

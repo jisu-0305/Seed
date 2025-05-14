@@ -4,6 +4,7 @@ import { persist } from 'zustand/middleware';
 import { fetchProjects } from '@/apis/project';
 import {
   ApplicationWithDefaults,
+  ProjectDetailData,
   ProjectInfo as _PI,
   ProjectSummary,
 } from '@/types/project';
@@ -26,6 +27,7 @@ interface ProjectInfoStore {
   // 다음 성공시 콜백함수
   onNextSuccess?: () => void;
   setOnNextSuccess: (fn: () => void) => void;
+  loadProjectInfo: (detail: ProjectDetailData) => void;
 }
 
 const initialStatus: ProjectInfo = {
@@ -89,6 +91,49 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
 
       onNextSuccess: undefined,
       setOnNextSuccess: (fn) => set({ onNextSuccess: fn }),
+
+      loadProjectInfo: (detail) =>
+        set({
+          stepStatus: {
+            gitlab: {
+              repo: detail.repositoryUrl,
+              defaultBranch:
+                detail.structure === 'MONO'
+                  ? detail.backendDirectoryName
+                  : detail.backendBranchName,
+              structure: detail.structure === 'MONO' ? '모노' : '멀티',
+              directory: {
+                client: detail.frontendDirectoryName,
+                server: detail.backendDirectoryName,
+              },
+            },
+            server: {
+              ip: detail.serverIP,
+              pem: Boolean(detail.pemFilePath),
+              pemName: detail.pemFilePath
+                ? detail.pemFilePath.split('/').pop()!
+                : '',
+            },
+            app: detail.applicationList.map((app) => ({
+              ...app,
+              defaultPorts: [app.port],
+            })) as ApplicationWithDefaults[],
+            env: {
+              frontendFramework: detail.frontendFramework,
+              frontEnv: Boolean(detail.frontendEnvFilePath),
+              frontEnvName: detail.frontendEnvFilePath
+                ? detail.frontendEnvFilePath.split('/').pop()!
+                : '',
+              backEnv: Boolean(detail.backendEnvFilePath),
+              backEnvName: detail.backendEnvFilePath
+                ? detail.backendEnvFilePath.split('/').pop()!
+                : '',
+              node: detail.nodejsVersion,
+              jdk: detail.jdkVersion,
+              buildTool: detail.jdkBuildTool,
+            },
+          },
+        }),
     }),
     {
       name: 'projectInfo',
