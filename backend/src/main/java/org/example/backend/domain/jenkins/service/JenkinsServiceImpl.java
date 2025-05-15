@@ -217,13 +217,24 @@ public class JenkinsServiceImpl implements JenkinsService {
                     jenkinsUsername
             );
 
-            JenkinsInfo jenkinsInfo = JenkinsInfo.builder()
-                    .projectId(projectId)
-                    .baseUrl(jenkinsUrl)
-                    .username(jenkinsUsername)
-                    .apiToken(jenkinsToken)
-                    .jobName(jenkinsJobName)
-                    .build();
+            Optional<JenkinsInfo> optional = jenkinsInfoRepository.findByProjectId(projectId);
+
+            JenkinsInfo jenkinsInfo = optional.map(existing ->
+                    existing.toBuilder()
+                            .baseUrl(jenkinsUrl)
+                            .username(jenkinsUsername)
+                            .apiToken(jenkinsToken)
+                            .jobName(jenkinsJobName)
+                            .build()
+            ).orElseGet(() ->
+                    JenkinsInfo.builder()
+                            .projectId(projectId)
+                            .baseUrl(jenkinsUrl)
+                            .username(jenkinsUsername)
+                            .apiToken(jenkinsToken)
+                            .jobName(jenkinsJobName)
+                            .build()
+            );
 
             jenkinsInfoRepository.save(jenkinsInfo);
 
