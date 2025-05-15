@@ -7,20 +7,13 @@ public enum BuildStatusType {
         if (raw == null || raw.isEmpty()) {
             return UNKNOWN;
         }
-        switch (raw.toUpperCase()) {
-            case "SUCCESS":
-                return SUCCESS;
-            case "FAILURE":
-            case "FAILED":
-                return FAIL;
-            case "UNSTABLE":
-                return UNSTABLE;
-            case "ABORTED":
-                return ABORTED;
-            case "NOT_BUILT":
-                return NOT_BUILT;
-            default:
-                return UNKNOWN;
-        }
+        return switch (raw.toUpperCase()) {
+            case "SUCCESS" -> SUCCESS;
+            case "FAILURE", "FAILED" -> FAIL;
+            case "UNSTABLE" -> UNSTABLE;
+            case "ABORTED" -> ABORTED;
+            case "NOT_BUILT" -> NOT_BUILT;
+            default -> UNKNOWN;
+        };
     }
 }

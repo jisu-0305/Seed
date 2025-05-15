@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.common.util.SwaggerBody;
 import org.example.backend.controller.request.project.ProjectCreateRequest;
+import org.example.backend.controller.request.project.ProjectUpdateRequest;
 import org.example.backend.controller.response.project.*;
 import org.example.backend.domain.project.service.ProjectService;
 import org.example.backend.global.response.ApiResponse;
@@ -42,13 +43,34 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @GetMapping("/{id}/detail")
-    @Operation(summary = "프로젝트 상세 조회", description = "구조, 환경, 어플리케이션 정보를 포함한 상세 정보를 조회합니다.", security = @SecurityRequirement(name = "JWT"))
-    public ResponseEntity<ApiResponse<ProjectDetailResponse>> getProjectDetail(
-            @PathVariable Long id,
+    @PatchMapping(path = "/{projectId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "프로젝트 부분 수정", security = @SecurityRequirement(name = "JWT"))
+    @SwaggerBody(
+            content = @Content(
+                    encoding = @Encoding(
+                            name = "projectUpdateRequest",
+                            contentType = MediaType.APPLICATION_JSON_VALUE
+                    )
+            )
+    )
+    public ResponseEntity<ApiResponse<ProjectResponse>> partialUpdateProject(
+            @PathVariable Long projectId,
+            @RequestPart("projectUpdateRequest") ProjectUpdateRequest request,
+            @RequestPart(value = "clientEnvFile", required = false) MultipartFile clientEnvFile,
+            @RequestPart(value = "serverEnvFile", required = false) MultipartFile serverEnvFile,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
     ) {
-        ProjectDetailResponse response = projectService.getProjectDetail(id, accessToken);
+        ProjectResponse response = projectService.updateProject(projectId, request, clientEnvFile, serverEnvFile, accessToken);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @GetMapping("/{projectId}/detail")
+    @Operation(summary = "프로젝트 상세 조회", description = "구조, 환경, 어플리케이션 정보를 포함한 상세 정보를 조회합니다.", security = @SecurityRequirement(name = "JWT"))
+    public ResponseEntity<ApiResponse<ProjectDetailResponse>> getProjectDetail(
+            @PathVariable Long projectId,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
+    ) {
+        ProjectDetailResponse response = projectService.getProjectDetail(projectId, accessToken);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

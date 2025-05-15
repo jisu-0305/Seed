@@ -67,6 +67,9 @@ public class Project {
         this.lastBuildAt = LocalDateTime.now();
     }
 
+    public void updateServerIP(String newServerIP) {
+        this.serverIP = newServerIP;
+    }
 
 }
 

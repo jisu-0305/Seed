@@ -12,5 +12,6 @@ import java.util.List;
 public class ProjectApplicationResponse {
     private String imageName;
     private List<Integer> defaultPorts;
+    private Long applicationId;
     private String description;
 }
