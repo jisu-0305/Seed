@@ -65,7 +65,12 @@ public class CICDResolverController {
             @RequestParam String failType // BUILD, RUNTIME
     ) {
 
-        return ResponseEntity.ok(ApiResponse.success("🔧 셀프 힐링 작업이 트리거되었습니다." + projectId + " " + personalAccessToken + " " + failType));
+        String message = String.format(
+                "🔧 셀프 힐링 작업이 트리거되었습니다. [projectId=%d, personalAccessToken=%s, failType=%s]",
+                projectId, personalAccessToken, failType
+        );
+
+        return ResponseEntity.ok(ApiResponse.success(message));
     }
 
     // AI 통합 테스트용 controller 추후 삭제 필요
