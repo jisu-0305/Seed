@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import { useProjectStore } from '@/stores/projectStore';
 import { formatDateTime } from '@/utils/getFormattedTime';
 
+import ErrorMessage from '../Common/ErrorMessage';
 import { LoadingSpinner } from '../Common/LoadingSpinner';
 import { ProjectCard } from './ProjectCard';
 
@@ -19,7 +20,7 @@ export default function Projects() {
   }, [loadProjects]);
 
   if (loading) return <LoadingSpinner />;
-  if (error) return <p>{error}</p>;
+  if (error) return <ErrorMessage>{error}</ErrorMessage>;
 
   if (projects.length === 0) {
     return (
