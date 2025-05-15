@@ -115,7 +115,7 @@ const SearchDockerImageModal = ({
                     alt="official"
                   />
                 </ImageName>
-                <ImageDesc>짧은 설명이 추가될 예정입니다.</ImageDesc>
+                <ImageDesc>{img.description}</ImageDesc>
               </ResultItem>
             ))}
           </ResultList>

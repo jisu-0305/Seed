@@ -57,6 +57,7 @@ export interface Application {
 // defaultPorts 가 필요한 곳에서만 쓰는 서브타입
 export interface ApplicationWithDefaults extends Application {
   defaultPorts: number[];
+  description: string;
 }
 
 export interface ProjectDetailData {
