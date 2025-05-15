@@ -194,8 +194,8 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     @Transactional
-    public void logLastBuildResultToProject(Long projectId, String accessToken) {
-        projectAccessValidator.validateUserInProject(projectId, accessToken);
+    public void logLastBuildResultToProject(Long projectId) {
+
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode lastBuild = safelyParseJson(
                 jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json")

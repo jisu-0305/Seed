@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.controller.response.jenkins.*;
 import org.example.backend.domain.jenkins.service.JenkinsService;
+import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -101,6 +102,14 @@ public class JenkinsController {
                                                  @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
         String log = jenkinsService.getStepLogById(projectId, buildNumber, stepNumber, accessToken);
         return ResponseEntity.ok(log);
+    }
+
+    @GetMapping("/{projectId}/log-last-build")
+    public ResponseEntity<ApiResponse<Void>> logLastBuildResultToProject(
+            @PathVariable Long projectId
+    ) {
+        jenkinsService.logLastBuildResultToProject(projectId);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
 

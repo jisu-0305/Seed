@@ -13,7 +13,7 @@ public interface JenkinsService {
     void triggerBuild(Long projectId, String accessToken, String branchName);
     List<JenkinsBuildChangeResponse> getBuildChanges(int buildNumber, Long projectId, String accessToken);
     List<JenkinsBuildChangeSummaryResponse> getBuildChangesWithSummary(int buildNumber, Long projectId, String accessToken);
-    void logLastBuildResultToProject(Long projectId, String accessToken);
+    void logLastBuildResultToProject(Long projectId);
     void issueAndSaveToken(Long projectId, String serverIp, String accessToken);
     String getStepLogById(Long projectId, int buildNumber, String stepNumber, String accessToken);
 }
