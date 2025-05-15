@@ -7,5 +7,5 @@ import java.util.List;
 @Getter
 public class ProjectUpdateRequest {
     private String serverIP;
-    private List<Long> applicationIds;
+    private List<ApplicationRequest> applications;
 }

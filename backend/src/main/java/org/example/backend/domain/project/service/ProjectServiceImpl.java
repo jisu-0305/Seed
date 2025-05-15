@@ -118,21 +118,24 @@ public class ProjectServiceImpl implements ProjectService {
         userProjectRepository.save(UserProject.create(project.getId(), userId));
 
         if (request.getApplicationList() != null && !request.getApplicationList().isEmpty()) {
-            request.getApplicationList().forEach(app -> {
 
-                Application application = applicationRepository.findByImageName(app.getImageName())
-                        .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+            List<ProjectApplication> updateApplicatinList = request.getApplicationList().stream()
+                    .map(applicationRequest -> {
+                        Application master = applicationRepository
+                                .findFirstByImageNameOrderByIdAsc(applicationRequest.getImageName())
+                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
-                ProjectApplication projectApplication = ProjectApplication.builder()
-                        .projectId(project.getId())
-                        .applicationId(application.getId())
-                        .imageName(app.getImageName())
-                        .tag(app.getTag())
-                        .port(app.getPort())
-                        .build();
+                        return ProjectApplication.builder()
+                                .projectId(project.getId())
+                                .applicationId(master.getId())
+                                .imageName(applicationRequest.getImageName())
+                                .tag(applicationRequest.getTag())
+                                .port(applicationRequest.getPort())
+                                .build();
+                    })
+                    .toList();
 
-                projectApplicationRepository.save(projectApplication);
-            });
+            projectApplicationRepository.saveAll(updateApplicatinList);
         }
 
         User user = userRepository.findById(userId)
@@ -157,11 +160,8 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     @Transactional
-    public ProjectResponse updateProject(Long projectId,
-                                         ProjectUpdateRequest request,
-                                         MultipartFile clientEnvFile,
-                                         MultipartFile serverEnvFile,
-                                         String accessToken) {
+    public ProjectResponse updateProject(Long projectId, ProjectUpdateRequest request,
+                                         MultipartFile clientEnvFile, MultipartFile serverEnvFile, String accessToken) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -187,22 +187,26 @@ public class ProjectServiceImpl implements ProjectService {
             throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
         }
 
-        if (request.getApplicationIds() != null) {
+        if (request.getApplications() != null && !request.getApplications().isEmpty()) {
             projectApplicationRepository.deleteAllByProjectId(projectId);
 
-            for (Long appId : request.getApplicationIds()) {
-                Application application = applicationRepository.findById(appId)
-                        .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+            List<ProjectApplication> updateApplicatinList = request.getApplications().stream()
+                    .map(applicationRequest -> {
+                        Application master = applicationRepository
+                                .findFirstByImageNameOrderByIdAsc(applicationRequest.getImageName())
+                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
-                ProjectApplication projectApplication = ProjectApplication.builder()
-                        .projectId(projectId)
-                        .applicationId(application.getId())
-                        .imageName(application.getImageName())
-                        .port(application.getDefaultPort())
-                        .build();
+                        return ProjectApplication.builder()
+                                .projectId(projectId)
+                                .applicationId(master.getId())
+                                .imageName(applicationRequest.getImageName())
+                                .tag(applicationRequest.getTag())
+                                .port(applicationRequest.getPort())
+                                .build();
+                    })
+                    .toList();
 
-                projectApplicationRepository.save(projectApplication);
-            }
+            projectApplicationRepository.saveAll(updateApplicatinList);
         }
 
         List<UserInProject> memberList = userProjectRepository.findByProjectId(projectId).stream()
@@ -442,12 +446,10 @@ public class ProjectServiceImpl implements ProjectService {
                     String imageName = entry.getKey();
                     List<Application> apps = entry.getValue();
 
-                    // find the app with the smallest ID
                     Application minApp = apps.stream()
                             .min(Comparator.comparingLong(Application::getId))
                             .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
-                    // collect all default ports
                     List<Integer> defaultPorts = apps.stream()
                             .map(Application::getDefaultPort)
                             .toList();
