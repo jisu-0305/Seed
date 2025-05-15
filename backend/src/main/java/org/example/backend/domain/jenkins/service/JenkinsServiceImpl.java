@@ -47,15 +47,18 @@ public class JenkinsServiceImpl implements JenkinsService {
             .withLocale(Locale.KOREA);
 
     @Override
-    public List<JenkinsBuildListResponse> getBuildList(Long projectId, String accessToken) {
+    public JenkinsBuildPageResponse getBuildList(Long projectId, int start, int limit, String accessToken) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
-        JsonNode builds = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "api/json?tree=builds[number,result,timestamp]"))
-                .path("builds");
 
-        List<JenkinsBuildListResponse> list = new ArrayList<>();
-        for (JsonNode build : builds) {
-            list.add(JenkinsBuildListResponse.builder()
+        // Jenkins는 start, limit 안 먹힘. 전부 받아와서 자바에서 슬라이싱
+        JsonNode buildsNode = safelyParseJson(
+                jenkinsClient.fetchBuildInfo(info, "api/json?tree=builds[number,result,timestamp]")
+        ).path("builds");
+
+        List<JenkinsBuildListResponse> allBuilds = new ArrayList<>();
+        for (JsonNode build : buildsNode) {
+            allBuilds.add(JenkinsBuildListResponse.builder()
                     .buildNumber(build.path("number").asInt())
                     .buildName("MR 빌드")
                     .date(DATE_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
@@ -63,8 +66,21 @@ public class JenkinsServiceImpl implements JenkinsService {
                     .status(build.path("result").asText())
                     .build());
         }
-        return list;
+
+        // 커서 방식 슬라이싱
+        int end = Math.min(start + limit, allBuilds.size());
+        List<JenkinsBuildListResponse> sliced = start < allBuilds.size() ? allBuilds.subList(start, end) : List.of();
+        boolean hasNext = end < allBuilds.size();
+        Integer nextStart = hasNext ? end : null;
+
+        return JenkinsBuildPageResponse.builder()
+                .builds(sliced)
+                .hasNext(hasNext)
+                .nextStart(nextStart)
+                .build();
     }
+
+
 
     @Override
     public JenkinsBuildListResponse getLastBuild(Long projectId, String accessToken) {
@@ -178,8 +194,8 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     @Transactional
-    public void logLastBuildResultToProject(Long projectId, String accessToken) {
-        projectAccessValidator.validateUserInProject(projectId, accessToken);
+    public void logLastBuildResultToProject(Long projectId) {
+
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode lastBuild = safelyParseJson(
                 jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json")
