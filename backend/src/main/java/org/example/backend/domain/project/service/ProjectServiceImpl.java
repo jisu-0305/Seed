@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.project.ProjectCreateRequest;
+import org.example.backend.controller.request.project.ProjectUpdateRequest;
 import org.example.backend.controller.response.project.*;
 import org.example.backend.domain.project.entity.*;
 import org.example.backend.domain.project.enums.BuildStatus;
@@ -133,7 +134,6 @@ public class ProjectServiceImpl implements ProjectService {
             });
         }
 
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
@@ -154,6 +154,77 @@ public class ProjectServiceImpl implements ProjectService {
         );
     }
 
+    @Override
+    @Transactional
+    public ProjectResponse updateProject(Long projectId,
+                                         ProjectUpdateRequest request,
+                                         MultipartFile clientEnvFile,
+                                         MultipartFile serverEnvFile,
+                                         String accessToken) {
+
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
+        }
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+        if (request.getServerIP() != null && !request.getServerIP().isBlank()) {
+            project.updateServerIP(request.getServerIP());
+        }
+
+        try {
+            if (clientEnvFile != null && !clientEnvFile.isEmpty()) {
+                upsertEnvFile(projectId, clientEnvFile, FileType.FRONTEND_ENV);
+            }
+            if (serverEnvFile != null && !serverEnvFile.isEmpty()) {
+                upsertEnvFile(projectId, serverEnvFile, FileType.BACKEND_ENV);
+            }
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
+        }
+
+        if (request.getApplicationIds() != null) {
+            projectApplicationRepository.deleteAllByProjectId(projectId);
+
+            for (Long appId : request.getApplicationIds()) {
+                Application application = applicationRepository.findById(appId)
+                        .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+                ProjectApplication projectApplication = ProjectApplication.builder()
+                        .projectId(projectId)
+                        .applicationId(application.getId())
+                        .imageName(application.getImageName())
+                        .port(application.getDefaultPort())
+                        .build();
+
+                projectApplicationRepository.save(projectApplication);
+            }
+        }
+
+        List<UserInProject> memberList = userProjectRepository.findByProjectId(projectId).stream()
+                .map(userProject -> {
+                    User user = userRepository.findById(userProject.getUserId())
+                            .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+                    return UserInProject.builder()
+                            .userId(user.getId())
+                            .userName(user.getUserName())
+                            .userIdentifyId(user.getUserIdentifyId())
+                            .profileImageUrl(user.getProfileImageUrl())
+                            .build();
+                }).toList();
+
+        return ProjectMapper.toResponse(
+                project,
+                memberList,
+                project.isAutoDeploymentEnabled(),
+                project.isHttpsEnabled(),
+                project.getBuildStatus(),
+                project.getLastBuildAt()
+        );
+    }
 
     @Override
     public ProjectDetailResponse getProjectDetail(Long projectId, String accessToken) {
@@ -186,6 +257,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .jdkBuildTool(project.getJdkBuildTool())
                 .applicationList(projectApplicationList.stream()
                         .map(app -> ApplicationResponse.builder()
+                                .applicationId(app.getApplicationId())
                                 .imageName(app.getImageName())
                                 .tag(app.getTag())
                                 .port(app.getPort())
@@ -362,20 +434,48 @@ public class ProjectServiceImpl implements ProjectService {
 
         List<Application> found = applicationRepository.findByImageNameContainingIgnoreCase(keyword);
 
-        Map<String, List<Integer>> portsByImage = found.stream()
-                .collect(Collectors.groupingBy(
-                        Application::getImageName,
-                        Collectors.mapping(Application::getDefaultPort, Collectors.toList())
-                ));
+        Map<String, List<Application>> grouped = found.stream().collect(Collectors.groupingBy(Application::getImageName));
 
-        return portsByImage.entrySet().stream()
-                .map(entry -> ProjectApplicationResponse.builder()
-                        .imageName(entry.getKey())
-                        .defaultPorts(entry.getValue())
-                        .build()
-                )
+        return grouped.entrySet().stream()
+                .map(entry -> {
+                    String imageName = entry.getKey();
+                    List<Application> apps = entry.getValue();
+
+                    Long minAppId = apps.stream().mapToLong(Application::getId).min()
+                            .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+                    List<Integer> ports = apps.stream().map(Application::getDefaultPort).collect(Collectors.toList());
+
+                    return ProjectApplicationResponse.builder()
+                            .applicationId(minAppId)
+                            .imageName(imageName)
+                            .defaultPorts(ports)
+                            .build();
+                })
                 .toList();
     }
+
+    private void upsertEnvFile(Long projectId, MultipartFile file, FileType type) throws IOException {
+        byte[] data = file.getBytes();
+        String name = file.getOriginalFilename();
+        String contentType = file.getContentType();
+
+        projectFileRepository.findByProjectIdAndFileType(projectId, type)
+                .ifPresentOrElse(existing -> {
+                    existing.updateProjectEnvFile(name, contentType, data);
+                    projectFileRepository.save(existing);
+                }, () -> {
+                    ProjectFile pf = ProjectFile.builder()
+                            .projectId(projectId)
+                            .fileName(name)
+                            .fileType(type)
+                            .contentType(contentType)
+                            .data(data)
+                            .build();
+                    projectFileRepository.save(pf);
+                });
+    }
+
 
     private String extractProjectNameFromUrl(String url) {
         if (url == null || !url.endsWith(".git")) return "unknown";

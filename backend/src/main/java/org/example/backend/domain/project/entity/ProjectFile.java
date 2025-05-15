@@ -30,4 +30,10 @@ public class ProjectFile {
 
     @Lob
     private byte[] data;
+
+    public void updateProjectEnvFile(String fileName, String contentType, byte[] data) {
+        this.fileName = fileName;
+        this.contentType = contentType;
+        this.data = data;
+    }
 }
