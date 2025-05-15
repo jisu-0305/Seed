@@ -104,7 +104,7 @@ public class JenkinsController {
         return ResponseEntity.ok(log);
     }
 
-    @GetMapping("/{projectId}/log-last-build")
+    @PostMapping("/{projectId}/log-last-build")
     public ResponseEntity<ApiResponse<Void>> logLastBuildResultToProject(
             @PathVariable Long projectId
     ) {
