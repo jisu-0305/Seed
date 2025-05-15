@@ -160,11 +160,23 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public String getBuildStatusWithOutLogin(int buildNumber, Long projectId) {
-        JenkinsInfo info = getJenkinsInfo(projectId);
-        String json = jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"); // 🔥 여기서 null 가능
+        try {
+            JenkinsInfo info = getJenkinsInfo(projectId);
+            String json = jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json");
 
-        JsonNode build = safelyParseJson(json);
-        return build.path("result").asText();
+            if (json == null || json.isBlank()) return "BUILDING";
+
+            JsonNode build = new ObjectMapper().readTree(json);
+            JsonNode resultNode = build.path("result");
+
+            if (resultNode.isNull() || "null".equalsIgnoreCase(resultNode.asText())) {
+                return "BUILDING";
+            }
+
+            return resultNode.asText();
+        } catch (Exception e) {
+            return "BUILDING";
+        }
     }
 
     @Override
@@ -547,11 +559,12 @@ public class JenkinsServiceImpl implements JenkinsService {
         int intervalMillis = 5000;
 
         for (int i = 0; i < maxTries; i++) {
-            int lastBuildNumber = getLastBuildNumberWithOutLogin(projectId);
+            String status = getBuildStatusWithOutLogin(newBuildNumber, projectId); // 🔥 핵심: 이게 "BUILDING"인지 체크
+            log.debug(">>>>>>>> Jenkins build #{} 상태 = {}", newBuildNumber, status);
 
-            log.debug(">>>>>>>>>>>waitUntilBuildFinishes last: " + lastBuildNumber+" vs new: " + newBuildNumber);
-            if(lastBuildNumber == newBuildNumber) {
-                return ReportStatus.fromJenkinsStatus(getBuildStatusWithOutLogin(newBuildNumber, projectId));
+            if (!"BUILDING".equalsIgnoreCase(status)) {
+                log.debug("✅ Jenkins 빌드 완료: status = {}", status);
+                return ReportStatus.fromJenkinsStatus(status); // SUCCESS / FAIL 반환
             }
 
             try {
