@@ -233,8 +233,7 @@ public class ServerServiceImpl implements ServerService {
         GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), repositoryUrl);
 
         String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
-        String namespace = user.getUserIdentifyId() + "/" + gitlabProject.getName() + ".git";
-        String gitlabProjectUrlWithToken = "https://" + user.getUserIdentifyId() + ":" + user.getGitlabPersonalAccessToken() + "@lab.ssafy.com/" + namespace;
+        String gitlabProjectUrlWithToken = "https://" + user.getUserIdentifyId() + ":" + user.getGitlabPersonalAccessToken() + "@lab.ssafy.com/" + gitlabProject.getPathWithNamespace() + ".git";
 
         log.info(gitlabProject.toString());
 
@@ -248,16 +247,15 @@ public class ServerServiceImpl implements ServerService {
                 setDocker(),
                 //runApplicationList(projectApplicationList, backEnvFile)
                 setNginx(project.getServerIP()),
+                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName),
                 setJenkins(),
                 setJenkinsConfigure(),
                 List.of("sudo mkdir -p /var/lib/jenkins/jobs/auto-created-deployment-job"),
-                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
+                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, gitlabProject.getPathWithNamespace() + ".git", project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
                 makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
-                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
-
-                makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
+                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile)
         ).flatMap(Collection::stream).toList();
     }
 
@@ -836,6 +834,77 @@ public class ServerServiceImpl implements ServerService {
                         "    }\n" +
                         "}\n" +
                         "EOF\n");
+
+//        String jenkinsfileContent = String.join("\n",
+//                "cd " + projectPath + " && sudo tee Jenkinsfile > /dev/null << 'EOF'",
+//                "pipeline {",
+//                "    agent any",
+//                "    parameters {",
+//                "        string(name: 'BRANCH_NAME', defaultValue: '" + gitlabTargetBranchName + "', description: '빌드할 Git 브랜치 이름')",
+//                "    }",
+//                "    stages {",
+//                "        stage('Checkout') {",
+//                "            steps {",
+//                "                echo '1. 워크스페이스 정리 및 소스 체크아웃'",
+//                "                deleteDir()",
+//                "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {",
+//                "                    git branch: \"${params.BRANCH_NAME}\", url: \"https://${GIT_USER}:${GIT_TOKEN}@lab.ssafy.com/" + namespace + "\"",
+//                "                }",
+//                "            }",
+//                "        }",
+//                "        stage('Build All') {",
+//                "            steps {",
+//                "                echo '2. 통합 빌드: Backend & Frontend'",
+//                "                withCredentials([file(credentialsId: 'backend', variable: 'BACKEND_ENV'), file(credentialsId: 'front', variable: 'FRONT_ENV')]) {",
+//                "                    sh '''",
+//                "                        set -e",
+//                "                        cp \"$BACKEND_ENV\" \"${WORKSPACE}/" + project.getBackendDirectoryName() + "/.env\"",
+//                "                        cp \"$FRONT_ENV\"    \"${WORKSPACE}/" + project.getFrontendDirectoryName() + "/.env\"",
+//                "                    '''",
+//                "                }",
+//                "                // Backend Build & Run",
+//                "                dir('" + project.getBackendDirectoryName() + "') {",
+//                "                    sh '''",
+//                "                        set -e",
+//                "                        docker build -t spring-backend .",
+//                "                        docker stop spring-backend || true",
+//                "                        docker rm spring-backend   || true",
+//                "                        docker run -d -p 8080:8080 --env-file .env --name spring-backend spring-backend",
+//                "                    '''",
+//                "                }",
+//                "                // Frontend Build & Run (변수 사용)",
+//                "                dir('" + project.getFrontendDirectoryName() + "') {",
+//                "                    sh '''",
+//                frontendDockerScript +
+//                        "                    '''",
+//                "                }",
+//                "            }",
+//                "        }",
+//                "    }",
+//                "    post {",
+//                "        always {",
+//                "            echo '🔔 매 빌드마다 호출할 API'",
+//                "            httpRequest httpMode: 'POST', url: 'https://your.domain.com/api/every-build'",
+//                "        }",
+//                "        failure {",
+//                "            echo '❌ 빌드 실패 → A API 호출'",
+//                "            httpRequest httpMode: 'POST', url: 'https://your.domain.com/api/A'",
+//                "        }",
+//                "        success {",
+//                "            script {",
+//                "                def resp = httpRequest url: 'https://your.domain.com/health'",
+//                "                if (resp.content.trim() == 'fail') {",
+//                "                    echo '⚠️ 헬스체크 실패 → A API 호출'",
+//                "                    httpRequest httpMode: 'POST', url: 'https://your.domain.com/api/A'",
+//                "                } else {",
+//                "                    echo '✅ 헬스체크 성공'",
+//                "                }",
+//                "            }",
+//                "        }",
+//                "    }",
+//                "}",
+//                "EOF"
+//        );
 
         return List.of(
                 "cd /var/lib/jenkins/jobs/auto-created-deployment-job &&" +  "sudo git clone " + repositoryUrl + "&& cd " + projectName,
