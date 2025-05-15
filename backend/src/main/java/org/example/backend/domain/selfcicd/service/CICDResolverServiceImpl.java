@@ -5,10 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.auth.ProjectAccessValidator;
+import org.example.backend.controller.request.DeploymentReportSavedRequest;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.DockerContainerLogResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
-import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
 import org.example.backend.domain.aireport.enums.ReportStatus;
 import org.example.backend.domain.aireport.service.AIDeploymentReportService;
 import org.example.backend.domain.docker.service.DockerService;
@@ -64,22 +64,18 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         // 1-1. 마지막 Jenkins 빌드 정보 및 에러 로그 조회
         int buildNumber = getLastBuildInfo(projectId);
         String errorLog = getErrorLog(projectId, buildNumber);
-//        System.out.println(">>>>>>>>>>>>>buildNumber"+buildNumber+", jenkins log: "+errorLog);
 
         // 1-2. 프로젝트에 포함된 앱 이름 목록 조회 -> 그 참고로 appName없을수도 아님 아마도? default로 쓰는건 projects안에 fronted_framework로 받아야함, 해당 내용에 docker이미지 이름이랑 동일할거임
         List<String> appNames = getProjectAppNames(project);
-//        System.out.println(">>>>>>>>>>>>>appNames"+appNames.toString());
         // 1-3. Gitlab 최신 MR의 diff 정보 조회
         GitlabCompareResponse gitDiff = getGitDiff(project, accessToken);
 
         //현재 jenkins 관련된거 다 jwtToken안받게 메서드 설정해야함!
         // 1-4. AI API 호출하여 의심되는 앱 추론
         List<String> suspectedApps = inferSuspectedApps(appNames, gitDiff, errorLog);
-//        System.out.println(">>>>>>>>>>>>>suspectedApps"+suspectedApps.toString());
 
         // 1-5. 의심 앱들의 GitLab 트리 정보 조회
         Map<String, List<GitlabTree>> appTrees = getGitTrees(suspectedApps, project, accessToken);
-//        System.out.println(">>>>>>>>>>>>>appTrees"+appTrees.toString());
 
 //        // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
         Map<String, String> appLogs = getDockerLogs(project, suspectedApps, gitDiff);
@@ -89,7 +85,6 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 //        for (String app : appNames) {
 //            appLogs.put(app, errorLog); // 모든 앱에 동일한 Jenkins 로그 대입
 //        }
-//        System.out.println(">>>>>>>>>>>>>appLogs: " + appLogs);
 
 
         // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
@@ -102,32 +97,32 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             );
         }
 
-        System.out.println(">>>>>>>>>>>>>resolveResults"+resolveResults);
-
         int newBuildNumber = buildNumber + 1;
         // 3-1. GitLab에 새로운 브랜치 생성 (ex. seed/fix/65)
         String newBranch = createFixBranch(project, newBuildNumber, accessToken);
 
         // 3-2. GitLab에 수정된 파일들 커밋
-        commitPatchedFiles(project, accessToken, newBranch, patchedFiles, newBuildNumber);
+        String commitUrl = commitPatchedFiles(project, accessToken, newBranch, patchedFiles, newBuildNumber);
 
         // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
         triggerRebuild(projectId, newBranch);
 
-//        // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
-//        // 4-1. Jenkins 빌드 결과 상태 확인
-        ReportStatus reportStatus  = getBuildStatus(projectId);
-//
-//        // 4-2. 빌드 성공 시 GitLab MR 생성
-//        if (reportStatus == ReportStatus.SUCCESS) {
-//            createMergeRequest(project, accessToken, newBranch);
-//        }
-//
+        // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
+        // 4-1. Jenkins 빌드 결과 상태 확인
+        ReportStatus reportStatus  = getBuildStatus(newBuildNumber, projectId);
+        System.out.println(">>>>>>>>>Build " + newBuildNumber + " finished with " + reportStatus);
+
+        // 4-2. 빌드 성공 시 GitLab MR 생성
+        String mergeRequestUrl = "";
+        if (reportStatus == ReportStatus.SUCCESS) {
+            mergeRequestUrl = createMergeRequest(project, accessToken, newBranch);
+        }
+
 //        // 4-3. AI 요약 보고서 생성 요청 및 수신
-//        Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps);
-//
+        Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps);
+
 //        // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
-//        saveReports(projectId, reportResponses);
+        saveAIReports(projectId, reportResponses, reportStatus, commitUrl, mergeRequestUrl, newBuildNumber);
     }
 
     // 1. 프로젝트 조회
@@ -176,18 +171,11 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         return fastAIClient.requestInferApplications(request);
     }
 
-    /**
-     * 1-5. 해당 어플리케이션들의 트리 구조 가져오기
-     * 진행 내용: Map의 키에는 Docker Image name이 들어가야함, 또한 브렌치 이름 필드 만들고 받아오기(현재 BackendoriginalProjectBracnh, FrontoriginProjectBranch만 있음)
-     *          따라서 모노, 레포에 따른 변경과 해당 내용에 따른 로직 변경 필요. 당장은 MonooriginalProjectBracnh가 추가되어야하고 해당 값을 받아오는게 필요)
-     * 담당자: 강승엽
-     * */
+     //1-5. 해당 어플리케이션들의 트리 구조 가져오기
     private Map<String, List<GitlabTree>> getGitTrees(List<String> appNames, Project project, String accessToken) {
         Map<String, String> appToFolderMap = Map.of(
-                "spring", "backend",
-                "react", "frontend",
-                "nodejs", "frontend",
-                "vue", "frontend"
+                "spring", project.getBackendDirectoryName(),
+                project.getFrontendFramework(), project.getFrontendDirectoryName()
         );
 
         Map<String, List<GitlabTree>> appTrees = new HashMap<>();
@@ -334,17 +322,17 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 3-2. GitLab에 AI를 통해 수정된 파일들 커밋
-    private void commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles, int newBuildNumber) {
-        if (patchedFiles == null || patchedFiles.isEmpty()) return;
+    private String commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles, int newBuildNumber) {
+        if (patchedFiles == null || patchedFiles.isEmpty()) throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT);
         String commitMessage = "refactor: jenkins 빌드 번호 - "+newBuildNumber+" AI가 수정 완료";
 
-        gitlabService.commitPatchedFiles(
+        return gitlabService.commitPatchedFiles(
                 accessToken,
                 project.getGitlabProjectId(),
                 branchName,
                 commitMessage,
                 patchedFiles
-        );
+        ).getWebUrl();
     }
 
     // 3-3. Jenkins에 해당 브렌치로 재빌드 요청
@@ -353,8 +341,9 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 4-1. 마지막 Jenkins 빌드 상태 조회
-    private ReportStatus getBuildStatus(Long projectId) {
-        return ReportStatus.fromJenkinsStatus(jenkinsService.getLastBuildWithOutLogin(projectId).getStatus());
+    private ReportStatus getBuildStatus(int newBuildNumber, Long projectId) {
+        return jenkinsService.waitUntilBuildFinishes(newBuildNumber, projectId);
+
     }
 
     // 4-2. 빌드 성공 시 GitLab에 Merge Request 생성
@@ -402,30 +391,27 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         return reports;
     }
 
-    // 4-4. 리포트 DB 저장 (AIDeploymentReportServiceImpl 사용)
-    private void saveReports(Long projectId, Map<String, AIReportResponse> reportResponses) {
-//        for (Map.Entry<String, AIReportResponse> entry : reportResponses.entrySet()) {
-//            String appName = entry.getKey();
-//            AIReportResponse report = entry.getValue();
-//
-//            DeploymentReportSavedRequest saveRequest = DeploymentReportSavedRequest.builder()
-//                    .projectId(projectId)
-//                    .title("[AI 수정 제안] " + appName)
-//                    .summary(report.getResolutionReport().getErrorSummary())
-//                    .addtionNotes(
-//                            "원인: " + report.getResolutionReport().getCause() + "\n" +
-//                                    "해결: " + report.getResolutionReport().getFinalResolution()
-//                    )
-//                    .status("SUCCESS") // 또는 "FAIL" 등 동적으로 설정 가능
-//                    .commitUrl(report.getCommitUrl())
-//                    .mergeRequestUrl(report.getMergeRequestUrl())
-//                    .appliedFileNames(
-//                            report.getFileFixes().stream().map(FileFix::getPath).toList()
-//                    )
-//                    .build();
-//
-//            aiDeploymentReportService.saveReport(saveRequest); // 실제 저장
-//        }
+    // 4-4. 리포트 DB 저장
+    private void saveAIReports(Long projectId, Map<String, AIReportResponse> reportResponses, ReportStatus status, String commitUrl, String mergeRequestUrl, int newBuildNumber) {
+        for (Map.Entry<String, AIReportResponse> entry : reportResponses.entrySet()) {
+            String appName = entry.getKey();
+            AIReportResponse response = entry.getValue();
+
+            List<String> appliedFileNames = response.getAppliedFiles();
+
+            DeploymentReportSavedRequest request = new DeploymentReportSavedRequest();
+            request.setProjectId(projectId);
+            request.setBuildNumber(newBuildNumber);
+            request.setTitle("[AI 수정] " + appName + " 앱 자동 리포트");
+            request.setSummary(response.getSummary());
+            request.setAdditionalNotes(response.getAdditionalNotes());
+            request.setCommitUrl(commitUrl);
+            request.setMergeRequestUrl(status == ReportStatus.SUCCESS ? mergeRequestUrl : null);
+            request.setStatus(status);
+            request.setAppliedFileNames(appliedFileNames);
+
+            aiDeploymentReportService.saveReport(request);
+        }
     }
 }
 

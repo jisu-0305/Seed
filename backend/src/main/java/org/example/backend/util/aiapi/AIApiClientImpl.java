@@ -42,7 +42,7 @@ public class AIApiClientImpl implements AIApiClient {
 
         try {
             json = objectMapper.writeValueAsString(inferAppRequest);
-            log.debug("🔍 [InferApp] Request JSON: {}", json);
+//            log.debug("🔍 [InferApp] Request JSON: {}", json);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
         }
@@ -119,7 +119,7 @@ public class AIApiClientImpl implements AIApiClient {
         formData.add("resolutionHint", suspectFileInnerResponse.getResolutionHint());
         formData.add("files_raw", filesRawJson);
 
-        log.debug(">>>>>>>> [Fast API]requestResolveError: {}", formData);
+//        log.debug(">>>>>>>> [Fast API]requestResolveError: {}", formData);
         String response;
         try {
             response = webClient.post()
@@ -154,7 +154,7 @@ public class AIApiClientImpl implements AIApiClient {
         formData.add("original_code", patchTextRequest.getOriginalCode());
         formData.add("instruction", patchTextRequest.getInstruction());
 
-        log.debug(">>>>>>>> [Fast API]requestPatchText: {}", formData);
+//        log.debug(">>>>>>>> [Fast API]requestPatchText: {}", formData);
         try {
             return webClient.post()
                     .uri(fastApiBaseUrl + "/ai/patch")
@@ -175,7 +175,7 @@ public class AIApiClientImpl implements AIApiClient {
         formData.add("original_code", patchFileRequest.getOriginalCode());
         formData.add("instruction", patchFileRequest.getInstruction());
 
-        log.debug(">>>>>>>> [Fast API]requestPatchFile: {}", formData);
+//        log.debug(">>>>>>>> [Fast API]requestPatchFile: {}", formData);
         try {
             String patchedCode = webClient.post()
                     .uri(fastApiBaseUrl + "/ai/patch/file")
@@ -205,7 +205,7 @@ public class AIApiClientImpl implements AIApiClient {
             throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
         }
 
-        log.debug(">>>>>>>> [Fast API]requestErrorReport DTO: {}", aiReportRequest);
+//        log.debug(">>>>>>>> [Fast API]requestErrorReport DTO: {}", aiReportRequest);
 
         try {
             response = webClient.post()

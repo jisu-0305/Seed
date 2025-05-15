@@ -1,5 +1,6 @@
 package org.example.backend.domain.gitlab.service;
 
+import org.example.backend.controller.response.gitlab.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
@@ -42,7 +43,7 @@ public interface GitlabService {
 
     String getRawFileContent(String gitlabPersonalAccessToken, Long gitlabProjectId, String path, String ref);
 
-    void commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
+    CommitResponse commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
 
     List<GitlabProject> getGitlabProjectsByUserId(Long userId);
 }

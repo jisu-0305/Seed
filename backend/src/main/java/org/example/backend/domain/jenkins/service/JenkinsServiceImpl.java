@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.auth.ProjectAccessValidator;
 import org.example.backend.controller.response.jenkins.*;
+import org.example.backend.domain.aireport.enums.ReportStatus;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.enums.BuildStatusType;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
@@ -155,6 +156,15 @@ public class JenkinsServiceImpl implements JenkinsService {
     public String getBuildLog(int buildNumber, Long projectId, String accessToken) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
         return jenkinsClient.fetchBuildLog(getJenkinsInfo(projectId), buildNumber);
+    }
+
+    @Override
+    public String getBuildStatusWithOutLogin(int buildNumber, Long projectId) {
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        String json = jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"); // 🔥 여기서 null 가능
+
+        JsonNode build = safelyParseJson(json);
+        return build.path("result").asText();
     }
 
     @Override
@@ -428,9 +438,6 @@ public class JenkinsServiceImpl implements JenkinsService {
         return stageEchoMap;
     }
 
-
-
-
     private long calculateDuration(String start, String end) {
         try {
             LocalTime startTime = LocalTime.parse(start, TIME_FORMATTER);
@@ -532,6 +539,29 @@ public class JenkinsServiceImpl implements JenkinsService {
             throw new BusinessException(ErrorCode.JENKINS_TOKEN_REQUEST_FAILED);
         }
 
+    }
+
+    @Override
+    public ReportStatus waitUntilBuildFinishes(int newBuildNumber, Long projectId) {
+        int maxTries = 60; //5분진행
+        int intervalMillis = 5000;
+
+        for (int i = 0; i < maxTries; i++) {
+            int lastBuildNumber = getLastBuildNumberWithOutLogin(projectId);
+
+            log.debug(">>>>>>>>>>>waitUntilBuildFinishes last: " + lastBuildNumber+" vs new: " + newBuildNumber);
+            if(lastBuildNumber == newBuildNumber) {
+                return ReportStatus.fromJenkinsStatus(getBuildStatusWithOutLogin(newBuildNumber, projectId));
+            }
+
+            try {
+                Thread.sleep(intervalMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+        }
+        return ReportStatus.FAIL;
     }
 
     private JenkinsInfo getJenkinsInfo(Long projectId) {
