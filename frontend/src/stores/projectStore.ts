@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+// eslint-disable-next-line import/no-cycle
 import { fetchProjects } from '@/apis/project';
 import {
   ApplicationWithDefaults,

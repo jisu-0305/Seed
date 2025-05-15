@@ -124,6 +124,16 @@ export interface ProjectCardInfo {
   lastBuildAt: string;
 }
 
+// 프로젝트 수정할 때
+export interface ProjectUpdateRequest {
+  serverIP: string;
+  applications: {
+    imageName: string;
+    tag: string;
+    port: number;
+  }[];
+}
+
 // —————— 서브타입 정의 ——————
 export interface GitlabInfo {
   id: number;
