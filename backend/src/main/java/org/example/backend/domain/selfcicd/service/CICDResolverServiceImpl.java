@@ -64,39 +64,52 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         // 1-1. 마지막 Jenkins 빌드 정보 및 에러 로그 조회
         int buildNumber = getLastBuildInfo(projectId);
         String errorLog = getErrorLog(projectId, buildNumber);
+//        System.out.println(">>>>>>>>>>>>>buildNumber"+buildNumber+", jenkins log: "+errorLog);
 
-//        // 1-2. 프로젝트에 포함된 앱 이름 목록 조회 -> 그 참고로 appName없을수도 아님 아마도? default로 쓰는건 projects안에 fronted_framework로 받아야함, 해당 내용에 docker이미지 이름이랑 동일할거임
+        // 1-2. 프로젝트에 포함된 앱 이름 목록 조회 -> 그 참고로 appName없을수도 아님 아마도? default로 쓰는건 projects안에 fronted_framework로 받아야함, 해당 내용에 docker이미지 이름이랑 동일할거임
         List<String> appNames = getProjectAppNames(project);
-        System.out.println("appNames"+appNames.toString());
-//        // 1-3. Gitlab 최신 MR의 diff 정보 조회
+//        System.out.println(">>>>>>>>>>>>>appNames"+appNames.toString());
+        // 1-3. Gitlab 최신 MR의 diff 정보 조회
         GitlabCompareResponse gitDiff = getGitDiff(project, accessToken);
 
-        //현재 jenkins 관련된거 다 jwtToken안받게 메서드 설정!
-//        // 1-4. AI API 호출하여 의심되는 앱 추론
-//        List<String> suspectedApps = inferSuspectedApps(appNames, gitDiff, errorLog);
-//
-//        // 1-5. 의심 앱들의 GitLab 트리 정보 조회
-//        Map<String, List<GitlabTree>> appTrees = getGitTrees(suspectedApps, project, accessToken);
-//
+        //현재 jenkins 관련된거 다 jwtToken안받게 메서드 설정해야함!
+        // 1-4. AI API 호출하여 의심되는 앱 추론
+        List<String> suspectedApps = inferSuspectedApps(appNames, gitDiff, errorLog);
+//        System.out.println(">>>>>>>>>>>>>suspectedApps"+suspectedApps.toString());
+
+        // 1-5. 의심 앱들의 GitLab 트리 정보 조회
+        Map<String, List<GitlabTree>> appTrees = getGitTrees(suspectedApps, project, accessToken);
+//        System.out.println(">>>>>>>>>>>>>appTrees"+appTrees.toString());
+
 //        // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
-//        Map<String, String> appLogs = getDockerLogs(project, suspectedApps, gitDiff);
-//
-//        // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
-//        List<PatchedFile> patchedFiles = new ArrayList<>();
-//        List<ResolveErrorResponse> resolveResults = new ArrayList<>();
-//        for (String app : suspectedApps) {
-//            // 2-1 ~ 2-4: suspect file 추론 → 원본코드 수집 → 해결 요약 요청 → 수정 파일 요청
-//            resolveResults.addAll(
-//                    resolveFilesAndPatch(project, accessToken, app, gitDiff, appLogs.get(app), appTrees.get(app), patchedFiles)
-//            );
+        Map<String, String> appLogs = getDockerLogs(project, suspectedApps, gitDiff);
+
+//        // 1-6. 의심앱들에 jenkins log 추가
+//        Map<String, String> appLogs = new HashMap<>();
+//        for (String app : appNames) {
+//            appLogs.put(app, errorLog); // 모든 앱에 동일한 Jenkins 로그 대입
 //        }
-//
-//        // 3-1. GitLab에 새로운 브랜치 생성 (ex. ai/fix/123456789)
-//        String newBranch = createFixBranch(project, accessToken);
-//
-//        // 3-2. GitLab에 수정된 파일들 커밋
-//        commitPatchedFiles(project, accessToken, newBranch, patchedFiles);
-//
+//        System.out.println(">>>>>>>>>>>>>appLogs: " + appLogs);
+
+
+        // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
+        List<PatchedFile> patchedFiles = new ArrayList<>();
+        List<ResolveErrorResponse> resolveResults = new ArrayList<>();
+        for (String suspectApp : suspectedApps) {
+            // 2-1 ~ 2-4: suspect file 추론 → 원본코드 수집 → 해결 요약 요청 → 수정 파일 요청
+            resolveResults.addAll(
+                    resolveFilesAndPatch(project, accessToken, gitDiff, appLogs.get(suspectApp), appTrees.get(suspectApp), patchedFiles)
+            );
+        }
+
+        System.out.println(">>>>>>>>>>>>>resolveResults"+resolveResults);
+
+        // 3-1. GitLab에 새로운 브랜치 생성 (ex. ai/fix/65)
+        String newBranch = createFixBranch(project, buildNumber, accessToken);
+
+        // 3-2. GitLab에 수정된 파일들 커밋
+        commitPatchedFiles(project, accessToken, newBranch, patchedFiles, buildNumber);
+
 //        // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
 //        triggerRebuild(projectId, accessToken, newBranch);
 //
@@ -225,7 +238,6 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private List<ResolveErrorResponse> resolveFilesAndPatch(
             Project project,
             String accessToken,
-            String appName,
             GitlabCompareResponse gitDiff,
             String appLog,
             List<GitlabTree> tree,
@@ -308,8 +320,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     //3-1. GitLab에 새로운 브랜치 생성, 브렌치이름 date에 시간 분까지 나오면 좋을듯?
-    private String createFixBranch(Project project, String accessToken) {
-        String branchName = "ai/fix/" + System.currentTimeMillis();
+    private String createFixBranch(Project project, int buildNumber, String accessToken) {
+        String branchName = "ai/fix/" + buildNumber;
         gitlabService.createBranch(
                 accessToken,
                 project.getGitlabProjectId(),
@@ -320,19 +332,17 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 3-2. GitLab에 AI를 통해 수정된 파일들 커밋
-    private void commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles) {
+    private void commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles, int BuildNumber) {
         if (patchedFiles == null || patchedFiles.isEmpty()) return;
+        String commitMessage = "refactor: jenkins 빌드 번호 - "+BuildNumber+" 수정한 커밋입니다.";
 
-        String commitMessage = "Fix: AI auto fix by SEED";
-
-        // 실제 커밋 수행 - 주석 해제 시 사용
-//    gitlabService.commitPatchedFiles(
-//            accessToken,
-//            project.getGitlabProjectId(),
-//            branchName,
-//            commitMessage,
-//            patchedFiles
-//    );
+        gitlabService.commitPatchedFiles(
+                accessToken,
+                project.getGitlabProjectId(),
+                branchName,
+                commitMessage,
+                patchedFiles
+        );
     }
 
     /**

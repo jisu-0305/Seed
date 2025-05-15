@@ -48,7 +48,7 @@ public class CICDResolverController {
      * - body에는 buildNumber만 전달
      */
     @PostMapping("/resolve")
-    @Operation(summary = "CI/CD 셀프 힐링 트리거", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "CI/CD 셀프 힐링 트리거")
     public ResponseEntity<ApiResponse<String>> triggerSelfHealingCI(
             @RequestParam Long projectId,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION) String accessToken
