@@ -30,7 +30,7 @@ export default function SideBar() {
 
   return (
     <SideWrapper>
-      <Logo>
+      <Logo onClick={() => handleMovePage('/')}>
         {/* <LogoImage src={`/assets/icons/ic_logo_${mode}.svg`} alt="logo" />
         <LogoText
           src={
@@ -142,6 +142,7 @@ const Logo = styled.div`
   gap: 0.5rem;
 
   height: 4rem;
+  cursor: pointer;
 `;
 
 // const LogoImage = styled.img`
