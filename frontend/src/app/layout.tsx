@@ -15,6 +15,10 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <head>
+        {/* pwa */}
+        <meta charSet="utf-8" />
+        <link rel="manifest" href="/manifest.json" />
+
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"
@@ -25,6 +29,7 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap"
           rel="stylesheet"
         />
+        <meta name="theme-color" content="#1c1c1c" />
       </head>
       <body>
         <MenuLayout>{children}</MenuLayout>
