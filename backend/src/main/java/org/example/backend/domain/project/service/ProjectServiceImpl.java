@@ -67,6 +67,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .serverIP(request.getServerIP())
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
+                .gitlabProjectId(request.getGitlabProjectId())
                 .structure(request.getStructure())
                 .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())
@@ -434,25 +435,32 @@ public class ProjectServiceImpl implements ProjectService {
 
         List<Application> found = applicationRepository.findByImageNameContainingIgnoreCase(keyword);
 
-        Map<String, List<Application>> grouped = found.stream().collect(Collectors.groupingBy(Application::getImageName));
-
-        return grouped.entrySet().stream()
+        return found.stream()
+                .collect(Collectors.groupingBy(Application::getImageName))
+                .entrySet().stream()
                 .map(entry -> {
                     String imageName = entry.getKey();
                     List<Application> apps = entry.getValue();
 
-                    Long minAppId = apps.stream().mapToLong(Application::getId).min()
+                    // find the app with the smallest ID
+                    Application minApp = apps.stream()
+                            .min(Comparator.comparingLong(Application::getId))
                             .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
-                    List<Integer> ports = apps.stream().map(Application::getDefaultPort).collect(Collectors.toList());
+                    // collect all default ports
+                    List<Integer> defaultPorts = apps.stream()
+                            .map(Application::getDefaultPort)
+                            .toList();
 
                     return ProjectApplicationResponse.builder()
-                            .applicationId(minAppId)
+                            .applicationId(minApp.getId())
                             .imageName(imageName)
-                            .defaultPorts(ports)
+                            .description(minApp.getDescription())
+                            .defaultPorts(defaultPorts)
                             .build();
                 })
                 .toList();
+
     }
 
     private void upsertEnvFile(Long projectId, MultipartFile file, FileType type) throws IOException {

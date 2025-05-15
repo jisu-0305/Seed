@@ -6,10 +6,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.auth.ProjectAccessValidator;
-import org.example.backend.common.session.RedisSessionManager;
-import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.response.jenkins.*;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
+import org.example.backend.domain.jenkins.enums.BuildStatusType;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectExecution;
@@ -17,7 +16,6 @@ import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.repository.ProjectExecutionRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
-import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -95,10 +93,13 @@ public class JenkinsServiceImpl implements JenkinsService {
 
         JsonNode buildInfo = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
 
+        String rawStatus = buildInfo.path("result").asText();
+        BuildStatusType status = BuildStatusType.from(rawStatus);
+
         return JenkinsBuildDetailResponse.builder()
                 .buildNumber(buildNumber)
                 .buildName("MR 빌드")
-                .overallStatus(buildInfo.path("result").asText())
+                .overallStatus(status.name())
                 .stepList(steps)
                 .build();
     }
@@ -278,10 +279,6 @@ public class JenkinsServiceImpl implements JenkinsService {
 
         return String.join("\n", collected);
     }
-
-
-
-
 
     private List<JenkinsBuildStepResponse> mergeStageStatusWithEchoes(String wfapiJson, String consoleLog) {
         JsonNode wfapi = safelyParseJson(wfapiJson);
