@@ -1,12 +1,14 @@
 'use client';
 
 import styled from '@emotion/styled';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
+import { deleteProject } from '@/apis/project';
 import SmallButton from '@/components/Common/button/SmallButton';
 import TipItem from '@/components/Common/TipItem';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { useUserStore } from '@/stores/userStore';
 
 import ProjectEditInput from './edit/ProjectEditInput';
 import StepSidebar from './edit/StepSidebar';
@@ -14,9 +16,30 @@ import StepSidebar from './edit/StepSidebar';
 export default function ProjectEdit() {
   const router = useRouter();
   const { mode } = useThemeStore();
+  const params = useParams();
+  const rawId = params?.id;
+  const projectId = rawId ? Number(rawId) : null;
 
   const { stepStatus, setServerStatus, setAppStatus, setEnvStatus } =
     useProjectInfoStore();
+  const user = useUserStore((s) => s.user);
+  const ownerId = useProjectInfoStore((s) => s.stepStatus.ownerId);
+
+  const handleDelete = async () => {
+    if (projectId === null) {
+      console.error('projectId가 없습니다');
+      return;
+    }
+
+    try {
+      await deleteProject(projectId);
+      console.log('✔️ 프로젝트 삭제 성공');
+    } catch (err) {
+      console.error('❌ 프로젝트 삭제 실패', err);
+    } finally {
+      router.replace('/dashboard');
+    }
+  };
 
   return (
     <Wrapper>
@@ -66,6 +89,25 @@ export default function ProjectEdit() {
               완료
             </SmallButton>
           </StButtonWrapper>
+          {user?.userId === ownerId ? (
+            <StDeleteWrapper>
+              <DeleteButton onClick={handleDelete}>
+                프로젝트 삭제하기
+              </DeleteButton>
+              <StCautionWrapper>
+                <IcIcon src="/assets/icons/ic_caution.svg" alt="caution" />
+                프로젝트 삭제는 되돌릴 수 없습니다.
+              </StCautionWrapper>
+            </StDeleteWrapper>
+          ) : (
+            <StDeleteWrapper>
+              <DeleteButton>프로젝트 삭제하기</DeleteButton>
+              <StCautionWrapper>
+                <IcIcon src="/assets/icons/ic_caution.svg" alt="caution" />
+                프로젝트는 소유자만 삭제 가능합니다.
+              </StCautionWrapper>
+            </StDeleteWrapper>
+          )}
         </SideBarWrapper>
       </Content>
     </Wrapper>
@@ -134,4 +176,57 @@ const StButtonWrapper = styled.aside`
   gap: 2rem;
 
   padding-top: 3rem;
+`;
+
+const StDeleteWrapper = styled.div`
+  position: relative;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const DeleteButton = styled.button`
+  margin-top: 5rem;
+  padding: 1rem 5rem;
+  ${({ theme }) => theme.fonts.Title5};
+  color: ${({ theme }) => theme.colors.White};
+  background-color: ${({ theme }) => theme.colors.RedBtn};
+  border: none;
+  border-radius: 1rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.RedBtnHover};
+  }
+
+  &:hover + div {
+    visibility: visible;
+    opacity: 1;
+  }
+`;
+
+const IcIcon = styled.img`
+  width: 3rem;
+
+  margin-right: 0.5rem;
+`;
+
+const StCautionWrapper = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+
+  width: 30rem;
+  padding: 1rem;
+  margin-top: 2rem;
+
+  color: ${({ theme }) => theme.colors.Black1};
+  ${({ theme }) => theme.fonts.Head5};
+
+  background-color: ${({ theme }) => theme.colors.Red4};
+  border-radius: 1rem;
+
+  visibility: hidden;
 `;

@@ -12,6 +12,7 @@ import {
 // ❗️ 원본 _PI 에서 app 필드만 ApplicationWithDefaults[] 로 교체
 type ProjectInfo = Omit<_PI, 'app'> & {
   app: ApplicationWithDefaults[];
+  ownerId: number;
 };
 
 interface ProjectInfoStore {
@@ -31,6 +32,7 @@ interface ProjectInfoStore {
 }
 
 const initialStatus: ProjectInfo = {
+  ownerId: 0,
   gitlab: {
     id: 0,
     repo: '',
@@ -96,6 +98,7 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
       loadProjectInfo: (detail) =>
         set({
           stepStatus: {
+            ownerId: detail.ownerId,
             gitlab: {
               id: 0,
               repo: detail.repositoryUrl,

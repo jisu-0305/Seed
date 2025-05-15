@@ -54,3 +54,11 @@ export function useProjectCards() {
     queryFn: getProjects,
   });
 }
+
+/**
+ * 프로젝트를 삭제합니다.
+ * @param projectId 삭제할 프로젝트 ID
+ */
+export async function deleteProject(projectId: number): Promise<void> {
+  await client.delete(`/projects/${projectId}`);
+}

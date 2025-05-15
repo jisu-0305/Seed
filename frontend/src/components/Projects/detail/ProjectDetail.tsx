@@ -9,6 +9,8 @@ import {
   HttpsBuildLog,
 } from '@/apis/build';
 import { fetchProjectDetail } from '@/apis/project';
+import ErrorMessage from '@/components/Common/ErrorMessage';
+import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
@@ -141,8 +143,8 @@ export default function ProjectDetail() {
     refreshTasks();
   }, [projectId, selectedTab]);
 
-  if (loading) return <p>로딩 중…</p>;
-  if (error) return <p>{error}</p>;
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage>{error}</ErrorMessage>;
   if (!detail) return null;
 
   let emoji: 'default' | 'success' | 'fail';
