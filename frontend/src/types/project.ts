@@ -89,7 +89,7 @@ export interface ProjectDetailResponse {
 }
 
 interface BaseProjectInfo {
-  gitlab_project_id: number;
+  gitlabProjectId: number;
   repositoryUrl: string;
   gitlabTargetBranch: string;
   jdkVersion: string;
