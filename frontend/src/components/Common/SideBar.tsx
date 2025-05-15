@@ -1,5 +1,4 @@
 import styled from '@emotion/styled';
-import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -31,7 +30,7 @@ export default function SideBar() {
   return (
     <SideWrapper>
       <Logo onClick={() => handleMovePage('/')}>
-        {/* <LogoImage src={`/assets/icons/ic_logo_${mode}.svg`} alt="logo" />
+        <LogoImage src={`/assets/icons/ic_logo_${mode}.svg`} alt="logo" />
         <LogoText
           src={
             mode === 'light'
@@ -39,24 +38,6 @@ export default function SideBar() {
               : '/assets/icons/ic_logoText_white.svg'
           }
           alt="logoText"
-        /> */}
-        <Image
-          src={`/assets/icons/ic_logo_${mode}.svg`}
-          alt="logo"
-          width={35}
-          height={35}
-          priority
-        />
-        <Image
-          src={
-            mode === 'light'
-              ? '/assets/icons/ic_logoText.svg'
-              : '/assets/icons/ic_logoText_white.svg'
-          }
-          alt="logoText"
-          width={100}
-          height={30}
-          priority
         />
       </Logo>
 
@@ -145,16 +126,16 @@ const Logo = styled.div`
   cursor: pointer;
 `;
 
-// const LogoImage = styled.img`
-//   height: 90%;
-// `;
+const LogoImage = styled.img`
+  height: 90%;
+`;
 
-// const LogoText = styled.img`
-//   height: 3rem;
-//   width: 8rem;
+const LogoText = styled.img`
+  height: 3rem;
+  width: 8rem;
 
-//   padding-top: 0.2rem;
-// `;
+  padding-top: 0.2rem;
+`;
 
 const Menu = styled.ul`
   display: flex;
