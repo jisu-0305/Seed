@@ -1,14 +1,11 @@
 package org.example.backend.domain.jenkins.service;
 
-import org.example.backend.controller.response.jenkins.JenkinsBuildChangeResponse;
-import org.example.backend.controller.response.jenkins.JenkinsBuildChangeSummaryResponse;
-import org.example.backend.controller.response.jenkins.JenkinsBuildDetailResponse;
-import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
+import org.example.backend.controller.response.jenkins.*;
 
 import java.util.List;
 
 public interface JenkinsService {
-    List<JenkinsBuildListResponse> getBuildList(Long projectId, String accessToken);
+    JenkinsBuildPageResponse getBuildList(Long projectId, int start, int limit, String accessToken);
     JenkinsBuildListResponse getLastBuild(Long projectId, String accessToken);
     JenkinsBuildDetailResponse getBuildDetail(int buildNumber, Long projectId, String accessToken);
     String getBuildLog(int buildNumber, Long projectId, String accessToken);
