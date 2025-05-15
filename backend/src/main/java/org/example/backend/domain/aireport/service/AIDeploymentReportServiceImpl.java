@@ -29,7 +29,7 @@ public class AIDeploymentReportServiceImpl implements AIDeploymentReportService 
         projectProjectAccessValidator.validateUserInProject(projectId, accessToken);
         return reportRepository.findAllByProjectIdOrderByCreatedAtDesc(projectId)
                 .stream()
-                .map(aiDeploymentReport -> new DeploymentReportResponse(aiDeploymentReport.getId(), aiDeploymentReport.getTitle(), aiDeploymentReport.getStatus(), aiDeploymentReport.getCreatedAt()))
+                .map(aiDeploymentReport -> new DeploymentReportResponse(aiDeploymentReport.getId(), aiDeploymentReport.getBuildNumber(), aiDeploymentReport.getTitle(), aiDeploymentReport.getStatus(), aiDeploymentReport.getCreatedAt()))
                 .collect(Collectors.toList());
     }
 

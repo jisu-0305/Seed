@@ -3,7 +3,6 @@ package org.example.backend.domain.aireport.service;
 import org.example.backend.controller.request.DeploymentReportSavedRequest;
 import org.example.backend.controller.response.aireport.DeploymentReportDetailResponse;
 import org.example.backend.controller.response.aireport.DeploymentReportResponse;
-import org.example.backend.domain.aireport.entity.AIDeploymentReport;
 
 import java.util.List;
 
