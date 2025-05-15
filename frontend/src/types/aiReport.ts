@@ -1,6 +1,7 @@
 // src/types/aiReport.ts
 export interface AiReport {
   id: number;
+  buildNumber: number;
   title: string;
   status: 'SUCCESS' | 'FAIL' | 'REJECTED';
   date: string;

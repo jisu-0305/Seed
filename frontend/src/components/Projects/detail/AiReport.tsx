@@ -102,7 +102,7 @@ export default function AiReport() {
             >
               <ItemHeader>
                 <Date>{formatDateLong(r.date)}</Date>
-                <Id>#{r.id}</Id>
+                <Id>#{r.buildNumber}</Id>
               </ItemHeader>
               <Meta>
                 <Icon
@@ -205,7 +205,6 @@ const Wrapper = styled.div`
 const LeftPanel = styled.div`
   max-width: 30rem;
   min-width: 22rem;
-  background: ${({ theme }) => theme.colors.White};
   border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 1.5rem;
   overflow-y: auto;
