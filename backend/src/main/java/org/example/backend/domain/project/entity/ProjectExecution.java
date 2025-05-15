@@ -9,6 +9,7 @@ import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Entity
@@ -36,5 +37,7 @@ public class ProjectExecution {
     private BuildStatus executionStatus;
 
     private LocalDate createdAt;
+
+    private LocalTime createdTime;
 }
 
