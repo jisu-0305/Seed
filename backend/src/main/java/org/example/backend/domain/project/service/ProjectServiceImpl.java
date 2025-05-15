@@ -66,6 +66,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .serverIP(request.getServerIP())
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
+                .gitlabProjectId(request.getGitlabProjectId())
                 .structure(request.getStructure())
                 .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())
@@ -362,18 +363,25 @@ public class ProjectServiceImpl implements ProjectService {
 
         List<Application> found = applicationRepository.findByImageNameContainingIgnoreCase(keyword);
 
-        Map<String, List<Integer>> portsByImage = found.stream()
-                .collect(Collectors.groupingBy(
-                        Application::getImageName,
-                        Collectors.mapping(Application::getDefaultPort, Collectors.toList())
-                ));
+        Map<String, List<Application>> appsByImage = found.stream()
+                .collect(Collectors.groupingBy(Application::getImageName));
 
-        return portsByImage.entrySet().stream()
-                .map(entry -> ProjectApplicationResponse.builder()
-                        .imageName(entry.getKey())
-                        .defaultPorts(entry.getValue())
-                        .build()
-                )
+        return appsByImage.entrySet().stream()
+                .map(entry -> {
+                    String imageName = entry.getKey();
+                    List<Application> apps = entry.getValue();
+                    String description = apps.get(0).getDescription();
+
+                    List<Integer> defaultPorts = apps.stream()
+                            .map(Application::getDefaultPort)
+                            .toList();
+
+                    return ProjectApplicationResponse.builder()
+                            .imageName(imageName)
+                            .defaultPorts(defaultPorts)
+                            .description(description)
+                            .build();
+                })
                 .toList();
     }
 
