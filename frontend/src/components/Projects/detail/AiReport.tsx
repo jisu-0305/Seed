@@ -1,30 +1,70 @@
 import styled from '@emotion/styled';
-import { useRouter } from 'next/navigation';
-import React, { useState } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
 
-import { dummyReports } from '@/assets/dummy/aiReports';
+import { getAiReportDetail, getAiReports } from '@/apis/ai';
+import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import { useThemeStore } from '@/stores/themeStore';
-import type { AiReport } from '@/types/aiReport';
+import type { AiReport, AiReportDetail } from '@/types/aiReport';
+import { formatDateLong } from '@/utils/getFormattedTime';
 
 const getIconName = (status: AiReport['status']) => {
   switch (status) {
-    case 'In Progress':
-      return 'progress';
-    case 'Merged':
-      return 'merged';
-    case 'Rejected':
-      return 'rejected';
+    case 'SUCCESS':
+      return 'success';
+    case 'FAIL':
+      return 'fail';
     default:
-      return 'carrot';
+      return 'rejected';
   }
 };
 
 export default function AiReport() {
   const router = useRouter();
   const { mode } = useThemeStore();
+  const params = useParams();
+  const rawId = params?.id;
+  const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
 
-  const [selectedId, setSelectedId] = useState<string>(dummyReports[0].id);
-  const selected = dummyReports.find((r) => r.id === selectedId)!;
+  const [reports, setReports] = useState<AiReport[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+
+  useEffect(() => {
+    if (!projectId) return;
+
+    setListLoading(true);
+    getAiReports(projectId)
+      .then((res) => {
+        setReports(res);
+      })
+
+      .catch(console.error)
+      .finally(() => setListLoading(false));
+  }, [projectId]);
+
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [detail, setDetail] = useState<AiReportDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  // 최초 목록 로드 후 첫 아이템 자동 선택
+  useEffect(() => {
+    if (reports.length > 0 && selectedId === null) {
+      setSelectedId(reports[0].id);
+    }
+  }, [reports, selectedId]);
+
+  // selectedId 변경 시 상세 호출
+  useEffect(() => {
+    if (selectedId === null) return;
+
+    setDetailLoading(true);
+    getAiReportDetail(selectedId)
+      .then((res) => setDetail(res))
+      .catch(console.error)
+      .finally(() => setDetailLoading(false));
+  }, [selectedId]);
+
+  if (listLoading) return <LoadingSpinner />;
 
   return (
     <Container>
@@ -34,11 +74,11 @@ export default function AiReport() {
           alt="뒤로가기"
           onClick={() => router.back()}
         />
-        <Heading>AI 보고서</Heading>
+        <TitleHeading>AI 보고서</TitleHeading>
       </TitleHeader>
       <Wrapper>
         <LeftPanel>
-          {dummyReports.map((r) => (
+          {reports.map((r) => (
             <ReportItem
               key={r.id}
               active={r.id === selectedId}
@@ -46,7 +86,7 @@ export default function AiReport() {
               onClick={() => setSelectedId(r.id)}
             >
               <ItemHeader>
-                <Date>{r.date}</Date>
+                <Date>{formatDateLong(r.date)}</Date>
                 <Id>#{r.id}</Id>
               </ItemHeader>
               <Meta>
@@ -62,31 +102,47 @@ export default function AiReport() {
         </LeftPanel>
 
         <RightPanel>
-          <Header>
-            <Heading>{selected.title}</Heading>
-          </Header>
+          {detailLoading || !detail ? (
+            <LoadingSpinner />
+          ) : (
+            <>
+              <Header>
+                <Heading>{detail.title}</Heading>
+              </Header>
 
-          <Section>
-            <SectionTitle>요약</SectionTitle>
-            <SummaryBox>{selected.summary}</SummaryBox>
-          </Section>
+              <Section>
+                <SectionTitle>요약</SectionTitle>
+                <SummaryBox>{detail.summary}</SummaryBox>
+              </Section>
 
-          <Section>
-            <SectionRow>
-              <SectionTitle>적용된 파일</SectionTitle>
-              <ConfirmButton>확인하기</ConfirmButton>
-            </SectionRow>
-            <FileList>
-              {selected.files.map((f) => (
-                <FileItem key={f}>{f}</FileItem>
-              ))}
-            </FileList>
-          </Section>
+              <Section>
+                <SectionRow>
+                  <SectionTitle>적용된 파일</SectionTitle>
+                  <ConfirmButton
+                    onClick={() => {
+                      const url =
+                        detail.status === 'SUCCESS'
+                          ? detail.mergeRequestUrl
+                          : detail.commitUrl;
+                      window.open(url, '_blank');
+                    }}
+                  >
+                    확인하기
+                  </ConfirmButton>
+                </SectionRow>
+                <FileList>
+                  {detail.files.map((f) => (
+                    <FileItem key={f}>{f}</FileItem>
+                  ))}
+                </FileList>
+              </Section>
 
-          <Section>
-            <SectionTitle>추가 설명</SectionTitle>
-            <DetailBox>{selected.detail}</DetailBox>
-          </Section>
+              <Section>
+                <SectionTitle>추가 설명</SectionTitle>
+                <DetailBox>{detail.detail}</DetailBox>
+              </Section>
+            </>
+          )}
         </RightPanel>
       </Wrapper>
     </Container>
@@ -113,6 +169,10 @@ const TitleHeader = styled.div`
   margin-bottom: 3rem;
   padding-left: 5rem;
   gap: 2rem;
+`;
+
+const TitleHeading = styled.h2`
+  ${({ theme }) => theme.fonts.EnTitle1};
 `;
 
 const BackIcon = styled.img`
@@ -185,7 +245,7 @@ const Id = styled.div`
 const Meta = styled.div`
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 2rem;
 `;
 
 const Icon = styled.img`
@@ -208,10 +268,10 @@ const Status = styled.div<{ status: AiReport['status'] }>`
 
   ${({ theme }) => theme.fonts.Body4};
   color: ${({ status, theme }) =>
-    status === 'In Progress'
-      ? theme.colors.Purple3
-      : status === 'Merged'
-        ? theme.colors.Green2
+    status === 'SUCCESS'
+      ? theme.colors.Green2
+      : status === 'FAIL'
+        ? theme.colors.Purple3
         : theme.colors.Gray3};
 
   &::before {
@@ -243,6 +303,8 @@ const Header = styled.div`
 `;
 
 const Heading = styled.h2`
+  width: 55rem;
+  text-align: center;
   ${({ theme }) => theme.fonts.EnTitle1};
 `;
 

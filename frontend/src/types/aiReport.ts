@@ -1,10 +1,17 @@
 // src/types/aiReport.ts
 export interface AiReport {
-  id: string;
+  id: number;
   title: string;
+  status: 'SUCCESS' | 'FAIL' | 'REJECTED';
   date: string;
-  status: 'In Progress' | 'Merged' | 'Rejected';
+}
+
+export interface AiReportDetail {
+  title: string;
   summary: string;
   files: string[];
+  status: 'SUCCESS' | 'FAIL' | 'REJECTED';
   detail: string;
+  commitUrl: string;
+  mergeRequestUrl: string;
 }
