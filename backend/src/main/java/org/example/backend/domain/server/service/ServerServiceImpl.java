@@ -250,11 +250,13 @@ public class ServerServiceImpl implements ServerService {
                 setNginx(project.getServerIP()),
                 setJenkins(),
                 setJenkinsConfigure(),
-                makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
-                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
+                List.of("sudo mkdir -p /var/lib/jenkins/jobs/auto-created-deployment-job"),
                 makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, namespace, project),
                 makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
                 makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
+                makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
+                setJenkinsConfiguration(user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
+
                 makeGitlabWebhook(user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
         ).flatMap(Collection::stream).toList();
     }
@@ -659,6 +661,17 @@ public class ServerServiceImpl implements ServerService {
                 "<flow-definition plugin=\"workflow-job\">",
                 "  <description>GitLab 연동 자동 배포</description>",
                 "  <keepDependencies>false</keepDependencies>",
+                "  <properties>",
+                "    <hudson.model.ParametersDefinitionProperty>",
+                "      <parameterDefinitions>",
+                "        <hudson.model.StringParameterDefinition>",
+                "          <name>BRANCH_NAME</name>",
+                "          <defaultValue>" + gitlabTargetBranchName + "</defaultValue>",
+                "          <description>Git 브랜치 이름</description>",
+                "        </hudson.model.StringParameterDefinition>",
+                "      </parameterDefinitions>",
+                "    </hudson.model.ParametersDefinitionProperty>",
+                "  </properties>",
                 "  <definition class=\"org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition\" plugin=\"workflow-cps\">",
                 "    <scm class=\"hudson.plugins.git.GitSCM\" plugin=\"git\">",
                 "      <configVersion>2</configVersion>",
@@ -670,7 +683,7 @@ public class ServerServiceImpl implements ServerService {
                 "      </userRemoteConfigs>",
                 "      <branches>",
                 "        <hudson.plugins.git.BranchSpec>",
-                "          <name>*/" + gitlabTargetBranchName +"</name>",
+                "          <name>" + gitlabTargetBranchName + "</name>",
                 "        </hudson.plugins.git.BranchSpec>",
                 "      </branches>",
                 "    </scm>",
@@ -708,6 +721,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
+
     private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) {
 
         log.info(repositoryUrl);
@@ -744,18 +758,20 @@ public class ServerServiceImpl implements ServerService {
                 break;
         }
 
-        String jenkinsfileContent =
-                "cd " + projectPath + " && cat <<EOF | sudo tee Jenkinsfile > /dev/null\n" +
+        String jenkinsfileContent = String.join("\n",
+                "cd " + projectPath + " && sudo tee Jenkinsfile > /dev/null <<'EOF'",
                         "pipeline {\n" +
                         "    agent any\n" +
-                        "\n" +
+                        "    parameters {\n" +
+                        "        string(name: 'BRANCH_NAME', defaultValue: '" + gitlabTargetBranchName + "', description: '빌드할 Git 브랜치 이름')\n" +
+                        "    }\n" +
                         "    stages {\n" +
                         "        stage('Checkout') {\n" +
                         "            steps {\n" +
                         "                echo '1. 워크스페이스 정리 및 소스 체크아웃'\n" +
                         "                deleteDir()\n" +
                         "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
-                        "                    git branch: '" + gitlabTargetBranchName + "', url: \"https://\\$GIT_USER:\\$GIT_TOKEN@lab.ssafy.com/" + namespace + "\"\n" +
+                        "                    git branch: \"${params.BRANCH_NAME}\", url: \"https://${GIT_USER}:${GIT_TOKEN}@lab.ssafy.com/" + namespace + "\"\n" +
                         "                }\n" +
                         "            }\n" +
                         "        }\n" +
@@ -819,7 +835,7 @@ public class ServerServiceImpl implements ServerService {
                         "        }\n" +
                         "    }\n" +
                         "}\n" +
-                        "EOF\n";
+                        "EOF\n");
 
         return List.of(
                 "cd /var/lib/jenkins/jobs/auto-created-deployment-job &&" +  "sudo git clone " + repositoryUrl + "&& cd " + projectName,
@@ -842,7 +858,7 @@ public class ServerServiceImpl implements ServerService {
         switch (project.getJdkBuildTool()) {
             case "Gradle":
                 backendDockerfileContent =
-                        "cd " + projectPath + "/" + project.getBackendDirectoryName() + "&& cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                        "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                                 "# 1단계: 빌드 스테이지\n" +
                                 "FROM gradle:8.5-jdk" + project.getJdkVersion() + " AS builder\n" +
                                 "WORKDIR /app\n" +
@@ -860,7 +876,7 @@ public class ServerServiceImpl implements ServerService {
             case "Maven":
             default:
                 backendDockerfileContent =
-                        "cd " + projectPath+ "/" + project.getBackendDirectoryName() + "&& cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                        "cd " + projectPath+ "/" + project.getBackendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
                                 "# 1단계: 빌드 스테이지\n" +
                                 "FROM maven:3.9.6-eclipse-temurin-" + project.getJdkVersion() + " AS builder\n" +
                                 "WORKDIR /app\n" +

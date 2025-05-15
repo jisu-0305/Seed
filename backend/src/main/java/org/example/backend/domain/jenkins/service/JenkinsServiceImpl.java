@@ -119,9 +119,9 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public void triggerBuild(Long projectId, String accessToken) {
+    public void triggerBuild(Long projectId, String accessToken, String branchName) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
-        jenkinsClient.triggerBuild(getJenkinsInfo(projectId));
+        jenkinsClient.triggerBuild(getJenkinsInfo(projectId), branchName);
     }
 
     @Override
