@@ -119,7 +119,7 @@ const TeamInviteModal = ({
                       alt="profile"
                     />
                     <div>{user.userName}</div>
-                    <div>{user.userIdentifyId}</div>
+                    <div>@{user.userIdentifyId}</div>
                   </SearchItem>
                 ))}
               </SearchList>

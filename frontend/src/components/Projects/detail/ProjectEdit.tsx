@@ -3,12 +3,16 @@
 import styled from '@emotion/styled';
 import { useParams, useRouter } from 'next/navigation';
 
-import { deleteProject } from '@/apis/project';
+import { deleteProject, updateProject } from '@/apis/project';
 import SmallButton from '@/components/Common/button/SmallButton';
+import FunctionModal from '@/components/Common/Modal/FunctionModal';
+import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
 import TipItem from '@/components/Common/TipItem';
+import { useModal } from '@/hooks/Common';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserStore } from '@/stores/userStore';
+import { ProjectUpdateRequest } from '@/types/project';
 
 import ProjectEditInput from './edit/ProjectEditInput';
 import StepSidebar from './edit/StepSidebar';
@@ -24,6 +28,7 @@ export default function ProjectEdit() {
     useProjectInfoStore();
   const user = useUserStore((s) => s.user);
   const ownerId = useProjectInfoStore((s) => s.stepStatus.ownerId);
+  const deleteModal = useModal();
 
   const handleDelete = async () => {
     if (projectId === null) {
@@ -39,6 +44,32 @@ export default function ProjectEdit() {
     } finally {
       router.replace('/dashboard');
     }
+  };
+
+  const handleComplete = async () => {
+    if (projectId == null) return;
+
+    const payload: ProjectUpdateRequest = {
+      serverIP: stepStatus.server.ip,
+      applications: stepStatus.app.map((app) => ({
+        imageName: app.imageName,
+        tag: app.tag,
+        port: app.port,
+      })),
+    };
+
+    try {
+      await updateProject(projectId, payload);
+      console.log('✔️ 프로젝트 수정 성공');
+      router.back();
+    } catch (err) {
+      console.error('❌ 프로젝트 수정 실패', err);
+    }
+  };
+
+  const onCompleteAndGoDetail = async () => {
+    await handleComplete();
+    router.push(`/projects/${projectId}`);
   };
 
   return (
@@ -80,36 +111,54 @@ export default function ProjectEdit() {
             >
               취소
             </SmallButton>
-            <SmallButton
-              variant="next"
-              onClick={() => {
-                router.back();
-              }}
-            >
+            <SmallButton variant="next" onClick={onCompleteAndGoDetail}>
               완료
             </SmallButton>
           </StButtonWrapper>
-          {user?.userId === ownerId ? (
-            <StDeleteWrapper>
-              <DeleteButton onClick={handleDelete}>
-                프로젝트 삭제하기
-              </DeleteButton>
-              <StCautionWrapper>
-                <IcIcon src="/assets/icons/ic_caution.svg" alt="caution" />
-                프로젝트 삭제는 되돌릴 수 없습니다.
-              </StCautionWrapper>
-            </StDeleteWrapper>
-          ) : (
-            <StDeleteWrapper>
-              <DeleteButton>프로젝트 삭제하기</DeleteButton>
-              <StCautionWrapper>
-                <IcIcon src="/assets/icons/ic_caution.svg" alt="caution" />
-                프로젝트는 소유자만 삭제 가능합니다.
-              </StCautionWrapper>
-            </StDeleteWrapper>
-          )}
+
+          <StDeleteWrapper>
+            <DeleteButton
+              onClick={() => {
+                if (user?.userId === ownerId) deleteModal.toggle();
+              }}
+            >
+              프로젝트 삭제하기
+            </DeleteButton>
+            <StCautionWrapper>
+              <IcIcon src="/assets/icons/ic_caution.svg" alt="caution" />
+              {user?.userId === ownerId
+                ? '프로젝트 삭제는 되돌릴 수 없습니다.'
+                : '프로젝트는 소유자만 삭제 가능합니다.'}
+            </StCautionWrapper>
+          </StDeleteWrapper>
         </SideBarWrapper>
       </Content>
+
+      {/* DeleteModal */}
+      <ModalWrapper isShowing={deleteModal.isShowing}>
+        <FunctionModal
+          title="정말 삭제하시겠습니까?"
+          isShowing={deleteModal.isShowing}
+          handleClose={deleteModal.toggle}
+        >
+          <ModalContent>
+            <ButtonRow>
+              <SmallButton variant="cancel" onClick={deleteModal.toggle}>
+                취소
+              </SmallButton>
+              <SmallButton
+                variant="delete"
+                onClick={() => {
+                  deleteModal.toggle();
+                  handleDelete();
+                }}
+              >
+                삭제
+              </SmallButton>
+            </ButtonRow>
+          </ModalContent>
+        </FunctionModal>
+      </ModalWrapper>
     </Wrapper>
   );
 }
@@ -229,4 +278,17 @@ const StCautionWrapper = styled.div`
   border-radius: 1rem;
 
   visibility: hidden;
+`;
+
+const ModalContent = styled.div`
+  padding: 2rem;
+  text-align: center;
+  ${({ theme }) => theme.fonts.Body4};
+`;
+
+const ButtonRow = styled.div`
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
 `;
