@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ProjectStructure;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 
@@ -55,6 +54,10 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private BuildStatus buildStatus;
 
+    public void enableAutoDeployment() {
+        this.autoDeploymentEnabled = true;
+    }
+
     public void enableHttps() {
         this.httpsEnabled = true;
     }
@@ -63,6 +66,7 @@ public class Project {
         this.buildStatus = status;
         this.lastBuildAt = LocalDateTime.now();
     }
+
 
 }
 

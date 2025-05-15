@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 
 import SmallButton from '@/components/Common/button/SmallButton';
 import TipItem from '@/components/Common/TipItem';
+import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 import ProjectEditInput from './edit/ProjectEditInput';
@@ -13,6 +14,9 @@ import StepSidebar from './edit/StepSidebar';
 export default function ProjectEdit() {
   const router = useRouter();
   const { mode } = useThemeStore();
+
+  const { stepStatus, setServerStatus, setAppStatus, setEnvStatus } =
+    useProjectInfoStore();
 
   return (
     <Wrapper>
@@ -27,10 +31,22 @@ export default function ProjectEdit() {
       </TitleHeader>
       <Content>
         <Main>
-          <ProjectEditInput />
+          <ProjectEditInput
+            server={stepStatus.server}
+            env={stepStatus.env}
+            apps={stepStatus.app}
+            onChangeServer={setServerStatus}
+            onChangeEnv={setEnvStatus}
+            onChangeApps={setAppStatus}
+          />
         </Main>
         <SideBarWrapper>
-          <StepSidebar />
+          <StepSidebar
+            gitlab={stepStatus.gitlab}
+            server={stepStatus.server}
+            apps={stepStatus.app}
+            env={stepStatus.env}
+          />
 
           <StButtonWrapper>
             <SmallButton

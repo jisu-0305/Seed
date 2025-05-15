@@ -50,6 +50,13 @@ export const fonts = {
     font-weight: 700;
     line-height: 130%; /* 2.34rem */
   `,
+  Head7: css`
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 1.8rem;
+    font-style: normal;
+    font-weight: 500;
+    line-height: 130%; /* 2.34rem */
+  `,
   Title1: css`
     font-family: 'Noto Sans KR', sans-serif;
     font-size: 4rem;

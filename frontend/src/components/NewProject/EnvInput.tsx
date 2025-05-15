@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { ChangeEvent, useEffect } from 'react';
+import { useEffect } from 'react';
 
 import {
   useProjectFileStore,
@@ -14,9 +14,24 @@ export default function EnvInput() {
   const { env } = stepStatus;
 
   const { setBackEnvFile, setFrontEnvFile } = useProjectFileStore();
+  const { frontEnvFile, backEnvFile } = useProjectFileStore();
 
-  const handleNodeVersionChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setEnvStatus({ ...env, node: e.target.value });
+  // 실 파일 존재 여부와 스토어 플래그 동기화
+  useEffect(() => {
+    setEnvStatus({
+      ...env,
+      frontEnv: Boolean(frontEnvFile),
+      frontEnvName: frontEnvFile?.name ?? '',
+      backEnv: Boolean(backEnvFile),
+      backEnvName: backEnvFile?.name ?? '',
+    });
+  }, [frontEnvFile, backEnvFile]);
+
+  // const handleNodeVersionChange = (e: ChangeEvent<HTMLInputElement>) => {
+  //   setEnvStatus({ ...env, node: e.target.value });
+  // };
+  const handleNodeVersionChange = (version: string) => {
+    setEnvStatus({ ...env, node: version });
   };
 
   const handleJdkChange = (version: string) => {
@@ -28,17 +43,20 @@ export default function EnvInput() {
   };
 
   const handleClientEnvChange = (file: File) => {
-    setEnvStatus({ ...env, frontEnv: !!file });
+    setEnvStatus({ ...env, frontEnv: !!file, frontEnvName: file.name });
     setFrontEnvFile(file);
   };
 
   const handleServerEnvChange = (file: File) => {
-    setEnvStatus({ ...env, backEnv: !!file });
+    setEnvStatus({ ...env, backEnv: !!file, backEnvName: file.name });
     setBackEnvFile(file);
   };
 
-  const handleFrontFrameworkChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setEnvStatus({ ...env, frontendFramework: e.target.value });
+  // const handleFrontFrameworkChange = (e: ChangeEvent<HTMLInputElement>) => {
+  //   setEnvStatus({ ...env, frontendFramework: e.target.value });
+  // };
+  const handleFrontFrameworkChange = (framework: string) => {
+    setEnvStatus({ ...env, frontendFramework: framework });
   };
 
   // 유효성 검사
@@ -63,21 +81,58 @@ export default function EnvInput() {
         <Title>Client</Title>
         <Row>
           <Label>Framework</Label>
-          <Input
+          {/* <Input
             type="text"
             placeholder="react"
             value={env.frontendFramework || ''}
             onChange={handleFrontFrameworkChange}
-          />
+          /> */}
+          <RadioGroup>
+            <label>
+              <input
+                type="radio"
+                checked={env.frontendFramework === 'React'}
+                onChange={() => handleFrontFrameworkChange('React')}
+              />{' '}
+              React
+            </label>
+            <label>
+              <input
+                type="radio"
+                checked={env.frontendFramework === 'Vue.js'}
+                onChange={() => handleFrontFrameworkChange('Vue.js')}
+              />{' '}
+              Vue.js
+            </label>
+            <label>
+              <input
+                type="radio"
+                checked={env.frontendFramework === 'Next.js'}
+                onChange={() => handleFrontFrameworkChange('Next.js')}
+              />{' '}
+              Next.js
+            </label>
+          </RadioGroup>
         </Row>
         <Row>
           <Label>Node.js version</Label>
-          <Input
+          {/* <Input
             type="text"
             placeholder="22"
             value={env.node || ''}
             onChange={handleNodeVersionChange}
-          />
+          /> */}
+          <RadioGroup>
+            <label>
+              <input
+                type="radio"
+                checked={env.node === '22'}
+                onChange={() => handleNodeVersionChange('22')}
+              />{' '}
+              22
+            </label>
+          </RadioGroup>
+          버전 추가 예정
         </Row>
         <Row>
           <Label>환경변수</Label>
@@ -86,6 +141,7 @@ export default function EnvInput() {
             handleFileChange={handleClientEnvChange}
             accept=".env"
             placeholder="frontend.env"
+            inputType="frontEnv"
           />
         </Row>
       </Section>
@@ -120,6 +176,7 @@ export default function EnvInput() {
             handleFileChange={handleServerEnvChange}
             accept=".env"
             placeholder="backend.env"
+            inputType="backEnv"
           />
         </Row>
         <Row>
@@ -186,18 +243,18 @@ const Label = styled.label`
   ${({ theme }) => theme.fonts.Title5};
 `;
 
-const Input = styled.input`
-  flex: 1;
-  max-width: 10rem;
-  padding: 1rem 1.5rem;
+// const Input = styled.input`
+//   flex: 1;
+//   max-width: 10rem;
+//   padding: 1rem 1.5rem;
 
-  ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Text};
+//   ${({ theme }) => theme.fonts.Body1};
+//   color: ${({ theme }) => theme.colors.Text};
 
-  background-color: ${({ theme }) => theme.colors.InputBackground};
-  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
-  border-radius: 1rem;
-`;
+//   background-color: ${({ theme }) => theme.colors.InputBackground};
+//   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
+//   border-radius: 1rem;
+// `;
 
 const RadioGroup = styled.div`
   display: flex;

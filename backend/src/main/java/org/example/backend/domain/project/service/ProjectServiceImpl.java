@@ -1,6 +1,7 @@
 package org.example.backend.domain.project.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.project.ProjectCreateRequest;
@@ -32,6 +33,7 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProjectServiceImpl implements ProjectService {
@@ -64,6 +66,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .serverIP(request.getServerIP())
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
+                .gitlabProjectId(request.getGitlabProjectId())
                 .structure(request.getStructure())
                 .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())
@@ -72,7 +75,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .frontendFramework(request.getFrontendFramework())
                 .jdkVersion(request.getJdkVersion())
                 .jdkBuildTool(request.getJdkBuildTool())
-                .autoDeploymentEnabled(true)
+                .autoDeploymentEnabled(false)
                 .httpsEnabled(false)
                 .build();
 
@@ -82,7 +85,7 @@ public class ProjectServiceImpl implements ProjectService {
             ProjectFile newFrontendEnvFile = ProjectFile.builder()
                     .projectId(project.getId())
                     .fileName(frontEnvFile.getOriginalFilename())
-                    .fileType(FileType.FRONT_ENV)
+                    .fileType(FileType.FRONTEND_ENV)
                     .contentType(frontEnvFile.getContentType())
                     .data(frontEnvFile.getBytes())
                     .build();
@@ -205,7 +208,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(UserProject::getProjectId)
                 .toList();
 
-        Map<Long, Project> projectMap = projectRepository.findAllById(projectIdList).stream()
+        Map<Long, Project> projectMap = projectRepository.findByIdIn(projectIdList).stream()
                 .collect(Collectors.toMap(Project::getId, p -> p));
 
         List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);
@@ -315,7 +318,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .toList();
     }
 
-
     @Override
     @Transactional(readOnly = true)
     public List<ProjectExecutionGroupResponse> getMyProjectExecutionsGroupedByDate(String accessToken) {
@@ -345,6 +347,41 @@ public class ProjectServiceImpl implements ProjectService {
 
         return grouped.entrySet().stream()
                 .map(e -> new ProjectExecutionGroupResponse(e.getKey(), e.getValue()))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ProjectApplicationResponse> searchAvailableApplications(String accessToken, String keyword) {
+
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        List<Application> found = applicationRepository.findByImageNameContainingIgnoreCase(keyword);
+
+        Map<String, List<Application>> appsByImage = found.stream()
+                .collect(Collectors.groupingBy(Application::getImageName));
+
+        return appsByImage.entrySet().stream()
+                .map(entry -> {
+                    String imageName = entry.getKey();
+                    List<Application> apps = entry.getValue();
+                    String description = apps.get(0).getDescription();
+
+                    List<Integer> defaultPorts = apps.stream()
+                            .map(Application::getDefaultPort)
+                            .toList();
+
+                    return ProjectApplicationResponse.builder()
+                            .imageName(imageName)
+                            .defaultPorts(defaultPorts)
+                            .description(description)
+                            .build();
+                })
                 .toList();
     }
 

@@ -4,6 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.controller.request.server.*;
 import org.example.backend.controller.response.log.HttpsLogResponse;
+import org.example.backend.domain.project.entity.Application;
+import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.service.ProjectService;
 import org.example.backend.domain.server.service.HttpsLogService;
 import org.example.backend.domain.server.service.ServerService;
@@ -13,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -23,24 +26,24 @@ public class ServerController {
     private final ServerService serverService;
     private final ProjectService projectService;
     private final HttpsLogService httpsLogService;
+    private final ApplicationRepository applicationRepository;
 
     @PostMapping("/deployment")
-    public ResponseEntity<ApiResponse<String>> registerDeployment(
-            @RequestPart("request") DeploymentRegistrationRequest request,
+    public ResponseEntity<ApiResponse<Void>> registerDeployment(
+            @RequestParam Long projectId,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.registerDeployment(request, accessToken);
+        serverService.registerDeployment(projectId, accessToken);
 
-        return ResponseEntity.ok(ApiResponse.success("자동 배포 설정 완료"));
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     @PostMapping(value = "/convert")
     public ResponseEntity<ApiResponse<String>> convertHttps(
-            @RequestPart("request") HttpsConvertRequest request,
-            @RequestPart("pemFilePath") String pemFilePath,
+            @RequestBody HttpsConvertRequest request,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.convertHttpToHttps(request, pemFilePath, accessToken);
+        serverService.convertHttpToHttps(request, accessToken);
 
         projectService.markHttpsConverted(request.getProjectId());
 
@@ -57,5 +60,4 @@ public class ServerController {
 
         return ApiResponse.success(logs);
     }
-
 }

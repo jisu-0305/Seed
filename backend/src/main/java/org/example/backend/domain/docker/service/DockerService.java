@@ -12,4 +12,6 @@ public interface DockerService {
     List<DemonHealthyCheckResponse> checkHealth(String serverIp);
     List<AppHealthyCheckResponse> getAppStatus(String serverIp, String appName);
     List<DockerContainerLogResponse> getContainerLogs(String serverIp, String appName, DockerContainerLogRequest request);
+    void controlContainer(String serverIp, String containerName);
+    void controlContainer(String serverIp, String containerName, String action);
 }

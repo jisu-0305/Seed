@@ -106,45 +106,69 @@ public class DockerUriBuilder {
         return builder.buildAndExpand(containerId).toUri();
     }
 
-        /**
-         * 매니페스트 조회용 URI
-         * GET /v2/{namespace}/{imageName}/manifests/{tag}
-         */
-        public URI buildRegistryManifestUri(String namespace, String imageName, String tag) {
-            return UriComponentsBuilder
-                    .fromUriString(registryApiBaseUrl)
-                    .pathSegment(namespace, imageName, "manifests", tag)
-                    .build()
-                    .encode()
-                    .toUri();
-        }
-
-        /**
-         * 블랍(config) 조회용 URI
-         * GET /v2/{namespace}/{imageName}/blobs/{blobHashId}
-         *
-         */
-        public URI buildRegistryBlobUri(String namespace, String imageName, String blobHashId) {
-            return UriComponentsBuilder
-                    .fromUriString(registryApiBaseUrl)
-                    .pathSegment(namespace, imageName, "blobs", blobHashId)
-                    .build()
-                    .encode()
-                    .toUri();
-        }
-
-        /**
-         * Docker Hub 토큰 발급용 URI 생성
-         * GET {docker.auth.api.base-url}/token?service=registry.docker.io&scope=repository:{namespace}/{imageName}:pull
-         */
-        public URI buildRegistryAuthUri(String namespace, String imageName) {
-            return UriComponentsBuilder
-                    .fromUriString(dockerAuthApiBaseUrl)
-                    .path("/token")
-                    .queryParam("service", "registry.docker.io")
-                    .queryParam("scope", "repository:" + namespace + "/" + imageName + ":pull")
-                    .build()
-                    .toUri();
-        }
-
+    /**
+     * 매니페스트 조회용 URI
+     * GET /v2/{namespace}/{imageName}/manifests/{tag}
+     */
+    public URI buildRegistryManifestUri(String namespace, String imageName, String tag) {
+        return UriComponentsBuilder
+                .fromUriString(registryApiBaseUrl)
+                .pathSegment(namespace, imageName, "manifests", tag)
+                .build()
+                .encode()
+                .toUri();
     }
+
+    /**
+     * 블랍(config) 조회용 URI
+     * GET /v2/{namespace}/{imageName}/blobs/{blobHashId}
+     *
+     */
+    public URI buildRegistryBlobUri(String namespace, String imageName, String blobHashId) {
+        return UriComponentsBuilder
+                .fromUriString(registryApiBaseUrl)
+                .pathSegment(namespace, imageName, "blobs", blobHashId)
+                .build()
+                .encode()
+                .toUri();
+    }
+
+    /**
+     * Docker Hub 토큰 발급용 URI 생성
+     * GET {docker.auth.api.base-url}/token?service=registry.docker.io&scope=repository:{namespace}/{imageName}:pull
+     */
+    public URI buildRegistryAuthUri(String namespace, String imageName) {
+        return UriComponentsBuilder
+                .fromUriString(dockerAuthApiBaseUrl)
+                .path("/token")
+                .queryParam("service", "registry.docker.io")
+                .queryParam("scope", "repository:" + namespace + "/" + imageName + ":pull")
+                .build()
+                .toUri();
+    }
+
+    public URI buildStartContainerUri(String serverIp, String containerId) {
+        String baseUrl = String.format("http://%s:%d", serverIp, engineApiPort);
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .path("/containers/{id}/start")
+                .buildAndExpand(containerId)
+                .toUri();
+    }
+
+    public URI buildPauseContainerUri(String serverIp, String containerId) {
+        String baseUrl = String.format("http://%s:%d", serverIp, engineApiPort);
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .path("/containers/{id}/pause")
+                .buildAndExpand(containerId)
+                .toUri();
+    }
+
+    public URI buildStopContainerUri(String serverIp, String containerId) {
+        String baseUrl = String.format("http://%s:%d", serverIp, engineApiPort);
+        return UriComponentsBuilder.fromUriString(baseUrl)
+                .path("/containers/{id}/stop")
+                .buildAndExpand(containerId)
+                .toUri();
+    }
+
+}

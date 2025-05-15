@@ -132,8 +132,9 @@ export async function fetchLastBuild(projectId: number): Promise<BuildSummary> {
 }
 
 // 재훈이 API
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function startBuild(projectId: string): Promise<any> {
-  const res = await client.post('/api/server/deployment', { projectId });
+export async function startBuild(projectId: string) {
+  const res = await client.post('/server/deployment', null, {
+    params: { projectId },
+  });
   return res.data;
 }
