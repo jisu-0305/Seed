@@ -14,7 +14,7 @@ public class ProjectResponse {
     private Long id;
     private String projectName;
     private LocalDateTime createdAt;
-
+    private Long gitlabProjectId;
     private List<UserInProject> memberList;
     private boolean autoDeploymentEnabled;
     private boolean httpsEnabled;

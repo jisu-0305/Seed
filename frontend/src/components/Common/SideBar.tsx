@@ -15,18 +15,13 @@ export default function SideBar() {
   const match = pathname.match(/^\/projects\/(\d+)(\/|$)/);
   const currentProjectId = match ? Number(match[1]) : null;
 
-  const { projects, loading, error, loadProjects } = useProjectStore();
+  const { projects, loadProjects } = useProjectStore();
 
   const handleMovePage = (url: string) => {
-    // if (pathname === '/onboarding') {
-    //   alert('원활한 서비스 이용을 위해 먼저 GitLab 토큰을 등록해주세요.');
-    //   return;
-    // }
     router.push(url);
   };
 
   useEffect(() => {
-    // 마운트 시 프로젝트 로드
     loadProjects();
   }, [loadProjects]);
 
@@ -92,25 +87,18 @@ export default function SideBar() {
           프로젝트 관리
           <IcArrow src="/assets/icons/ic_arrow_right.svg" alt="화살표" />
         </MenuItem>
-        {isProjectsActive && (
-          <>
-            {loading && <p>프로젝트 로딩 중…</p>}
-            {error && <p>{error}</p>}
-
-            {!loading && !error && (
-              <SubMenu>
-                {projects.map((p) => (
-                  <SubMenuItem
-                    key={p.id}
-                    active={p.id === currentProjectId}
-                    onClick={() => handleMovePage(`/projects/${p.id}`)}
-                  >
-                    {p.projectName}
-                  </SubMenuItem>
-                ))}
-              </SubMenu>
-            )}
-          </>
+        {isProjectsActive && projects.length > 0 && (
+          <SubMenu>
+            {projects.map((p) => (
+              <SubMenuItem
+                key={p.id}
+                active={p.id === currentProjectId}
+                onClick={() => handleMovePage(`/projects/${p.id}`)}
+              >
+                {p.projectName}
+              </SubMenuItem>
+            ))}
+          </SubMenu>
         )}
       </Menu>
     </SideWrapper>

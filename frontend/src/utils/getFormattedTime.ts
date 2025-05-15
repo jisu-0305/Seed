@@ -29,3 +29,33 @@ export const formatDateTime = (isoString: string): string => {
 
   return `${month}.${day} ${hours}:${minutes}:${seconds}`;
 };
+
+/**
+ * ISO 문자열을 "MMM D, YYYY" 포맷으로 반환합니다.
+ * ex) "2025-05-15T14:03:00.77363" → "May 15, 2025"
+ */
+export const formatDateLong = (isoString: string): string => {
+  const date = new Date(isoString);
+
+  // 영어 약어 월 이름 배열
+  const monthNames = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
+
+  const month = monthNames[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+
+  return `${month} ${day}, ${year}`;
+};

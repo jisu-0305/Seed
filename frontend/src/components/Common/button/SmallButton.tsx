@@ -4,7 +4,7 @@ import { ReactNode } from 'react';
 interface Props {
   children: ReactNode;
   onClick?: () => void;
-  variant?: 'cancel' | 'next' | 'complete';
+  variant?: 'cancel' | 'next' | 'complete' | 'delete';
   disabled?: boolean;
 }
 
@@ -21,7 +21,9 @@ export default function SmallButton({
   );
 }
 
-const Button = styled.button<{ variant: 'cancel' | 'next' | 'complete' }>`
+const Button = styled.button<{
+  variant: 'cancel' | 'next' | 'complete' | 'delete';
+}>`
   display: flex;
   flex-direction: row;
   justify-content: space-around;
@@ -45,7 +47,9 @@ const Button = styled.button<{ variant: 'cancel' | 'next' | 'complete' }>`
       ? theme.colors.BtnNextBg
       : variant === 'cancel'
         ? theme.colors.BtnPrevBg
-        : theme.colors.Main_Carrot};
+        : variant === 'delete'
+          ? theme.colors.Red2
+          : theme.colors.Main_Carrot};
 
   &:disabled {
     cursor: not-allowed;

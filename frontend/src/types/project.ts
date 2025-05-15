@@ -1,5 +1,6 @@
 export interface ProjectInfo {
   gitlab: {
+    id: number;
     repo: string;
     defaultBranch: string;
     structure: '모노' | '멀티' | string;
@@ -53,6 +54,12 @@ export interface Application {
   port: number;
 }
 
+// defaultPorts 가 필요한 곳에서만 쓰는 서브타입
+export interface ApplicationWithDefaults extends Application {
+  defaultPorts: number[];
+  description: string;
+}
+
 export interface ProjectDetailData {
   id: number;
   ownerId: number;
@@ -82,6 +89,7 @@ export interface ProjectDetailResponse {
 }
 
 interface BaseProjectInfo {
+  gitlabProjectId: number;
   repositoryUrl: string;
   gitlabTargetBranch: string;
   jdkVersion: string;
@@ -114,4 +122,43 @@ export interface ProjectCardInfo {
   autoDeploymentEnabled: boolean;
   buildStatus: BuildStatus;
   lastBuildAt: string;
+}
+
+// 프로젝트 수정할 때
+export interface ProjectUpdateRequest {
+  serverIP: string;
+  applications: {
+    imageName: string;
+    tag: string;
+    port: number;
+  }[];
+}
+
+// —————— 서브타입 정의 ——————
+export interface GitlabInfo {
+  id: number;
+  repo: string;
+  defaultBranch: string;
+  structure: '모노' | '멀티' | string;
+  directory: {
+    client: string;
+    server: string;
+  };
+}
+
+export interface ServerInfo {
+  ip: string;
+  pem: boolean;
+  pemName: string;
+}
+
+export interface EnvInfo {
+  frontendFramework: string;
+  frontEnv: boolean;
+  frontEnvName: string;
+  backEnv: boolean;
+  backEnvName: string;
+  node: string;
+  jdk: string;
+  buildTool: string;
 }

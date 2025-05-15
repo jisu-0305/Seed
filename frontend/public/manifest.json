@@ -1,0 +1,33 @@
+{
+  "background_color": "#1C1C1C",
+  "description": "배포가 어려운 당신을 위한 솔루션, SEED",
+  "display": "standalone",
+  "icons": [
+    {
+      "sizes": "192x192",
+      "src": "/icon-192x192.png",
+      "type": "image/png"
+    },
+    {
+      "sizes": "256x256",
+      "src": "/icon-256x256.png",
+      "type": "image/png"
+    },
+    {
+      "sizes": "512x512",
+      "src": "/icon-512x512.png",
+      "type": "image/png"
+    },
+    {
+      "purpose": "any maskable",
+      "sizes": "150x150",
+      "src": "/ms-icon-150x150.png",
+      "type": "image/png"
+    }
+  ],
+  "name": "SEED",
+  "scope": "/",
+  "short_name": "SEED",
+  "start_url": "/",
+  "theme_color": "#FFA100"
+}

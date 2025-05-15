@@ -5,6 +5,7 @@ import { getImageTag } from '@/apis/gitlab';
 import { useModal } from '@/hooks/Common';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
+import { ApplicationWithDefaults } from '@/types/project';
 
 import ModalWrapper from '../Common/Modal/ModalWrapper';
 import TipItem from '../Common/TipItem';
@@ -30,36 +31,61 @@ export default function AppInput() {
 
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [tagList, setTagList] = useState<string[]>([]);
-  const [port, setPort] = useState(8080);
+  // const [port, setPort] = useState(8080);
 
-  const handleAddApp = async (name: string) => {
-    const existingIndex = apps.findIndex((a) => a.imageName === name);
+  // const handleAddApp = async (name: string) => {
+  //   const existingIndex = apps.findIndex((a) => a.imageName === name);
 
+  //   if (existingIndex !== -1) {
+  //     const existingApp = apps[existingIndex];
+  //     setSelectedIndex(existingIndex);
+  //     setPort(existingApp.port);
+  //     return;
+  //   }
+
+  //   const usedPorts = new Set(apps.map((a) => a.port));
+  //   let assignedPort = 8080;
+  //   while (usedPorts.has(assignedPort)) {
+  //     assignedPort += 1;
+  //   }
+
+  //   const tagName = await fetchImageTag(name);
+
+  //   const newApp = {
+  //     imageName: name,
+  //     tag: tagName,
+  //     port: assignedPort,
+  //   };
+
+  //   const updatedApps = [...apps, newApp];
+  //   setAppStatus(updatedApps);
+  //   setSelectedIndex(updatedApps.length - 1);
+  //   setPort(newApp.port);
+  // };
+
+  const handleAddApp = async (img: ApplicationWithDefaults) => {
+    const { imageName, defaultPorts, description } = img;
+    const existingIndex = apps.findIndex((a) => a.imageName === imageName);
     if (existingIndex !== -1) {
-      const existingApp = apps[existingIndex];
       setSelectedIndex(existingIndex);
-      setPort(existingApp.port);
       return;
     }
 
-    const usedPorts = new Set(apps.map((a) => a.port));
-    let assignedPort = 8080;
-    while (usedPorts.has(assignedPort)) {
-      assignedPort += 1;
-    }
+    // 최초 포트는 defaultPorts[0] 으로 설정
+    const initialPort = defaultPorts[0] || 8080;
+    const tagName = await fetchImageTag(imageName);
 
-    const tagName = await fetchImageTag(name);
-
-    const newApp = {
-      imageName: name,
+    const newApp: ApplicationWithDefaults = {
+      imageName,
       tag: tagName,
-      port: assignedPort,
+      port: initialPort,
+      defaultPorts,
+      description,
     };
 
-    const updatedApps = [...apps, newApp];
-    setAppStatus(updatedApps);
-    setSelectedIndex(updatedApps.length - 1);
-    setPort(newApp.port);
+    const updated = [...apps, newApp];
+    setAppStatus(updated);
+    setSelectedIndex(updated.length - 1);
   };
 
   // 이미지 선택시
@@ -73,7 +99,7 @@ export default function AppInput() {
   const handleSelectApp = (index: number) => {
     setSelectedIndex(index);
     fetchImageTag(apps[index].imageName);
-    setPort(apps[index].port);
+    // setPort(apps[index].port);
   };
 
   // 이미지 삭제
@@ -96,24 +122,39 @@ export default function AppInput() {
     }
   };
 
-  const handlePortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const portNum = Number(e.target.value);
-    const usedPorts = new Set(
+  // const handlePortChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const portNum = Number(e.target.value);
+  //   const usedPorts = new Set(
+  //     apps.map((a, i) => (i === selectedIndex ? null : a.port)),
+  //   );
+
+  //   if (usedPorts.has(portNum)) {
+  //     alert('이미 사용 중인 포트입니다. 다른 포트를 입력해주세요.');
+  //     return;
+  //   }
+
+  //   setPort(portNum);
+
+  //   if (selectedIndex !== null) {
+  //     const updated = [...apps];
+  //     updated[selectedIndex].port = portNum;
+  //     setAppStatus(updated);
+  //   }
+  // };
+
+  const handlePortSelect = (value: string) => {
+    if (selectedIndex == null) return;
+    const portNum = Number(value);
+    const used = new Set(
       apps.map((a, i) => (i === selectedIndex ? null : a.port)),
     );
-
-    if (usedPorts.has(portNum)) {
-      alert('이미 사용 중인 포트입니다. 다른 포트를 입력해주세요.');
+    if (used.has(portNum)) {
+      alert('이미 사용 중인 포트입니다.');
       return;
     }
-
-    setPort(portNum);
-
-    if (selectedIndex !== null) {
-      const updated = [...apps];
-      updated[selectedIndex].port = portNum;
-      setAppStatus(updated);
-    }
+    const updated = [...apps];
+    updated[selectedIndex].port = portNum;
+    setAppStatus(updated);
   };
 
   if (mode === null) return null;
@@ -166,12 +207,17 @@ export default function AppInput() {
 
               <div>
                 <Label>포트번호</Label>
-                <PortInput
+                {/* <PortInput
                   type="number"
                   value={port}
                   min={1000}
                   max={9999}
                   onChange={handlePortChange}
+                /> */}
+                <CustomDropdown
+                  options={apps[selectedIndex].defaultPorts.map(String)}
+                  value={String(apps[selectedIndex].port)}
+                  onChange={handlePortSelect}
                 />
               </div>
             </Row>
@@ -196,7 +242,9 @@ export default function AppInput() {
         <SearchDockerImageModal
           isShowing={search.isShowing}
           handleClose={search.toggle}
-          onSelect={handleAddApp}
+          onSelect={(img) => {
+            handleAddApp(img);
+          }}
         />
       </ModalWrapper>
     </>
@@ -322,18 +370,18 @@ const SelectWrapper = styled.div`
   width: 20rem;
 `;
 
-const PortInput = styled.input`
-  width: 8rem;
-  padding: 1rem;
+// const PortInput = styled.input`
+//   width: 8rem;
+//   padding: 1rem;
 
-  ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Text};
-  text-align: center;
+//   ${({ theme }) => theme.fonts.Body1};
+//   color: ${({ theme }) => theme.colors.Text};
+//   text-align: center;
 
-  background-color: ${({ theme }) => theme.colors.InputBackground};
-  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
-  border-radius: 1rem;
-`;
+//   background-color: ${({ theme }) => theme.colors.InputBackground};
+//   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
+//   border-radius: 1rem;
+// `;
 
 const TipList = styled.ul`
   display: flex;

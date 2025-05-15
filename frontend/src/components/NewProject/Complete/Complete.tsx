@@ -22,6 +22,7 @@ export default function Complete() {
     if (gitlab.structure === '모노') {
       return {
         structure: 'MONO',
+        gitlabProjectId: gitlab.id,
         repositoryUrl: gitlab.repo,
         gitlabTargetBranch: gitlab.defaultBranch,
         backendDirectoryName: gitlab.directory.server,
@@ -36,6 +37,7 @@ export default function Complete() {
     }
     return {
       structure: 'MULTI',
+      gitlabProjectId: gitlab.id,
       repositoryUrl: gitlab.repo,
       gitlabTargetBranch: gitlab.defaultBranch,
       backendBranchName: gitlab.directory.server,

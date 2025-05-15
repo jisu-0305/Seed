@@ -13,6 +13,6 @@ public class JenkinsUriBuilder {
     }
 
     public static String buildTriggerUri(String baseUrl, String jobName) {
-        return String.format("%s/job/%s/build", baseUrl, jobName);
+        return baseUrl + "/job/" + jobName + "/buildWithParameters";
     }
 }

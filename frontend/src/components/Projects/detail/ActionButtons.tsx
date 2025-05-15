@@ -1,3 +1,5 @@
+'use client';
+
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -65,6 +67,7 @@ export function ActionButtons({
     } finally {
       setLoading(false);
       https.toggle();
+      window.location.reload();
     }
   };
 

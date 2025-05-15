@@ -1,19 +1,22 @@
 import styled from '@emotion/styled';
 import { ChangeEvent, useState } from 'react';
 
-import { getDockerImage } from '@/apis/gitlab';
+import { getProjectApplications } from '@/apis/gitlab';
 import SmallModal from '@/components/Common/Modal/SmallModal';
+import { ApplicationWithDefaults } from '@/types/project';
 
 interface Props {
   isShowing: boolean;
   handleClose: () => void;
-  onSelect: (name: string) => void;
+  onSelect: (img: ApplicationWithDefaults) => void;
 }
 
-interface Image {
-  repo_name: string;
-  short_description: string;
-}
+// interface Image {
+//   repo_name: string;
+//   short_description: string;
+// }
+
+type Image = ApplicationWithDefaults;
 
 const SearchDockerImageModal = ({
   isShowing,
@@ -22,19 +25,31 @@ const SearchDockerImageModal = ({
 }: Props) => {
   const [query, setQuery] = useState('');
   const [imageList, setImageList] = useState<Image[]>([]);
+  const [hasSearched, setHasSearched] = useState(false);
 
   const fetchDockerImage = async () => {
-    const { data } = await getDockerImage(query);
-    setImageList(data.image);
+    // const { data } = await getDockerImage(query);
+    // setImageList(data.image);
+
+    setHasSearched(true);
+    const { data } = await getProjectApplications(query);
+    console.log(data);
+
+    setImageList(data);
   };
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.value.length === 0) {
+      setHasSearched(false);
+      setImageList([]);
+    }
     setQuery(e.target.value);
   };
 
   const closeWithReset = () => {
     setQuery('');
     setImageList([]);
+    setHasSearched(false);
     handleClose();
   };
 
@@ -64,7 +79,7 @@ const SearchDockerImageModal = ({
           </SearchWrapper>
 
           <ResultList>
-            {imageList.map((img) => (
+            {/* {imageList.map((img) => (
               <ResultItem
                 key={img.repo_name}
                 onClick={() => {
@@ -80,6 +95,27 @@ const SearchDockerImageModal = ({
                   />
                 </ImageName>
                 <ImageDesc>{img.short_description}</ImageDesc>
+              </ResultItem>
+            ))} */}
+            {hasSearched && query && imageList.length === 0 && (
+              <NoResults>검색 결과가 없습니다.</NoResults>
+            )}
+            {imageList.map((img) => (
+              <ResultItem
+                key={img.imageName}
+                onClick={() => {
+                  onSelect(img);
+                  closeWithReset();
+                }}
+              >
+                <ImageName>
+                  {img.imageName}
+                  <OfficialIcon
+                    src="/assets/icons/ic_official.svg"
+                    alt="official"
+                  />
+                </ImageName>
+                <ImageDesc>{img.description}</ImageDesc>
               </ResultItem>
             ))}
           </ResultList>
@@ -112,7 +148,7 @@ const SearchInput = styled.input`
   padding: 1rem;
 
   ${({ theme }) => theme.fonts.Body1};
-  color: ${({ theme }) => theme.colors.Text};
+  color: ${({ theme }) => theme.colors.Black};
 
   background-color: ${({ theme }) => theme.colors.LightGray3};
   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
@@ -158,11 +194,13 @@ const ImageName = styled.div`
   gap: 0.5rem;
 
   ${({ theme }) => theme.fonts.Title5};
+  color: ${({ theme }) => theme.colors.Black};
 `;
 
 const ImageDesc = styled.p`
   max-width: 29rem;
   ${({ theme }) => theme.fonts.Body6};
+  color: ${({ theme }) => theme.colors.Black};
 
   overflow: hidden;
   white-space: nowrap;
@@ -170,3 +208,10 @@ const ImageDesc = styled.p`
 `;
 
 const OfficialIcon = styled.img``;
+
+const NoResults = styled.div`
+  ${({ theme }) => theme.fonts.Body2};
+  color: ${({ theme }) => theme.colors.Black};
+  padding: 2rem 0;
+  text-align: center;
+`;

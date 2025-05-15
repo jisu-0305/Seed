@@ -9,7 +9,9 @@ import {
   HttpsBuildLog,
 } from '@/apis/build';
 import { fetchProjectDetail } from '@/apis/project';
-import { useProjectStore } from '@/stores/projectStore';
+import ErrorMessage from '@/components/Common/ErrorMessage';
+import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
+import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
 import { ProjectDetailData, ProjectSummary } from '@/types/project';
@@ -26,6 +28,7 @@ export default function ProjectDetail() {
   const params = useParams();
   const rawId = params?.id;
   const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
+  const loadProjectInfo = useProjectInfoStore((s) => s.loadProjectInfo);
 
   const router = useRouter();
 
@@ -67,6 +70,9 @@ export default function ProjectDetail() {
 
     fetchProjectDetail(id)
       .then((data) => {
+        loadProjectInfo({
+          ...data,
+        });
         setDetail({
           ...data,
           memberList: summary?.memberList ?? [],
@@ -137,8 +143,8 @@ export default function ProjectDetail() {
     refreshTasks();
   }, [projectId, selectedTab]);
 
-  if (loading) return <p>로딩 중…</p>;
-  if (error) return <p>{error}</p>;
+  if (loading) return <LoadingSpinner />;
+  if (error) return <ErrorMessage>{error}</ErrorMessage>;
   if (!detail) return null;
 
   let emoji: 'default' | 'success' | 'fail';

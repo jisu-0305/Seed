@@ -305,6 +305,8 @@ export const lightColors = {
 
   AiReport: palette.Gray4,
   ModalBg: palette.White,
+  RedBtn: palette.Red2,
+  RedBtnHover: palette.Red1,
 
   // 공통 색상
   Main_Carrot: palette.Main_Carrot,
@@ -365,6 +367,8 @@ export const darkColors = {
 
   AiReport: palette.DarkGray0,
   ModalBg: palette.DarkGray0,
+  RedBtn: palette.Red1,
+  RedBtnHover: palette.Red2,
 
   // 공통 색상
   Main_Carrot: palette.Main_Carrot,

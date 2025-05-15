@@ -25,8 +25,15 @@ public class ProjectFile {
 
     private String contentType;
 
+    @Enumerated(EnumType.STRING)
     private FileType fileType;
 
     @Lob
     private byte[] data;
+
+    public void updateProjectEnvFile(String fileName, String contentType, byte[] data) {
+        this.fileName = fileName;
+        this.contentType = contentType;
+        this.data = data;
+    }
 }

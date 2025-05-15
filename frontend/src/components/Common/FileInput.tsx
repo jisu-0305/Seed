@@ -47,7 +47,7 @@ export default function FileInput({
       <PemInput
         type="text"
         readOnly
-        value={file?.name || fileName}
+        value={file?.name || fileName || ''}
         placeholder={placeholder || ''}
       />
       <UploadLabel htmlFor={id || 'upload'}>

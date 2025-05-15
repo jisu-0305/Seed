@@ -6,10 +6,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.auth.ProjectAccessValidator;
-import org.example.backend.common.session.RedisSessionManager;
-import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.response.jenkins.*;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
+import org.example.backend.domain.jenkins.enums.BuildStatusType;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectExecution;
@@ -17,7 +16,6 @@ import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.repository.ProjectExecutionRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
-import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
@@ -49,15 +47,18 @@ public class JenkinsServiceImpl implements JenkinsService {
             .withLocale(Locale.KOREA);
 
     @Override
-    public List<JenkinsBuildListResponse> getBuildList(Long projectId, String accessToken) {
+    public JenkinsBuildPageResponse getBuildList(Long projectId, int start, int limit, String accessToken) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
-        JsonNode builds = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "api/json?tree=builds[number,result,timestamp]"))
-                .path("builds");
 
-        List<JenkinsBuildListResponse> list = new ArrayList<>();
-        for (JsonNode build : builds) {
-            list.add(JenkinsBuildListResponse.builder()
+        // Jenkins는 start, limit 안 먹힘. 전부 받아와서 자바에서 슬라이싱
+        JsonNode buildsNode = safelyParseJson(
+                jenkinsClient.fetchBuildInfo(info, "api/json?tree=builds[number,result,timestamp]")
+        ).path("builds");
+
+        List<JenkinsBuildListResponse> allBuilds = new ArrayList<>();
+        for (JsonNode build : buildsNode) {
+            allBuilds.add(JenkinsBuildListResponse.builder()
                     .buildNumber(build.path("number").asInt())
                     .buildName("MR 빌드")
                     .date(DATE_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
@@ -65,8 +66,21 @@ public class JenkinsServiceImpl implements JenkinsService {
                     .status(build.path("result").asText())
                     .build());
         }
-        return list;
+
+        // 커서 방식 슬라이싱
+        int end = Math.min(start + limit, allBuilds.size());
+        List<JenkinsBuildListResponse> sliced = start < allBuilds.size() ? allBuilds.subList(start, end) : List.of();
+        boolean hasNext = end < allBuilds.size();
+        Integer nextStart = hasNext ? end : null;
+
+        return JenkinsBuildPageResponse.builder()
+                .builds(sliced)
+                .hasNext(hasNext)
+                .nextStart(nextStart)
+                .build();
     }
+
+
 
     @Override
     public int getLastBuildNumberWithOutLogin(Long projectId){
@@ -109,10 +123,13 @@ public class JenkinsServiceImpl implements JenkinsService {
 
         JsonNode buildInfo = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
 
+        String rawStatus = buildInfo.path("result").asText();
+        BuildStatusType status = BuildStatusType.from(rawStatus);
+
         return JenkinsBuildDetailResponse.builder()
                 .buildNumber(buildNumber)
                 .buildName("MR 빌드")
-                .overallStatus(buildInfo.path("result").asText())
+                .overallStatus(status.name())
                 .stepList(steps)
                 .build();
     }
@@ -137,9 +154,9 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public void triggerBuild(Long projectId, String accessToken) {
+    public void triggerBuild(Long projectId, String accessToken, String branchName) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
-        jenkinsClient.triggerBuild(getJenkinsInfo(projectId));
+        jenkinsClient.triggerBuild(getJenkinsInfo(projectId), branchName);
     }
 
     @Override
@@ -196,8 +213,8 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     @Transactional
-    public void logLastBuildResultToProject(Long projectId, String accessToken) {
-        projectAccessValidator.validateUserInProject(projectId, accessToken);
+    public void logLastBuildResultToProject(Long projectId) {
+
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode lastBuild = safelyParseJson(
                 jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json")
@@ -235,13 +252,24 @@ public class JenkinsServiceImpl implements JenkinsService {
                     jenkinsUsername
             );
 
-            JenkinsInfo jenkinsInfo = JenkinsInfo.builder()
-                    .projectId(projectId)
-                    .baseUrl(jenkinsUrl)
-                    .username(jenkinsUsername)
-                    .apiToken(jenkinsToken)
-                    .jobName(jenkinsJobName)
-                    .build();
+            Optional<JenkinsInfo> optional = jenkinsInfoRepository.findByProjectId(projectId);
+
+            JenkinsInfo jenkinsInfo = optional.map(existing ->
+                    existing.toBuilder()
+                            .baseUrl(jenkinsUrl)
+                            .username(jenkinsUsername)
+                            .apiToken(jenkinsToken)
+                            .jobName(jenkinsJobName)
+                            .build()
+            ).orElseGet(() ->
+                    JenkinsInfo.builder()
+                            .projectId(projectId)
+                            .baseUrl(jenkinsUrl)
+                            .username(jenkinsUsername)
+                            .apiToken(jenkinsToken)
+                            .jobName(jenkinsJobName)
+                            .build()
+            );
 
             jenkinsInfoRepository.save(jenkinsInfo);
 
@@ -297,10 +325,6 @@ public class JenkinsServiceImpl implements JenkinsService {
 
         return String.join("\n", collected);
     }
-
-
-
-
 
     private List<JenkinsBuildStepResponse> mergeStageStatusWithEchoes(String wfapiJson, String consoleLog) {
         JsonNode wfapi = safelyParseJson(wfapiJson);
