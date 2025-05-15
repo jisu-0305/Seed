@@ -5,6 +5,7 @@ import { useThemeStore } from '@/stores/themeStore';
 interface ProjectHeaderProps {
   emojiSrc: string;
   https: boolean;
+  deploy: boolean;
   buildStatus: 'SUCCESS' | 'FAILURE' | null;
   lastBuildAt: string;
 }
@@ -12,6 +13,7 @@ interface ProjectHeaderProps {
 export function ProjectHeader({
   emojiSrc,
   https,
+  deploy,
   buildStatus,
   lastBuildAt,
 }: ProjectHeaderProps) {
@@ -47,7 +49,7 @@ export function ProjectHeader({
           <StatusItem>
             <Label>자동배포</Label>
             <Icon
-              src={`/assets/icons/ic_autoDeploy_${mode}.svg`}
+              src={`/assets/icons/ic_autoDeploy_${deploy}_${mode}.svg`}
               alt="auto-deploy"
             />
           </StatusItem>

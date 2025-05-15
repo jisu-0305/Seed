@@ -18,20 +18,26 @@ import ManageMemberModal from '../Modal/ManageMemberModal';
 interface ActionButtonsProps {
   projectId: string | null;
   gitlab?: string | URL;
-  pemFilePath: string;
   httpsEnabled: boolean;
+  deployEnabled: boolean;
 }
 
 export function ActionButtons({
   projectId,
   gitlab,
-  pemFilePath,
   httpsEnabled,
+  deployEnabled,
 }: ActionButtonsProps) {
   const { mode } = useThemeStore();
   const team = useModal();
   const https = useModal();
+
+  // https 모달용
   const [loading, setLoading] = useState(false);
+
+  // ■ 빌드용 로딩 & 메시지
+  const [buildLoading, setBuildLoading] = useState(false);
+  const [buildMessage, setBuildMessage] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -43,11 +49,19 @@ export function ActionButtons({
   const runBuild = async () => {
     if (!projectId) return;
 
+    // 메시지 띄우기
+    setBuildMessage('커피 한 잔 하고 올까요? ☕');
+    setBuildLoading(true);
+
     try {
       const data = await startBuild(projectId);
-      console.log('✔️ 빌드 시작 성공:', data);
+      console.log('✔️ EC2 세팅 성공:', data);
+      window.location.reload();
     } catch (err) {
-      console.error('❌ 빌드 시작 실패:', err);
+      console.error('❌ EC2 세팅 실패:', err);
+      setBuildMessage('EC2 세팅에 실패했습니다...');
+    } finally {
+      setBuildLoading(false);
     }
   };
 
@@ -60,7 +74,7 @@ export function ActionButtons({
 
     try {
       setLoading(true);
-      const data = await convertServer(projectId, domain, email, pemFilePath);
+      const data = await convertServer(projectId, domain, email);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);
@@ -85,14 +99,29 @@ export function ActionButtons({
   return (
     <>
       <Wrapper>
+        {/* 빌드 메시지 배너 */}
+        {buildMessage && (
+          <MessageBanner>
+            <BannerMessage>{buildMessage}</BannerMessage>
+            <IcIcon
+              src="/assets/icons/ic_close.svg"
+              alt="close icon"
+              onClick={() => setBuildMessage(null)}
+            />
+          </MessageBanner>
+        )}
         <MainActions>
           <Button variant="ai" onClick={goToReport}>
             <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
             AI 보고서
           </Button>
-          <Button variant="build" onClick={runBuild}>
-            <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
-            지금 빌드
+          <Button variant="build" onClick={runBuild} disabled={deployEnabled}>
+            {buildLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
+            )}
+            EC2 세팅
           </Button>
           <Button
             variant="https"
@@ -208,4 +237,27 @@ const SmallButton = styled.button`
 
 const SmallIcon = styled.img`
   width: 2rem;
+`;
+
+// 메시지 배너 스타일
+const MessageBanner = styled.div`
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: ${({ theme }) => theme.colors.RedBtn};
+  border-radius: 5rem;
+`;
+
+const BannerMessage = styled.div`
+  ${({ theme }) => theme.fonts.Body2};
+  color: ${({ theme }) => theme.colors.MenuText};
+`;
+
+const IcIcon = styled.img`
+  position: absolute;
+  right: 1rem;
+  cursor: pointer;
 `;

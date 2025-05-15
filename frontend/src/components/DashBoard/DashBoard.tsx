@@ -72,6 +72,7 @@ export default function HomePage() {
                     title={project.projectName}
                     time={project.lastBuildAt}
                     build={project.buildStatus}
+                    deploy={project.autoDeploymentEnabled}
                     https={project.httpsEnabled}
                   />
                 </SwiperSlide>

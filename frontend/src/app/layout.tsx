@@ -29,10 +29,33 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&display=swap"
           rel="stylesheet"
         />
-        {/* 라이트/다크 로고 둘 다 미리 로드 */}
-        <link rel="preload" as="image" href="/assets/icons/ic_logo_light.svg" />
-        <link rel="preload" as="image" href="/assets/icons/ic_logo_dark.svg" />
-        <link rel="preload" as="image" href="/assets/icons/ic_logoText.svg" />
+        {/* 라이트 테마일 때만 로드 */}
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/icons/ic_logo_light.svg"
+          media="(prefers-color-scheme: light)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/icons/ic_logoText.svg"
+          media="(prefers-color-scheme: light)"
+        />
+
+        {/* 다크 테마일 때만 로드 */}
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/icons/ic_logo_dark.svg"
+          media="(prefers-color-scheme: dark)"
+        />
+        <link
+          rel="preload"
+          as="image"
+          href="/assets/icons/ic_logoText_white.svg"
+          media="(prefers-color-scheme: dark)"
+        />
         <link
           rel="preload"
           as="image"
