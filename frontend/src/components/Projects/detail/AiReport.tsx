@@ -65,6 +65,21 @@ export default function AiReport() {
   }, [selectedId]);
 
   if (listLoading) return <LoadingSpinner />;
+  if (!listLoading && reports.length === 0) {
+    return (
+      <Container>
+        <TitleHeader>
+          <BackIcon
+            src={`/assets/icons/ic_back_${mode}.svg`}
+            alt="뒤로가기"
+            onClick={() => router.back()}
+          />
+          <TitleHeading>AI 보고서</TitleHeading>
+        </TitleHeader>
+        <NoData>아직 생성된 AI 보고서가 없습니다</NoData>
+      </Container>
+    );
+  }
 
   return (
     <Container>
@@ -365,4 +380,11 @@ const DetailBox = styled.div`
   ${({ theme }) => theme.fonts.Body1};
   white-space: pre-line;
   margin-top: 2rem;
+`;
+
+const NoData = styled.div`
+  margin-top: 4rem;
+  ${({ theme }) => theme.fonts.Body1};
+  color: ${({ theme }) => theme.colors.Gray3};
+  text-align: center;
 `;
