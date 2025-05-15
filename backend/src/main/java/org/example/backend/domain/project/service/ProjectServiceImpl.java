@@ -207,6 +207,8 @@ public class ProjectServiceImpl implements ProjectService {
                     .toList();
 
             projectApplicationRepository.saveAll(updateApplicatinList);
+        } else {
+            projectApplicationRepository.deleteAllByProjectId(projectId);
         }
 
         List<UserInProject> memberList = userProjectRepository.findByProjectId(projectId).stream()
