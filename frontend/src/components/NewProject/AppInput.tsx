@@ -64,7 +64,7 @@ export default function AppInput() {
   // };
 
   const handleAddApp = async (img: ApplicationWithDefaults) => {
-    const { imageName, defaultPorts } = img;
+    const { imageName, defaultPorts, description } = img;
     const existingIndex = apps.findIndex((a) => a.imageName === imageName);
     if (existingIndex !== -1) {
       setSelectedIndex(existingIndex);
@@ -80,6 +80,7 @@ export default function AppInput() {
       tag: tagName,
       port: initialPort,
       defaultPorts,
+      description,
     };
 
     const updated = [...apps, newApp];
