@@ -57,6 +57,17 @@ public class CICDResolverController {
         return ResponseEntity.ok(ApiResponse.success("🔧 셀프 힐링 작업이 트리거되었습니다."));
     }
 
+    @PostMapping("/resolve/test")
+    @Operation(summary = "CI/CD 셀프 힐링 트리거")
+    public ResponseEntity<ApiResponse<String>> triggerSelfHealing(
+            @RequestParam Long projectId,
+            @RequestParam String personalAccessToken,
+            @RequestParam String failType // BUILD, RUNTIME
+    ) {
+
+        return ResponseEntity.ok(ApiResponse.success("🔧 셀프 힐링 작업이 트리거되었습니다." + projectId + " " + personalAccessToken + " " + failType));
+    }
+
     // AI 통합 테스트용 controller 추후 삭제 필요
     @PostMapping("/simulate")
     public ResponseEntity<ApiResponse<List<PatchedFile>>> simulateSelfHealing(
