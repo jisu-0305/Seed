@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class DeploymentReportResponse {
     private Long id;
+    private Long buildNumber;
     private String title;
     private ReportStatus status;
     private LocalDateTime date;

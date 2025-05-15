@@ -8,6 +8,7 @@ import java.util.List;
 @Data
 public class DeploymentReportSavedRequest {
     private Long projectId;
+    private Long buildNumber;
     private String title;
     private String summary;
     private String additionalNotes;

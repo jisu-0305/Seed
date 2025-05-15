@@ -48,7 +48,7 @@ public class CICDResolverController {
      * - body에는 buildNumber만 전달
      */
     @PostMapping("/resolve")
-    @Operation(summary = "CI/CD 셀프 힐링 트리거", security = @SecurityRequirement(name = "JWT"))
+    @Operation(summary = "CI/CD 셀프 힐링 트리거")
     public ResponseEntity<ApiResponse<String>> triggerSelfHealingCI(
             @RequestParam Long projectId,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION) String accessToken
@@ -57,6 +57,7 @@ public class CICDResolverController {
         return ResponseEntity.ok(ApiResponse.success("🔧 셀프 힐링 작업이 트리거되었습니다."));
     }
 
+    // AI 통합 테스트용 controller 추후 삭제 필요
     @PostMapping("/simulate")
     public ResponseEntity<ApiResponse<List<PatchedFile>>> simulateSelfHealing(
             @RequestBody SimulationRequestDto request

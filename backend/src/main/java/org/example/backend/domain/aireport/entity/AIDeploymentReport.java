@@ -23,6 +23,8 @@ public class AIDeploymentReport {
 
     private Long projectId;
 
+    private Long buildNumber;
+
     private String title;
 
     @Column(columnDefinition = "TEXT")
@@ -40,9 +42,10 @@ public class AIDeploymentReport {
 
     private LocalDateTime createdAt;
 
-    public static AIDeploymentReport fromAiReportResponse(Long projectId, String title, AIReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
+    public static AIDeploymentReport fromAiReportResponse(Long projectId, Long buildNumber,String title, AIReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
         return AIDeploymentReport.builder()
                 .projectId(projectId)
+                .buildNumber(buildNumber)
                 .title(title)
                 .summary(response.getSummary())
                 .additionalNotes(response.getAdditionalNotes())
@@ -56,6 +59,7 @@ public class AIDeploymentReport {
     public static AIDeploymentReport fromBackofficeRequest(DeploymentReportSavedRequest request) {
         return AIDeploymentReport.builder()
                 .projectId(request.getProjectId())
+                .buildNumber(request.getBuildNumber())
                 .title(request.getTitle())
                 .summary(request.getSummary())
                 .additionalNotes(request.getAdditionalNotes())

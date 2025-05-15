@@ -1,5 +1,4 @@
 package org.example.backend.domain.aireport.repository;
-
 import org.example.backend.domain.aireport.entity.AppliedFile;
 import org.springframework.data.jpa.repository.JpaRepository;
 
