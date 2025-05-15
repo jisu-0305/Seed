@@ -130,7 +130,8 @@ const LogoImage = styled.img`
 `;
 
 const LogoText = styled.img`
-  height: 60%;
+  height: 3rem;
+  width: 8rem;
 
   padding-top: 0.2rem;
 `;
