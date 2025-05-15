@@ -25,13 +25,13 @@ public class DataInitializer implements CommandLineRunner {
                 Application.builder()
                         .imageName("mysql")
                         .defaultPort(3306)
-                        .envVariableList(List.of("MYSQL_ROOT_PASSWORD"))
+                        .envVariableList(List.of("MYSQL_ROOT_PASSWORD","MYSQL_DATABASE","MYSQL_USER","MYSQL_PASSWORD"))
                         .description("MySQL is a widely used, open-source relational database management system (RDBMS).")
                         .build(),
                 Application.builder()
                         .imageName("mysql")
                         .defaultPort(33060)
-                        .envVariableList(List.of("MYSQL_ROOT_PASSWORD"))
+                        .envVariableList(List.of("MYSQL_ROOT_PASSWORD","MYSQL_DATABASE","MYSQL_USER","MYSQL_PASSWORD"))
                         .description("MySQL is a widely used, open-source relational database management system (RDBMS).")
                         .build(),
 
@@ -55,7 +55,7 @@ public class DataInitializer implements CommandLineRunner {
                 Application.builder()
                         .imageName("mongo")
                         .defaultPort(27017)
-                        .envVariableList(List.of("MONGO_INITDB_ROOT_USERNAME", "MONGO_INITDB_ROOT_PASSWORD"))
+                        .envVariableList(List.of("MONGO_INITDB_ROOT_USERNAME", "MONGO_INITDB_ROOT_PASSWORD", "MONGO_INITDB_DATABASE"))
                         .description("MongoDB document databases provide high availability and easy scalability.")
                         .build(),
 
@@ -63,7 +63,7 @@ public class DataInitializer implements CommandLineRunner {
                 Application.builder()
                         .imageName("mariadb")
                         .defaultPort(3306)
-                        .envVariableList(List.of("MARIADB_ROOT_PASSWORD"))
+                        .envVariableList(List.of("MARIADB_ROOT_PASSWORD", "MARIADB_DATABASE"))
                         .description("MariaDB Server is a high performing open source relational database, forked from MySQL.")
                         .build(),
 
@@ -96,18 +96,18 @@ public class DataInitializer implements CommandLineRunner {
                 Application.builder()
                         .imageName("rabbitmq")
                         .defaultPort(5672)
-                        .envVariableList(List.of("RABBITMQ_DEFAULT_USER", "RABBITMQ_DEFAULT_PASS"))
+                        .envVariableList(List.of("RABBITMQ_DEFAULT_USER", "RABBITMQ_DEFAULT_PASS", "RABBITMQ_DEFAULT_VHOST"))
                         .description("RabbitMQ is an open source multi-protocol messaging broker.")
-                        .build(),
+                        .build()
 
                 /* Monitoring & Observability */
                 // Kibana
-                Application.builder()
-                        .imageName("kibana")
-                        .defaultPort(5601)
-                        .envVariableList(List.of("ELASTICSEARCH_HOSTS"))
-                        .description("Kibana gives shape to any kind of data — structured and unstructured — indexed in Elasticsearch.")
-                        .build()
+//                Application.builder()
+//                        .imageName("kibana")
+//                        .defaultPort(5601)
+//                        .envVariableList(List.of("ELASTICSEARCH_HOSTS", "ELASTICSEARCH_HOSTS"))
+//                        .description("Kibana gives shape to any kind of data — structured and unstructured — indexed in Elasticsearch.")
+//                        .build()
         );
 
         seeds.forEach(seed -> {
