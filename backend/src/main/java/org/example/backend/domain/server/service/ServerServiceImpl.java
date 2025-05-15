@@ -982,16 +982,25 @@ public class ServerServiceImpl implements ServerService {
 
             String jenkinsToken = generateTokenViaFile(session);
 
-            JenkinsInfo jenkinsInfo = JenkinsInfo.builder()
-                    .projectId(projectId)
-                    .baseUrl(jenkinsUrl)
-                    .username(jenkinsUsername)
-                    .apiToken(jenkinsToken)
-                    .jobName(jenkinsJobName)
-                    .build();
+            Optional<JenkinsInfo> optionalInfo = jenkinsInfoRepository.findByProjectId(projectId);
+
+            JenkinsInfo jenkinsInfo = optionalInfo
+                    .map(existing -> existing.toBuilder()
+                            .baseUrl(jenkinsUrl)
+                            .username(jenkinsUsername)
+                            .apiToken(jenkinsToken)
+                            .jobName(jenkinsJobName)
+                            .build())
+                    .orElseGet(() -> JenkinsInfo.builder()
+                            .projectId(projectId)
+                            .baseUrl(jenkinsUrl)
+                            .username(jenkinsUsername)
+                            .apiToken(jenkinsToken)
+                            .jobName(jenkinsJobName)
+                            .build());
 
             jenkinsInfoRepository.save(jenkinsInfo);
-            log.info("✅ Jenkins API 토큰을 파일에서 추출해 저장 완료");
+            log.info("✅ Jenkins API 토큰을 {}로 저장 완료", optionalInfo.isPresent() ? "업데이트" : "신규 생성");
 
         } catch (Exception e) {
             log.error("❌ Jenkins 토큰 파싱 또는 저장 실패", e);

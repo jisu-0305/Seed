@@ -4,11 +4,9 @@ package org.example.backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.example.backend.controller.response.jenkins.JenkinsBuildChangeResponse;
-import org.example.backend.controller.response.jenkins.JenkinsBuildChangeSummaryResponse;
-import org.example.backend.controller.response.jenkins.JenkinsBuildDetailResponse;
-import org.example.backend.controller.response.jenkins.JenkinsBuildListResponse;
+import org.example.backend.controller.response.jenkins.*;
 import org.example.backend.domain.jenkins.service.JenkinsService;
+import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,12 +21,16 @@ public class JenkinsController {
 
     private final JenkinsService jenkinsService;
 
-    @Operation(summary = "빌드 목록 조회", description = "전체 빌드 기록 목록을 조회합니다.")
     @GetMapping("/{projectId}/builds")
-    public List<JenkinsBuildListResponse> getBuildList(@PathVariable Long projectId,
-                                                       @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
-        return jenkinsService.getBuildList(projectId, accessToken);
+    @Operation(summary = "빌드 목록 조회", description = "전체 빌드 기록 목록을 조회합니다. (커서 방식)")
+    public JenkinsBuildPageResponse getBuildList(
+            @PathVariable Long projectId,
+            @RequestParam(defaultValue = "0") int start,
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
+        return jenkinsService.getBuildList(projectId, start, limit, accessToken);
     }
+
 
     @Operation(summary = "최근 빌드 조회", description = "가장 최근 빌드 기록을 조회합니다.")
     @GetMapping("/{projectId}/builds/last")
@@ -100,6 +102,14 @@ public class JenkinsController {
                                                  @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
         String log = jenkinsService.getStepLogById(projectId, buildNumber, stepNumber, accessToken);
         return ResponseEntity.ok(log);
+    }
+
+    @PostMapping("/{projectId}/log-last-build")
+    public ResponseEntity<ApiResponse<Void>> logLastBuildResultToProject(
+            @PathVariable Long projectId
+    ) {
+        jenkinsService.logLastBuildResultToProject(projectId);
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
 
