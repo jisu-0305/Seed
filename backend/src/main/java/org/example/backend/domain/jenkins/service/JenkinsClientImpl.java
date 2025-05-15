@@ -113,14 +113,6 @@ public class JenkinsClientImpl implements JenkinsClient {
         }
     }
 
-
-
-
-
-
-
-
-
     // 내부 공통 요청 처리 메서드
     private String safelyRequest(String url, JenkinsInfo info) {
         try {

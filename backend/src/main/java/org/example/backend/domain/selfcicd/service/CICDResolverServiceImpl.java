@@ -104,18 +104,19 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 
         System.out.println(">>>>>>>>>>>>>resolveResults"+resolveResults);
 
-        // 3-1. GitLab에 새로운 브랜치 생성 (ex. ai/fix/65)
-        String newBranch = createFixBranch(project, buildNumber, accessToken);
+        int newBuildNumber = buildNumber + 1;
+        // 3-1. GitLab에 새로운 브랜치 생성 (ex. seed/fix/65)
+        String newBranch = createFixBranch(project, newBuildNumber, accessToken);
 
         // 3-2. GitLab에 수정된 파일들 커밋
-        commitPatchedFiles(project, accessToken, newBranch, patchedFiles, buildNumber);
+        commitPatchedFiles(project, accessToken, newBranch, patchedFiles, newBuildNumber);
 
-//        // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
-//        triggerRebuild(projectId, accessToken, newBranch);
-//
+        // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
+        triggerRebuild(projectId, newBranch);
+
 //        // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
 //        // 4-1. Jenkins 빌드 결과 상태 확인
-//        ReportStatus reportStatus  = getBuildStatus(projectId, accessToken);
+        ReportStatus reportStatus  = getBuildStatus(projectId);
 //
 //        // 4-2. 빌드 성공 시 GitLab MR 생성
 //        if (reportStatus == ReportStatus.SUCCESS) {
@@ -320,8 +321,9 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     //3-1. GitLab에 새로운 브랜치 생성, 브렌치이름 date에 시간 분까지 나오면 좋을듯?
-    private String createFixBranch(Project project, int buildNumber, String accessToken) {
-        String branchName = "ai/fix/" + buildNumber;
+    private String createFixBranch(Project project, int newBuildNumber, String accessToken) {
+        String branchName = "seed/fix/" + newBuildNumber;
+        gitlabService.deleteBranch(accessToken, project.getGitlabProjectId(), branchName);
         gitlabService.createBranch(
                 accessToken,
                 project.getGitlabProjectId(),
@@ -332,9 +334,9 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 3-2. GitLab에 AI를 통해 수정된 파일들 커밋
-    private void commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles, int BuildNumber) {
+    private void commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles, int newBuildNumber) {
         if (patchedFiles == null || patchedFiles.isEmpty()) return;
-        String commitMessage = "refactor: jenkins 빌드 번호 - "+BuildNumber+" 수정한 커밋입니다.";
+        String commitMessage = "refactor: jenkins 빌드 번호 - "+newBuildNumber+" AI가 수정 완료";
 
         gitlabService.commitPatchedFiles(
                 accessToken,
@@ -345,21 +347,14 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         );
     }
 
-    /**
-     * 3-3. Jenkins에 해당 브렌치로 재빌드 요청
-     * 내용: branchName파라미터 아직 없음 추가해줘야함
-     * 담당자: 강승엽
-     *
-     * 내용2: branchName에 아까 3-1에 생성한 name으로 넣어주면 됨
-     * 담당자: 김지수
-     */
-    private void triggerRebuild(Long projectId, String accessToken, String branchName) {
-//        jenkinsService.triggerBuild(projectId, accessToken, branchName);
+    // 3-3. Jenkins에 해당 브렌치로 재빌드 요청
+    private void triggerRebuild(Long projectId, String branchName) {
+        jenkinsService.triggerBuildWithOutLogin(projectId, branchName);
     }
 
     // 4-1. 마지막 Jenkins 빌드 상태 조회
-    private ReportStatus getBuildStatus(Long projectId, String accessToken) {
-        return ReportStatus.fromJenkinsStatus(jenkinsService.getLastBuild(projectId, accessToken).getStatus());
+    private ReportStatus getBuildStatus(Long projectId) {
+        return ReportStatus.fromJenkinsStatus(jenkinsService.getLastBuildWithOutLogin(projectId).getStatus());
     }
 
     // 4-2. 빌드 성공 시 GitLab에 Merge Request 생성
