@@ -1,6 +1,7 @@
 import 'swiper/css';
 
 import styled from '@emotion/styled';
+import dynamic from 'next/dynamic';
 import { useMemo, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
@@ -12,6 +13,10 @@ import { LoadingSpinner } from '../Common/LoadingSpinner';
 import { ActivityCard } from './ActivityCard';
 import { Calender } from './Calender';
 import { ProjectCard } from './ProjectCard';
+
+const FCMButton = dynamic(() => import('@/components/Common/FCMButton'), {
+  ssr: false,
+});
 
 export default function HomePage() {
   const verticalDragRef = useVerticalDragScroll<HTMLDivElement>();
@@ -79,6 +84,7 @@ export default function HomePage() {
   return (
     <PageWrapper>
       <WorkspaceSection>
+        <FCMButton />
         <SectionTitle>Workspace</SectionTitle>
         {loadingProjects ? (
           <p>로딩 중...</p>
