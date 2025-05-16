@@ -235,6 +235,7 @@ public class JenkinsServiceImpl implements JenkinsService {
                 .executionStatus(status)
                 .buildNumber(String.valueOf(buildNumber))
                 .createdAt(LocalDate.now())
+                .createdTime(LocalTime.now())
                 .build());
     }
 
