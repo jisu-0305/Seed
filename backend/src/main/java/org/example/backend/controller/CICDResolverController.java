@@ -53,8 +53,9 @@ public class CICDResolverController {
     public ResponseEntity<ApiResponse<String>> triggerSelfHealingCI(
             @RequestParam Long projectId,
             @RequestParam String personalAccessToken,
-            @RequestParam FailType failType
+            @RequestParam String failType
     ) {
+        log.info("CI/CD 셀프 힐링 트리거 API 요청은 왔다");
         cicdResolverService.handleSelfHealingCI(projectId, personalAccessToken, failType);
         String message = "셀프 힐링 작업이 트리거되었습니다.";
         return ResponseEntity.ok(ApiResponse.success(message));
@@ -68,6 +69,7 @@ public class CICDResolverController {
             @RequestParam String failType // BUILD, RUNTIME
     ) {
 
+        log.info("CI/CD 셀프 힐링 트리거 API 테스트 요청은 왔다");
         String message = String.format(
                 "🔧 셀프 힐링 작업이 트리거되었습니다. [projectId=%d, personalAccessToken=%s, failType=%s]",
                 projectId, personalAccessToken, failType
