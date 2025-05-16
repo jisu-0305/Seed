@@ -52,7 +52,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final AIApiClient fastAIClient;
 
     @Override
-    public void handleSelfHealingCI(Long projectId, String accessToken, FailType failType) {
+    public void handleSelfHealingCI(Long projectId, String accessToken, String failType) {
         // 1. 프로젝트 조회
         Project project = getProject(projectId);
 
@@ -219,7 +219,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 //    }
 
     // 1-6. 해당 어플리케이션들의 log가져오기
-    private Map<String, String> getAppLogs(Project project, List<String> appNames, GitlabCompareResponse gitDiff, FailType failType, String jenkinsErrorLog) {
+    private Map<String, String> getAppLogs(Project project, List<String> appNames, GitlabCompareResponse gitDiff, String failType, String jenkinsErrorLog) {
         Map<String, String> appLogs = new HashMap<>();
 
         // Docker 로그 요청을 위한 시간 범위 계산
@@ -229,7 +229,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         DockerContainerLogRequest dockerContainerLogRequest = new DockerContainerLogRequest(since, until);
 
         for (String app : appNames) {
-            if ("spring".equalsIgnoreCase(app) && failType == FailType.RUNTIME) {
+            if ("spring".equalsIgnoreCase(app) && failType.equals("RUNTIME")) {
                 List<DockerContainerLogResponse> dockerContainerlogs =
                         dockerService.getContainerLogs(project.getServerIP(), app, dockerContainerLogRequest);
 
