@@ -9,6 +9,14 @@ import java.util.List;
 
 public interface NotificationService {
     void notifyUsers(List<Long> userIdList, NotificationMessageTemplate template, String projectName);
+    void notifyInvitationCreated(List<Long> userIdList,
+                                 NotificationMessageTemplate template,
+                                 String projectName,
+                                 Long invitationId);
+    void notifyInvitationAccepted(List<Long> userIdList,
+                                  NotificationMessageTemplate template,
+                                  String projectName,
+                                  Long invitationId);
     Page<Notification> getAllNotifications(String accessToken, Pageable pageable);
     List<Notification> getUnreadNotifications(String accessToken);
     void markAsRead(Long notificationId, String accessToken);

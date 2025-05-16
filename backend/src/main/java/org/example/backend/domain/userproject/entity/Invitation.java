@@ -2,9 +2,11 @@ package org.example.backend.domain.userproject.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.backend.domain.fcm.entity.Notification;
 import org.example.backend.domain.userproject.enums.InvitationStateType;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Getter
@@ -13,8 +15,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Table(name = "invitation")
 public class Invitation {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     private Long projectId;
@@ -29,6 +30,9 @@ public class Invitation {
 
     @Enumerated(EnumType.STRING)
     private InvitationStateType state;
+
+    @OneToMany(mappedBy = "invitation", cascade = CascadeType.ALL)
+    private List<Notification> notifications;
 
     public static Invitation create(Long projectId, Long senderId, Long receiverId) {
         return Invitation.builder()

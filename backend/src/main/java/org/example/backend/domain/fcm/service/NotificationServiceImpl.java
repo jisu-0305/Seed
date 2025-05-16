@@ -8,6 +8,7 @@ import org.example.backend.domain.fcm.dto.NotificationMessage;
 import org.example.backend.domain.fcm.entity.Notification;
 import org.example.backend.domain.fcm.repository.NotificationRepository;
 import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
+import org.example.backend.domain.userproject.entity.Invitation;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.data.domain.Page;
@@ -39,6 +40,52 @@ public class NotificationServiceImpl implements NotificationService{
                         .notificationContent(message.getNotificationContent())
                         .createdAt(LocalDateTime.now())
                         .isRead(false)
+                        .build())
+                .toList();
+
+        notificationRepository.saveAll(notifications);
+    }
+
+    @Override
+    public void notifyInvitationCreated(List<Long> userIdList,
+                                        NotificationMessageTemplate template,
+                                        String projectName,
+                                        Long invitationId) {
+        NotificationMessage message = template.toMessage(projectName);
+        notificationUtil.sendToUsers(userIdList, message);
+
+        List<Notification> notifications = userIdList.stream()
+                .map(userId -> Notification.builder()
+                        .receiverId(userId)
+                        .notificationType(message.getNotificationType())
+                        .notificationTitle(message.getNotificationTitle())
+                        .notificationContent(message.getNotificationContent())
+                        .createdAt(LocalDateTime.now())
+                        .isRead(false)
+                        .invitation(Invitation.builder().id(invitationId).build())
+                        .build())
+                .toList();
+
+        notificationRepository.saveAll(notifications);
+    }
+
+    @Override
+    public void notifyInvitationAccepted(List<Long> userIdList,
+                                         NotificationMessageTemplate template,
+                                         String projectName,
+                                         Long invitationId) {
+        NotificationMessage message = template.toMessage(projectName);
+        notificationUtil.sendToUsers(userIdList, message);
+
+        List<Notification> notifications = userIdList.stream()
+                .map(userId -> Notification.builder()
+                        .receiverId(userId)
+                        .notificationType(message.getNotificationType())
+                        .notificationTitle(message.getNotificationTitle())
+                        .notificationContent(message.getNotificationContent())
+                        .createdAt(LocalDateTime.now())
+                        .isRead(false)
+                        .invitation(Invitation.builder().id(invitationId).build())
                         .build())
                 .toList();
 
