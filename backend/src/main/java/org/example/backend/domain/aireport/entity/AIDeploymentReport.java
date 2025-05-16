@@ -23,7 +23,7 @@ public class AIDeploymentReport {
 
     private Long projectId;
 
-    private Long buildNumber;
+    private int buildNumber;
 
     private String title;
 
@@ -42,7 +42,7 @@ public class AIDeploymentReport {
 
     private LocalDateTime createdAt;
 
-    public static AIDeploymentReport fromAiReportResponse(Long projectId, Long buildNumber,String title, AIReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
+    public static AIDeploymentReport fromAiReportResponse(Long projectId, int buildNumber,String title, AIReportResponse response, String commitUrl, String mergeRequestUrl, ReportStatus status) {
         return AIDeploymentReport.builder()
                 .projectId(projectId)
                 .buildNumber(buildNumber)

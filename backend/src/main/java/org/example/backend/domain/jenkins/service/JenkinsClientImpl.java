@@ -2,22 +2,18 @@ package org.example.backend.domain.jenkins.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.JenkinsUriBuilder;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
-import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.netty.http.client.HttpClient;
+import reactor.core.publisher.Mono;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -54,7 +50,6 @@ public class JenkinsClientImpl implements JenkinsClient {
         String jobUrl = JenkinsUriBuilder.buildTriggerUri(baseUrl, info.getJobName()) + "?BRANCH_NAME=" + branchName;
         String username = info.getUsername();
         String apiToken = info.getApiToken();
-
 
         log.info("Triggering Jenkins build with URL: {}", jobUrl);
 
@@ -112,14 +107,6 @@ public class JenkinsClientImpl implements JenkinsClient {
             throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED);
         }
     }
-
-
-
-
-
-
-
-
 
     // 내부 공통 요청 처리 메서드
     private String safelyRequest(String url, JenkinsInfo info) {
