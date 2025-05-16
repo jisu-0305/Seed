@@ -47,7 +47,7 @@ public class JenkinsClientImpl implements JenkinsClient {
     @Override
     public void triggerBuildWithoutLogin(JenkinsInfo info, String branchName, String originalBranchName) {
         String baseUrl = info.getBaseUrl();
-        String jobUrl = JenkinsUriBuilder.buildTriggerUri(baseUrl, info.getJobName()) + "?BRANCH_NAME=" + branchName + "&ORIGINAL_BRANCH_NAME=" + originalBranchName;
+        String jobUrl = JenkinsUriBuilder.buildTriggerUri(baseUrl, info.getJobName()) + "?BRANCH_NAME=" + branchName + "&ORIGINAL_BRANCH_NAME=" + originalBranchName+"&PROJECT_ID=" + info.getProjectId();
         String username = info.getUsername();
         String apiToken = info.getApiToken();
 
