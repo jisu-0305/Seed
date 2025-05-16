@@ -65,10 +65,11 @@ public class InvitationServiceImpl implements InvitationService {
                     Invitation inv = Invitation.create(projectId, senderId, receiverId);
                     Invitation saved = invitationRepository.save(inv);
 
-                    notificationService.notifyUsers(
+                    notificationService.notifyInvitationCreated(
                             List.of(receiverId),
                             NotificationMessageTemplate.INVITATION_CREATED,
-                            projectName
+                            projectName,
+                            saved.getId()
                     );
 
                     responses.add(toResponse(saved, NotificationType.INVITATION_CREATED_TYPE));
@@ -100,12 +101,19 @@ public class InvitationServiceImpl implements InvitationService {
         invitation.accept();
         invitationRepository.save(invitation);
 
-        String projectName = projectRepository.findById(invitation.getProjectId()).get().getProjectName();
+        String projectName = projectRepository.findById(invitation.getProjectId())
+                .orElseThrow().getProjectName();
+
         List<Long> otherUserIdList = userProjectRepository.findUserIdsByProjectId(invitation.getProjectId()).stream()
                 .filter(id -> !id.equals(userId))
                 .toList();
 
-        notificationService.notifyUsers(otherUserIdList, NotificationMessageTemplate.INVITATION_ACCEPTED, projectName);
+        notificationService.notifyInvitationAccepted(
+                otherUserIdList,
+                NotificationMessageTemplate.INVITATION_ACCEPTED,
+                projectName,
+                invitationId
+        );
     }
 
     @Override

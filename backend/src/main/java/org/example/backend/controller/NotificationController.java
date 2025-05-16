@@ -45,8 +45,8 @@ public class NotificationController {
     public ResponseEntity<ApiResponse<List<NotificationDto>>> getUnreadNotifications(
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
     ) {
-        List<Notification> result = notificationService.getUnreadNotifications(accessToken);
-        return ResponseEntity.ok(ApiResponse.success(NotificationMapper.toDtoList(result)));
+        List<NotificationDto> dtoList = notificationService.getUnreadNotifications(accessToken);
+        return ResponseEntity.ok(ApiResponse.success(dtoList));
     }
 
     @PatchMapping("/{id}/read")
