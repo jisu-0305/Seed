@@ -12,6 +12,10 @@ public interface GitlabApiClient {
 
     void registerPushWebhook(String gitlabPersonalAccessToken, Long gitlabProjectId, String hookUrl, String pushEventsBranchFilter);
 
+    List<Webhook> listProjectWebhooks(String gitlabPersonalAccessToken, Long projectId);
+
+    void deleteProjectWebhook(String validGitlabAccessToken, Long gitlabProjectId, Integer hookId);
+
     CommitResponse submitCommit(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<CommitAction> action);
 
     MergeRequestCreateResponse submitMergeRequest(String gitlabPersonalAccessToken,
