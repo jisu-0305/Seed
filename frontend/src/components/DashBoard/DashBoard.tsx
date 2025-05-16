@@ -1,7 +1,7 @@
 import 'swiper/css';
 
 import styled from '@emotion/styled';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
 import { useProjectCards, useProjectExecutions } from '@/apis/project';
@@ -22,13 +22,13 @@ export default function HomePage() {
   const { data: executionsByDate = [], isLoading: loadingExec } =
     useProjectExecutions();
 
-  useEffect(() => {
-    console.log('📦 projectCards:', projectCards);
-  }, [projectCards]);
+  // useEffect(() => {
+  //   console.log('📦 projectCards:', projectCards);
+  // }, [projectCards]);
 
-  useEffect(() => {
-    console.log('🔄 executionsByDate:', executionsByDate);
-  }, [executionsByDate]);
+  // useEffect(() => {
+  //   console.log('🔄 executionsByDate:', executionsByDate);
+  // }, [executionsByDate]);
 
   // 1) 캘린더에 찍을 날짜 배열
   const activityDates: Date[] = useMemo(
