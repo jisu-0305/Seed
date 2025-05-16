@@ -4,7 +4,11 @@ import withPWA from 'next-pwa';
 
 const nextPWA = withPWA({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
+  register: true,
+  // disable: process.env.NODE_ENV === 'development',
+  swSrc: '/firebase-messaging-sw.mjs',
+  scope: '/',
+  sw: 'sw.js',
 });
 
 const nextConfig = {
