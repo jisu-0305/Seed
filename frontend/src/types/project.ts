@@ -122,6 +122,7 @@ export interface ProjectCardInfo {
   autoDeploymentEnabled: boolean;
   buildStatus: BuildStatus;
   lastBuildAt: string;
+  createdAt: string;
 }
 
 // 프로젝트 수정할 때

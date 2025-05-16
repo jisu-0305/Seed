@@ -33,7 +33,7 @@ export const ProjectCard = ({
           src={`/assets/projectcard/project_${emoji}.png`}
           alt={`project_${emoji}`}
         />
-        {title}
+        <TitleText>{title}</TitleText>
       </Title>
       <Content>
         <BuildInfo>
@@ -90,13 +90,17 @@ const Title = styled.h3`
   flex-direction: row;
   align-items: end;
   gap: 1rem;
+  max-width: 18rem;
+`;
 
-  ${({ theme }) => theme.fonts.EnTitle2};
-  color: ${({ theme }) => theme.colors.Black1};
-
+const TitleText = styled.div`
+  flex: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+
+  ${({ theme }) => theme.fonts.EnTitle2};
+  color: ${({ theme }) => theme.colors.Black1};
 `;
 
 const ProjectImage = styled.img`
