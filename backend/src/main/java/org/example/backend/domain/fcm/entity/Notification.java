@@ -3,7 +3,6 @@ package org.example.backend.domain.fcm.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.example.backend.domain.fcm.enums.NotificationType;
-import org.example.backend.domain.userproject.entity.Invitation;
 
 import java.time.LocalDateTime;
 
@@ -31,9 +30,7 @@ public class Notification {
 
     private LocalDateTime createdAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "invitation_id")
-    private Invitation invitation;
+    private Long invitationId;
 
     public void setRead(boolean read) { this.isRead = read; }
 

@@ -15,4 +15,5 @@ public class NotificationDto {
     private boolean isRead;
     private LocalDateTime createdAt;
     private NotificationType notificationType;
+    private Long invitationId;
 }
