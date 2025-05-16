@@ -188,8 +188,8 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
-    public void triggerBuildWithOutLogin(Long projectId, String branchName) {
-        jenkinsClient.triggerBuild(getJenkinsInfo(projectId), branchName);
+    public void triggerBuildWithOutLogin(Long projectId, String branchName, String originalBranchName) {
+        jenkinsClient.triggerBuildWithoutLogin(getJenkinsInfo(projectId), branchName, originalBranchName);
     }
 
     @Override
@@ -556,7 +556,7 @@ public class JenkinsServiceImpl implements JenkinsService {
 
     @Override
     public ReportStatus waitUntilBuildFinishes(int newBuildNumber, Long projectId) {
-        int maxTries = 60; //5분진행
+        int maxTries = 60; //5초간 60번 총 5분진행
         int intervalMillis = 5000;
 
         for (int i = 0; i < maxTries; i++) {

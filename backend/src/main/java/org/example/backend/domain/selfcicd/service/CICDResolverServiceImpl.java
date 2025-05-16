@@ -105,7 +105,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         String commitUrl = commitPatchedFiles(project, accessToken, newBranch, patchedFiles, newBuildNumber);
 
         // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
-        triggerRebuild(projectId, newBranch);
+        triggerRebuild(projectId, newBranch, project.getGitlabTargetBranchName());
 
         // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
         // 4-1. Jenkins 빌드 결과 상태 확인
@@ -336,8 +336,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 3-3. Jenkins에 해당 브렌치로 재빌드 요청
-    private void triggerRebuild(Long projectId, String branchName) {
-        jenkinsService.triggerBuildWithOutLogin(projectId, branchName);
+    private void triggerRebuild(Long projectId, String branchName, String originalBranchName) {
+        jenkinsService.triggerBuildWithOutLogin(projectId, branchName, originalBranchName);
     }
 
     // 4-1. 마지막 Jenkins 빌드 상태 조회

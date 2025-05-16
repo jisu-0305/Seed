@@ -45,6 +45,70 @@ public class JenkinsClientImpl implements JenkinsClient {
     }
 
     @Override
+    public void triggerBuildWithoutLogin(JenkinsInfo info, String branchName, String originalBranchName) {
+        String baseUrl = info.getBaseUrl();
+        String jobUrl = JenkinsUriBuilder.buildTriggerUri(baseUrl, info.getJobName()) + "?BRANCH_NAME=" + branchName + "&ORIGINAL_BRANCH_NAME=" + originalBranchName;
+        String username = info.getUsername();
+        String apiToken = info.getApiToken();
+
+        log.info("Triggering Jenkins build with URL: {}", jobUrl);
+
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            // 쿠키 저장용 임시 파일
+            File cookieFile = File.createTempFile("jenkins_cookie", ".txt");
+            String cookiePath = cookieFile.getAbsolutePath().replace("\\", "/");
+
+            // Crumb 발급
+            List<String> crumbCommand = Arrays.asList(
+                    "curl", "-u", username + ":" + apiToken,
+                    "-c", cookiePath, "-s", baseUrl + "/crumbIssuer/api/json"
+            );
+
+            Process crumbProcess = new ProcessBuilder(crumbCommand)
+                    .redirectErrorStream(true).start();
+
+            String crumbResponse = new BufferedReader(new InputStreamReader(crumbProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+            if (!crumbResponse.trim().startsWith("{")) {
+                log.error("❌ Crumb 응답 오류: {}", crumbResponse);
+                throw new BusinessException(ErrorCode.JENKINS_CRUMB_REQUEST_FAILED);
+            }
+
+            JsonNode crumbJson = mapper.readTree(crumbResponse);
+            String crumb = crumbJson.get("crumb").asText();
+            String crumbField = crumbJson.get("crumbRequestField").asText();
+
+            // Trigger build
+            List<String> buildCommand = Arrays.asList(
+                    "curl", "-X", "POST", jobUrl,
+                    "-u", username + ":" + apiToken,
+                    "-b", cookiePath,
+                    "-H", crumbField + ":" + crumb
+            );
+
+            Process buildProcess = new ProcessBuilder(buildCommand)
+                    .redirectErrorStream(true).start();
+
+            String buildResponse = new BufferedReader(new InputStreamReader(buildProcess.getInputStream()))
+                    .lines().collect(Collectors.joining());
+
+            if (buildResponse.contains("403")) {
+                log.error("❌ Jenkins trigger 실패 응답: {}", buildResponse);
+                throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED);
+            }
+
+            log.info("✅ Jenkins 빌드 트리거 성공: 브랜치={}", branchName);
+
+        } catch (Exception e) {
+            log.error("❌ Jenkins trigger exception: {}", e.getMessage(), e);
+            throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED);
+        }
+    }
+
+    @Override
     public void triggerBuild(JenkinsInfo info, String branchName) {
         String baseUrl = info.getBaseUrl();
         String jobUrl = JenkinsUriBuilder.buildTriggerUri(baseUrl, info.getJobName()) + "?BRANCH_NAME=" + branchName;
