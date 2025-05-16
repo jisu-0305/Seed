@@ -7,6 +7,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.auth.ProjectAccessValidator;
 import org.example.backend.controller.response.jenkins.*;
+import org.example.backend.domain.aireport.enums.ReportStatus;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.enums.BuildStatusType;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
@@ -80,8 +81,6 @@ public class JenkinsServiceImpl implements JenkinsService {
                 .build();
     }
 
-
-
     @Override
     public int getLastBuildNumberWithOutLogin(Long projectId){
         JenkinsInfo info = getJenkinsInfo(projectId);
@@ -94,6 +93,20 @@ public class JenkinsServiceImpl implements JenkinsService {
                 .time(TIME_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
                 .status(build.path("result").asText())
                 .build().getBuildNumber();
+    }
+
+    @Override
+    public JenkinsBuildListResponse getLastBuildWithOutLogin(Long projectId) {
+        JenkinsInfo info = getJenkinsInfo(projectId);
+        JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json"));
+
+        return JenkinsBuildListResponse.builder()
+                .buildNumber(build.path("number").asInt())
+                .buildName("MR 빌드")
+                .date(DATE_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
+                .time(TIME_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
+                .status(build.path("result").asText())
+                .build();
     }
 
     @Override
@@ -146,11 +159,37 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
+    public String getBuildStatusWithOutLogin(int buildNumber, Long projectId) {
+        try {
+            JenkinsInfo info = getJenkinsInfo(projectId);
+            String json = jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json");
+
+            if (json == null || json.isBlank()) return "BUILDING";
+
+            JsonNode build = new ObjectMapper().readTree(json);
+            JsonNode resultNode = build.path("result");
+
+            if (resultNode.isNull() || "null".equalsIgnoreCase(resultNode.asText())) {
+                return "BUILDING";
+            }
+
+            return resultNode.asText();
+        } catch (Exception e) {
+            return "BUILDING";
+        }
+    }
+
+    @Override
     public String getBuildStatus(int buildNumber, Long projectId, String accessToken) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
         JenkinsInfo info = getJenkinsInfo(projectId);
         JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, buildNumber + "/api/json"));
         return build.path("result").asText();
+    }
+
+    @Override
+    public void triggerBuildWithOutLogin(Long projectId, String branchName) {
+        jenkinsClient.triggerBuild(getJenkinsInfo(projectId), branchName);
     }
 
     @Override
@@ -438,9 +477,6 @@ public class JenkinsServiceImpl implements JenkinsService {
         return stageEchoMap;
     }
 
-
-
-
     private long calculateDuration(String start, String end) {
         try {
             LocalTime startTime = LocalTime.parse(start, TIME_FORMATTER);
@@ -542,6 +578,30 @@ public class JenkinsServiceImpl implements JenkinsService {
             throw new BusinessException(ErrorCode.JENKINS_TOKEN_REQUEST_FAILED);
         }
 
+    }
+
+    @Override
+    public ReportStatus waitUntilBuildFinishes(int newBuildNumber, Long projectId) {
+        int maxTries = 60; //5분진행
+        int intervalMillis = 5000;
+
+        for (int i = 0; i < maxTries; i++) {
+            String status = getBuildStatusWithOutLogin(newBuildNumber, projectId); // 🔥 핵심: 이게 "BUILDING"인지 체크
+            log.debug(">>>>>>>> Jenkins build #{} 상태 = {}", newBuildNumber, status);
+
+            if (!"BUILDING".equalsIgnoreCase(status)) {
+                log.debug("✅ Jenkins 빌드 완료: status = {}", status);
+                return ReportStatus.fromJenkinsStatus(status); // SUCCESS / FAIL 반환
+            }
+
+            try {
+                Thread.sleep(intervalMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+        }
+        return ReportStatus.FAIL;
     }
 
     private JenkinsInfo getJenkinsInfo(Long projectId) {

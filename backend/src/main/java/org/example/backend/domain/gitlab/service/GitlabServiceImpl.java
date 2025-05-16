@@ -206,7 +206,7 @@ public class GitlabServiceImpl implements GitlabService {
 
     /* 파일 수정 후 커밋 */
     @Override
-    public void commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<PatchedFile> patchedFiles) {
+    public CommitResponse commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<PatchedFile> patchedFiles) {
 
         String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
 
@@ -219,8 +219,7 @@ public class GitlabServiceImpl implements GitlabService {
                 )
                 .collect(Collectors.toList());
 
-        gitlabApiClient.submitCommit(validGitlabAccessToken, gitlabProjectId, branch, commitMessage, actions);
-
+        return gitlabApiClient.submitCommit(validGitlabAccessToken, gitlabProjectId, branch, commitMessage, actions);
     }
 
     /* TODO: 공통 로직 _ pat 등록여부 체크 로직 작성 필요 */
