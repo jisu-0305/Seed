@@ -65,31 +65,42 @@ export default function ProjectDetail() {
       return;
     }
     const id = Number(projectId);
-    const summary = projects.find((p) => p.id === id);
     setLoading(true);
+    fetchAndSetDetail(id);
+  }, [projectId, projects]);
 
-    fetchProjectDetail(id)
-      .then((data) => {
-        loadProjectInfo({
-          ...data,
-        });
-        setDetail({
-          ...data,
-          memberList: summary?.memberList ?? [],
-          autoDeploymentEnabled: summary?.autoDeploymentEnabled ?? false,
-          httpsEnabled: summary?.httpsEnabled ?? false,
-          buildStatus: summary?.buildStatus ?? null,
-          lastBuildAt: summary?.lastBuildAt ?? null,
-        });
-      })
-      .catch((err) => {
-        console.error(err);
-        setError('프로젝트 상세 정보를 불러오는 데 실패했습니다.');
-      })
-      .finally(() => {
-        setLoading(false);
+  const fetchAndSetDetail = async (id: number) => {
+    setLoading(true);
+    try {
+      const data = await fetchProjectDetail(id);
+      loadProjectInfo(data);
+      const summary = projects.find((p) => p.id === id);
+      setDetail({
+        ...data,
+        // summary에서 가져오던 필드들도 동일하게 설정
+        memberList: summary?.memberList ?? [],
+        httpsEnabled: summary?.httpsEnabled ?? false,
+        autoDeploymentEnabled: summary?.autoDeploymentEnabled ?? false,
+        buildStatus: summary?.buildStatus ?? null,
+        lastBuildAt: summary?.lastBuildAt ?? null,
       });
-  }, [projectId, projects, router]);
+    } catch {
+      setError('프로젝트 상세 정보를 불러오는 데 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleHttpsComplete = () => {
+    if (!projectId) return;
+    fetchAndSetDetail(Number(projectId));
+    refreshTasks();
+  };
+  const handleDeployComplete = () => {
+    if (!projectId) return;
+    fetchAndSetDetail(Number(projectId));
+    refreshTasks();
+  };
 
   const [tasksByTab, setTasksByTab] = useState<Record<DeployTabName, Task[]>>(
     // 초기에는 모든 탭 빈 배열
@@ -197,6 +208,8 @@ export default function ProjectDetail() {
             gitlab={detail.repositoryUrl}
             httpsEnabled={detail.httpsEnabled}
             deployEnabled={detail.autoDeploymentEnabled}
+            onHttpsComplete={handleHttpsComplete}
+            onDeployComplete={handleDeployComplete}
           />
         </SectionInfo>
 
