@@ -154,10 +154,36 @@ public class JenkinsServiceImpl implements JenkinsService {
     }
 
     @Override
+    @Transactional
     public void triggerBuild(Long projectId, String accessToken, String branchName) {
         projectAccessValidator.validateUserInProject(projectId, accessToken);
-        jenkinsClient.triggerBuild(getJenkinsInfo(projectId), branchName);
+        JenkinsInfo info = getJenkinsInfo(projectId);
+
+        jenkinsClient.triggerBuild(info, branchName);
+
+        // 마지막 빌드 완료 대기 (최대 60초)
+        JsonNode lastBuild = waitUntilBuildCompleted(info, 60);
+
+        int buildNumber = lastBuild.path("number").asInt();
+        BuildStatus status = BuildStatus.valueOf(lastBuild.path("result").asText("UNKNOWN"));
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
+        project.updateBuildStatus(status);
+
+        projectExecutionRepository.save(ProjectExecution.builder()
+                .projectId(projectId)
+                .executionType(ExecutionType.BUILD)
+                .projectExecutionTitle("#" + buildNumber + " MR 빌드")
+                .executionStatus(status)
+                .buildNumber(String.valueOf(buildNumber))
+                .createdAt(LocalDate.now())
+                .build());
+
+        log.info("✅ Jenkins 빌드 결과 저장 완료: 프로젝트={}, 빌드번호=#{}", projectId, buildNumber);
     }
+
+
 
     @Override
     public List<JenkinsBuildChangeResponse> getBuildChanges(int buildNumber, Long projectId, String accessToken) {
@@ -521,5 +547,28 @@ public class JenkinsServiceImpl implements JenkinsService {
     private JenkinsInfo getJenkinsInfo(Long projectId) {
         return jenkinsInfoRepository.findByProjectId(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.JENKINS_INFO_NOT_FOUND));
+    }
+
+    private JsonNode waitUntilBuildCompleted(JenkinsInfo info, int timeoutSeconds) {
+        int elapsed = 0;
+        int interval = 2;
+
+        while (elapsed < timeoutSeconds) {
+            JsonNode lastBuild = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json"));
+            String result = lastBuild.path("result").asText();
+
+            if (!result.isEmpty() && !result.equals("null")) {
+                return lastBuild;
+            }
+
+            try {
+                Thread.sleep(interval * 1000L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            elapsed += interval;
+        }
+
+        throw new BusinessException(ErrorCode.BUSINESS_ERROR);
     }
 }
