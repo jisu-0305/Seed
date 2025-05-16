@@ -10,6 +10,7 @@ interface ProjectCardProps {
   title: string;
   time: string;
   build: string | null;
+  deploy: boolean;
   https: boolean;
 }
 
@@ -19,6 +20,7 @@ export const ProjectCard = ({
   title,
   time,
   build,
+  deploy,
   https,
 }: ProjectCardProps) => {
   const router = useRouter();
@@ -57,7 +59,7 @@ export const ProjectCard = ({
           <p>
             자동배포
             <IcStatus
-              src="/assets/icons/ic_autoDeploy_light.svg"
+              src={`/assets/icons/ic_autoDeploy_${deploy ? 'true' : 'false'}_light.svg`}
               alt="auto deploy"
             />
           </p>

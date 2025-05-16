@@ -45,6 +45,12 @@ export interface BuildSummary {
   status: string;
 }
 
+export interface BuildListResponse {
+  builds: BuildSummary[];
+  hasNext: boolean;
+  nextStart: number;
+}
+
 export interface BuildDetailResponse {
   buildNumber: number;
   buildName: string;
@@ -59,10 +65,17 @@ export interface BuildDetailResponse {
 }
 
 /**
- * 해당 프로젝트의 빌드 목록을 가져옵니다.
+ * 해당 프로젝트의 빌드 목록을 커서(start) 기준으로 가져옵니다.
  */
-export async function fetchBuilds(projectId: number): Promise<BuildSummary[]> {
-  const res = await client.get<BuildSummary[]>(`/jenkins/${projectId}/builds`);
+export async function fetchBuilds(
+  projectId: number,
+  start = 0,
+  limit = 20,
+): Promise<BuildListResponse> {
+  const res = await client.get<BuildListResponse>(
+    `/jenkins/${projectId}/builds`,
+    { params: { start, limit } },
+  );
   return res.data;
 }
 
@@ -70,9 +83,10 @@ export async function fetchBuilds(projectId: number): Promise<BuildSummary[]> {
  * 특정 빌드의 상세(스텝) 정보를 가져와 Task[] 타입으로 변환합니다.
  */
 function toTaskStatus(s: string): TaskStatus {
-  if (s === 'SUCCESS' || s === 'FAIL' || s === 'FAILED' || s === '-') return s;
-  console.warn(`Unknown status "${s}", defaulting to "-"`);
-  return '-';
+  if (s === 'SUCCESS' || s === 'FAIL' || s === 'FAILED' || s === 'IN PROGRESS')
+    return s;
+  console.warn(`Unknown status "${s}", defaulting to "IN PROGRESS"`);
+  return 'IN PROGRESS';
 }
 
 export async function fetchBuildDetail(

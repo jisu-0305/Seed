@@ -170,6 +170,7 @@ export default function ProjectDetail() {
           <ProjectHeader
             emojiSrc={`/assets/projectcard/project_${emoji}.png`}
             https={detail.httpsEnabled}
+            deploy={detail.autoDeploymentEnabled}
             buildStatus={detail.buildStatus}
             lastBuildAt={time}
           />
@@ -194,8 +195,8 @@ export default function ProjectDetail() {
           <ActionButtons
             projectId={projectId}
             gitlab={detail.repositoryUrl}
-            pemFilePath={detail.pemFilePath}
             httpsEnabled={detail.httpsEnabled}
+            deployEnabled={detail.autoDeploymentEnabled}
           />
         </SectionInfo>
 

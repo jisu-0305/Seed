@@ -107,5 +107,6 @@ const EchoListContainer = styled.ul`
 `;
 
 const EchoItem = styled.li`
+  color: ${({ theme }) => theme.colors.Black};
   ${({ theme }) => theme.fonts.Body2};
 `;

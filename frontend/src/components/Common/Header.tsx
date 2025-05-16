@@ -4,6 +4,7 @@ import React from 'react';
 import LoginModal from '@/components/Common/LoginModal';
 import NotificationModal from '@/components/Common/NotificationModal';
 import { useModal } from '@/hooks/Common';
+import { useNotifications } from '@/hooks/Common/useNotifications';
 import { useThemeStore } from '@/stores/themeStore';
 import { useUserStore } from '@/stores/userStore';
 
@@ -17,6 +18,7 @@ export default function Header({ title }: HeaderProps) {
 
   const login = useModal();
   const notif = useModal();
+  const { notifications } = useNotifications();
 
   const { mode, toggleMode } = useThemeStore();
 
@@ -39,11 +41,10 @@ export default function Header({ title }: HeaderProps) {
           src={`/assets/icons/ic_${mode}.svg`}
           alt="light mode"
         />
-        <Alarm
-          onClick={notif.toggle}
-          src={`/assets/icons/ic_alarm_${mode}.svg`}
-          alt="alarm"
-        />
+        <AlarmWrapper onClick={notif.toggle}>
+          <Alarm src={`/assets/icons/ic_alarm_${mode}.svg`} alt="alarm" />
+          {notifications.length > 0 && <Badge>{notifications.length}</Badge>}
+        </AlarmWrapper>
         <Profile onClick={login.toggle}>
           <ProfileImg
             src={user?.profileImageUrl || '/assets/user.png'}
@@ -106,4 +107,27 @@ const ProfileImg = styled.img`
   height: 2.5rem;
   object-fit: cover;
   border-radius: 50%;
+`;
+
+export const AlarmWrapper = styled.div`
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+`;
+
+export const Badge = styled.span`
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 1.2rem;
+  height: 1.2rem;
+  padding: 0 0.2rem;
+  background-color: ${({ theme }) => theme.colors.RedBtn};
+  color: white;
+  font-size: 0.75rem;
+  font-weight: bold;
+  line-height: 1.2rem;
+  border-radius: 0.6rem;
+  text-align: center;
+  pointer-events: none;
 `;

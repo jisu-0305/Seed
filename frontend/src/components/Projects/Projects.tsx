@@ -64,6 +64,7 @@ export default function Projects() {
                 emoji={emoji}
                 title={p.projectName}
                 time={time}
+                deploy={p.autoDeploymentEnabled}
                 https={p.httpsEnabled}
                 status={p.buildStatus ?? ''}
                 users={p.memberList}
