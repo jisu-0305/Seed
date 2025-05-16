@@ -241,12 +241,12 @@ public class ServerServiceImpl implements ServerService {
         List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
-                setSwapMemory(),
-                updatePackageManager(),
-                setJDK(),
-                setDocker(),
-                //runApplicationList(projectApplicationList, backEnvFile)
-                setNginx(project.getServerIP()),
+                //setSwapMemory(),
+                //updatePackageManager(),
+                //setJDK(),
+                //setDocker(),
+                //runApplicationList(projectApplicationList, backEnvFile),
+                //setNginx(project.getServerIP()),
                 setJenkins(),
                 setJenkinsConfigure(),
                 makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
@@ -764,6 +764,7 @@ public class ServerServiceImpl implements ServerService {
 //                        "pipeline {\n" +
 //                        "    agent any\n" +
 //                        "    parameters {\n" +
+//                        "        string(name: 'ORIGINAL_BRANCH_NAME', defaultValue: '" + project.getGitlabTargetBranchName() + "', description: '브랜치 이름')\n" +
 //                        "        string(name: 'BRANCH_NAME', defaultValue: '" + project.getGitlabTargetBranchName() + "', description: '브랜치 이름')\n" +
 //                        "        string(name: 'PROJECT_ID', defaultValue: '" + project.getId() + "', description: '프로젝트 ID')\n" +
 //                        "    }\n" +
@@ -855,33 +856,153 @@ public class ServerServiceImpl implements ServerService {
 //                        "                }\n" +
 //                        "            }\n" +
 //                        "        }\n" +
+//                        "        stage('Health Check') {\n" +
+//                        "            steps {\n" +
+//                        "                script {\n" +
+//                        "                    // 헬스 체크 로직 추가\n" +
+//                        "                    echo '⚕️ 서비스 헬스 체크 실행'\n" +
+//                        "                    \n" +
+//                        "                    // Docker API를 통한 컨테이너 상태 확인 URL\n" +
+//                        "                    def dockerApiUrl = 'http://localhost:3789/containers/json?all=true&filters=%7B%22name%22%3A%5B%22spring%22%5D%7D'\n" +
+//                        "                    \n" +
+//                        "                    try {\n" +
+//                        "                        // Docker API 호출\n" +
+//                        "                        def dockerApiResponse = sh(script: \"\"\"\n" +
+//                        "                            curl -s -X GET '${dockerApiUrl}'\n" +
+//                        "                        \"\"\", returnStdout: true).trim()\n" +
+//                        "                        \n" +
+//                        "                        echo \"Docker API 응답: ${dockerApiResponse}\"\n" +
+//                        "                        \n" +
+//                        "                        // JSON 응답 파싱\n" +
+//                        "                        def jsonSlurper = new groovy.json.JsonSlurper()\n" +
+//                        "                        def containers\n" +
+//                        "                        try {\n" +
+//                        "                            containers = jsonSlurper.parseText(dockerApiResponse)\n" +
+//                        "                        } catch (Exception e) {\n" +
+//                        "                            echo \"JSON 파싱 오류: ${e.message}\"\n" +
+//                        "                            env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+//                        "                            return\n" +
+//                        "                        }\n" +
+//                        "                        \n" +
+//                        "                        // 컨테이너 목록 확인\n" +
+//                        "                        if (containers instanceof List) {\n" +
+//                        "                            if (containers.size() == 0) {\n" +
+//                        "                                echo \"❌ 헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
+//                        "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+//                        "                                return\n" +
+//                        "                            }\n" +
+//                        "                            \n" +
+//                        "                            // 컨테이너 상태 확인\n" +
+//                        "                            def springContainer = containers[0]\n" +
+//                        "                            def containerState = springContainer.State\n" +
+//                        "                            def containerStatus = springContainer.Status\n" +
+//                        "                            \n" +
+//                        "                            echo \"컨테이너 상태: ${containerState}, 상태 설명: ${containerStatus}\"\n" +
+//                        "                            \n" +
+//                        "                            // 'running' 상태인지 확인\n" +
+//                        "                            if (containerState == 'running') {\n" +
+//                        "                                echo \"✅ 헬스 체크 성공: spring 컨테이너가 정상 실행 중입니다.\"\n" +
+//                        "                                env.HEALTH_CHECK_STATUS = 'SUCCESS'\n" +
+//                        "                            } else {\n" +
+//                        "                                echo \"❌ 헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
+//                        "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+//                        "                            }\n" +
+//                        "                        } else {\n" +
+//                        "                            echo \"❌ 헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
+//                        "                            env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+//                        "                        }\n" +
+//                        "                    } catch (Exception e) {\n" +
+//                        "                        echo \"❌ 헬스 체크 실행 중 오류 발생: ${e.message}\"\n" +
+//                        "                        env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+//                        "                    }\n" +
+//                        "                }\n" +
+//                        "            }\n" +
+//                        "        }\n" +
 //                        "    }\n" +
 //                        "    post {\n" +
 //                        "        always {\n" +
 //                        "            script {\n" +
 //                        "                // 빌드 결과 상태 가져오기\n" +
 //                        "                def buildStatus = currentBuild.result ?: 'SUCCESS'\n" +
+//                        "                env.SELF_HEALING_APPLIED = 'false'  // 셀프 힐링 적용 여부를 추적하는 변수\n" +
 //                        "                \n" +
 //                        "                // PROJECT_ID 파라미터가 비어있지 않은지 확인\n" +
 //                        "                if (params.PROJECT_ID?.trim()) {\n" +
-//                        "                    echo \"빌드 결과 API 호출 중: 프로젝트 ID ${params.PROJECT_ID}\"\n" +
-//                        "                    \n" +
-//                        "                    \n" +
-//                        "                    // API 엔드포인트 구성\n" +
-//                        "                    def apiUrl = \"https://seedinfra.store/api/jenkins/${params.PROJECT_ID}/log-last-build\"\n" +
-//                        "                    \n" +
-//                        "                    // API 호출 (POST 요청, 빈 본문)\n" +
-//                        "                    try {\n" +
-//                        "                        def response = sh(script: \"\"\"\n" +
-//                        "                            curl -X POST \\\n" +
-//                        "                            -H 'Content-Type: application/json' \\\n" +
-//                        "                            -w '\\n%{http_code}' \\\n" +
-//                        "                            ${apiUrl}\n" +
-//                        "                        \"\"\", returnStdout: true).trim()\n" +
+//                        "                    withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
+//                        "                        // API 기본 URL 설정 (실제 서버 URL로 변경 필요)\n" +
+//                        "                        def apiBaseUrl = 'https://seedinfra.store/api'\n" +
 //                        "                        \n" +
-//                        "                        echo \"API 호출 결과: ${response}\"\n" +
-//                        "                    } catch (Exception e) {\n" +
-//                        "                        echo \"API 호출 실패: ${e.message}\"\n" +
+//                        "                        // 셀프 힐링 API 호출 조건 확인\n" +
+//                        "                        // 빌드는 성공했지만 헬스 체크가 실패한 경우\n" +
+//                        "                        if (buildStatus == 'SUCCESS' && env.HEALTH_CHECK_STATUS == 'FAILED' && params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME) {\n" +
+//                        "                            echo \"🔧 빌드는 성공했지만 헬스 체크 실패 → 셀프 힐링 API 호출\"\n" +
+//                        "                            \n" +
+//                        "                            // 셀프 힐링 API 엔드포인트 구성\n" +
+//                        "                            def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve/test\"\n" +
+//                        "                            \n" +
+//                        "                            // API 요청 파라미터 구성 (토큰은 withCredentials에서 안전하게 제공)\n" +
+//                        "                            def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=RUNTIME\"\n" +
+//                        "                            \n" +
+//                        "                            // 셀프 힐링 API 호출\n" +
+//                        "                            try {\n" +
+//                        "                                def healingResponse = sh(script: \"\"\"\n" +
+//                        "                                    curl -X POST \\\n" +
+//                        "                                    -H 'Content-Type: application/json' \\\n" +
+//                        "                                    -w '\\n%{http_code}' \\\n" +
+//                        "                                    \"${healingApiUrl}?${queryParams}\"\n" +
+//                        "                                \"\"\", returnStdout: true).trim()\n" +
+//                        "                                \n" +
+//                        "                                echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
+//                        "                                env.SELF_HEALING_APPLIED = 'true'\n" +
+//                        "                            } catch (Exception e) {\n" +
+//                        "                                echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
+//                        "                            }\n" +
+//                        "                        } else if (buildStatus != 'SUCCESS' && params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME) {\n" +
+//                        "                            echo \"❌ 빌드 실패 → 셀프 힐링 API 호출\"\n" +
+//                        "                            \n" +
+//                        "                            // 셀프 힐링 API 엔드포인트 구성\n" +
+//                        "                            def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve/test\"\n" +
+//                        "                            \n" +
+//                        "                            // API 요청 파라미터 구성 (토큰은 withCredentials에서 안전하게 제공)\n" +
+//                        "                            def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=BUILD\"\n" +
+//                        "                            \n" +
+//                        "                            // 셀프 힐링 API 호출\n" +
+//                        "                            try {\n" +
+//                        "                                def healingResponse = sh(script: \"\"\"\n" +
+//                        "                                    curl -X POST \\\n" +
+//                        "                                    -H 'Content-Type: application/json' \\\n" +
+//                        "                                    -w '\\n%{http_code}' \\\n" +
+//                        "                                    \"${healingApiUrl}?${queryParams}\"\n" +
+//                        "                                \"\"\", returnStdout: true).trim()\n" +
+//                        "                                \n" +
+//                        "                                echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
+//                        "                                env.SELF_HEALING_APPLIED = 'true'\n" +
+//                        "                            } catch (Exception e) {\n" +
+//                        "                                echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
+//                        "                            }\n" +
+//                        "                        } else {\n" +
+//                        "                            echo \"✅ 빌드 및 헬스 체크 모두 성공 → 셀프 힐링 필요 없음\"\n" +
+//                        "                        }\n" +
+//                        "                        \n" +
+//                        "                        // 모든 작업이 완료된 후 마지막으로 빌드 로그 API 호출\n" +
+//                        "                        echo \"📝 최종 빌드 결과 로깅 API 호출 중: 프로젝트 ID ${params.PROJECT_ID}\"\n" +
+//                        "                        \n" +
+//                        "                        // 빌드 로그 API 엔드포인트 구성\n" +
+//                        "                        def logApiUrl = \"${apiBaseUrl}/jenkins/${params.PROJECT_ID}/log-last-build\"\n" +
+//                        "                        \n" +
+//                        "                        // 빌드 로그 API 호출 (POST 요청, 빈 본문)\n" +
+//                        "                        try {\n" +
+//                        "                            def logResponse = sh(script: \"\"\"\n" +
+//                        "                                curl -X POST \\\n" +
+//                        "                                -H 'Content-Type: application/json' \\\n" +
+//                        "                                -w '\\n%{http_code}' \\\n" +
+//                        "                                ${logApiUrl}\n" +
+//                        "                            \"\"\", returnStdout: true).trim()\n" +
+//                        "                            \n" +
+//                        "                            echo \"빌드 로그 API 호출 결과: ${logResponse}\"\n" +
+//                        "                        } catch (Exception e) {\n" +
+//                        "                            echo \"빌드 로그 API 호출 실패: ${e.message}\"\n" +
+//                        "                        }\n" +
 //                        "                    }\n" +
 //                        "                } else {\n" +
 //                        "                    echo \"PROJECT_ID 파라미터가 비어있어 API를 호출하지 않습니다.\"\n" +
@@ -892,15 +1013,14 @@ public class ServerServiceImpl implements ServerService {
 //                        "}\n" +
 //                        "EOF\n";
 
-        // serverip 변수로 받아야함
         String jenkinsfileContent =
                 "cd " + projectPath + " && sudo tee Jenkinsfile > /dev/null <<'EOF'\n" +
                         "pipeline {\n" +
                         "    agent any\n" +
                         "    parameters {\n" +
+                        "        string(name: 'ORIGINAL_BRANCH_NAME', defaultValue: '" + project.getGitlabTargetBranchName() + "', description: '브랜치 이름')\n" +
                         "        string(name: 'BRANCH_NAME', defaultValue: '" + project.getGitlabTargetBranchName() + "', description: '브랜치 이름')\n" +
                         "        string(name: 'PROJECT_ID', defaultValue: '" + project.getId() + "', description: '프로젝트 ID')\n" +
-                        "        string(name: 'SERVER_IP', defaultValue: '43.201.85.92', description: '서버 IP')\n" +
                         "    }\n" +
                         "    stages {\n" +
                         "        stage('Checkout') {\n" +
@@ -992,55 +1112,67 @@ public class ServerServiceImpl implements ServerService {
                         "        }\n" +
                         "        stage('Health Check') {\n" +
                         "            steps {\n" +
-                        "                script {\n" +
-                        "                    // 헬스 체크 로직 추가\n" +
-                        "                    echo '⚕️ 서비스 헬스 체크 실행'\n" +
-                        "                    \n" +
-                        "                    // 파라미터로 전달된 SERVER_IP 확인\n" +
-                        "                    if (!params.SERVER_IP?.trim()) {\n" +
-                        "                        echo \"⚠️ SERVER_IP 파라미터가 비어있어 헬스 체크를 건너뜁니다.\"\n" +
-                        "                        env.HEALTH_CHECK_STATUS = 'SKIPPED'\n" +
-                        "                        return\n" +
-                        "                    }\n" +
-                        "                    \n" +
-                        "                    // 헬스 체크 URL 설정 (서버 IP 파라미터 사용)\n" +
-                        "                    def healthCheckUrl = \"https://seedinfra.store/api/docker/servers/${params.SERVER_IP}/healthy\"\n" +
-                        "                    \n" +
-                        "                    try {\n" +
-                        "                        // 헬스 체크 API 호출\n" +
-                        "                        def healthCheckResponse = sh(script: \"\"\"\n" +
-                        "                            curl -s -X GET \"${healthCheckUrl}\"\n" +
-                        "                        \"\"\", returnStdout: true).trim()\n" +
+                        "                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {\n" +
+                        "                    script {\n" +
+                        "                        // 헬스 체크 로직 추가\n" +
+                        "                        echo '⚕️ 서비스 헬스 체크 실행'\n" +
                         "                        \n" +
-                        "                        echo \"헬스 체크 API 응답: ${healthCheckResponse}\"\n" +
+                        "                        // Docker API를 통한 컨테이너 상태 확인 URL\n" +
+                        "                        def dockerApiUrl = 'http://localhost:3780/containers/json?all=true&filters=%7B%22name%22%3A%5B%22spring%22%5D%7D'\n" +
                         "                        \n" +
-                        "                        // JSON 응답 파싱\n" +
-                        "                        def jsonSlurper = new groovy.json.JsonSlurper()\n" +
-                        "                        def responseData\n" +
                         "                        try {\n" +
-                        "                            responseData = jsonSlurper.parseText(healthCheckResponse)\n" +
-                        "                        } catch (Exception e) {\n" +
-                        "                            echo \"JSON 파싱 오류: ${e.message}\"\n" +
-                        "                            env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-                        "                            return\n" +
-                        "                        }\n" +
-                        "                        \n" +
-                        "                        // 응답 확인 - 리스트 크기가 0이면 정상\n" +
-                        "                        if (responseData instanceof List) {\n" +
-                        "                            if (responseData.size() == 0) {\n" +
-                        "                                echo \"✅ 헬스 체크 성공: 리스트 크기가 0입니다.\"\n" +
-                        "                                env.HEALTH_CHECK_STATUS = 'SUCCESS'\n" +
-                        "                            } else {\n" +
-                        "                                echo \"❌ 헬스 체크 실패: 리스트 크기가 ${responseData.size()}입니다.\"\n" +
+                        "                            // Docker API 호출\n" +
+                        "                            def dockerApiResponse = sh(script: \"\"\"\n" +
+                        "                                curl -s -X GET '${dockerApiUrl}'\n" +
+                        "                            \"\"\", returnStdout: true).trim()\n" +
+                        "                            \n" +
+                        "                            echo \"Docker API 응답: ${dockerApiResponse}\"\n" +
+                        "                            \n" +
+                        "                            // JSON 응답 파싱\n" +
+                        "                            def jsonSlurper = new groovy.json.JsonSlurper()\n" +
+                        "                            def containers\n" +
+                        "                            try {\n" +
+                        "                                containers = jsonSlurper.parseText(dockerApiResponse)\n" +
+                        "                            } catch (Exception e) {\n" +
+                        "                                echo \"JSON 파싱 오류: ${e.message}\"\n" +
                         "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                error \"헬스 체크 실패: JSON 파싱 오류\"\n" +
                         "                            }\n" +
-                        "                        } else {\n" +
-                        "                            echo \"❌ 헬스 체크 실패: 응답이 리스트 형식이 아닙니다.\"\n" +
+                        "                            \n" +
+                        "                            // 컨테이너 목록 확인\n" +
+                        "                            if (containers instanceof List) {\n" +
+                        "                                if (containers.size() == 0) {\n" +
+                        "                                    echo \"❌ 헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
+                        "                                    env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                    error \"헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
+                        "                                }\n" +
+                        "                                \n" +
+                        "                                // 컨테이너 상태 확인\n" +
+                        "                                def springContainer = containers[0]\n" +
+                        "                                def containerState = springContainer.State\n" +
+                        "                                def containerStatus = springContainer.Status\n" +
+                        "                                \n" +
+                        "                                echo \"컨테이너 상태: ${containerState}, 상태 설명: ${containerStatus}\"\n" +
+                        "                                \n" +
+                        "                                // 'running' 상태인지 확인\n" +
+                        "                                if (containerState == 'running') {\n" +
+                        "                                    echo \"✅ 헬스 체크 성공: spring 컨테이너가 정상 실행 중입니다.\"\n" +
+                        "                                    env.HEALTH_CHECK_STATUS = 'SUCCESS'\n" +
+                        "                                } else {\n" +
+                        "                                    echo \"❌ 헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
+                        "                                    env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                    error \"헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
+                        "                                }\n" +
+                        "                            } else {\n" +
+                        "                                echo \"❌ 헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
+                        "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                error \"헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
+                        "                            }\n" +
+                        "                        } catch (Exception e) {\n" +
+                        "                            echo \"❌ 헬스 체크 실행 중 오류 발생: ${e.message}\"\n" +
                         "                            env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                            throw e\n" +
                         "                        }\n" +
-                        "                    } catch (Exception e) {\n" +
-                        "                        echo \"❌ 헬스 체크 실행 중 오류 발생: ${e.message}\"\n" +
-                        "                        env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
                         "                    }\n" +
                         "                }\n" +
                         "            }\n" +
@@ -1056,62 +1188,68 @@ public class ServerServiceImpl implements ServerService {
                         "                // PROJECT_ID 파라미터가 비어있지 않은지 확인\n" +
                         "                if (params.PROJECT_ID?.trim()) {\n" +
                         "                    withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
-                        "                        // API 기본 URL 설정 (실제 서버 URL로 변경 필요)\n" +
+                        "                        // API 기본 URL 설정\n" +
                         "                        def apiBaseUrl = 'https://seedinfra.store/api'\n" +
                         "                        \n" +
                         "                        // 셀프 힐링 API 호출 조건 확인\n" +
-                        "                        // 빌드는 성공했지만 헬스 체크가 실패한 경우\n" +
-                        "                        if (buildStatus == 'SUCCESS' && env.HEALTH_CHECK_STATUS == 'FAILED') {\n" +
-                        "                            echo \"🔧 빌드는 성공했지만 헬스 체크 실패 → 셀프 힐링 API 호출\"\n" +
-                        "                            \n" +
-                        "                            // 셀프 힐링 API 엔드포인트 구성\n" +
-                        "                            def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve/test\"\n" +
-                        "                            \n" +
-                        "                            // API 요청 파라미터 구성 (토큰은 withCredentials에서 안전하게 제공)\n" +
-                        "                            def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=RUNTIME\"\n" +
-                        "                            \n" +
-                        "                            // 셀프 힐링 API 호출\n" +
-                        "                            try {\n" +
-                        "                                def healingResponse = sh(script: \"\"\"\n" +
-                        "                                    curl -X POST \\\n" +
-                        "                                    -H 'Content-Type: application/json' \\\n" +
-                        "                                    -w '\\n%{http_code}' \\\n" +
-                        "                                    \"${healingApiUrl}?${queryParams}\"\n" +
-                        "                                \"\"\", returnStdout: true).trim()\n" +
+                        "                        // 헬스 체크가 실패한 경우와 빌드가 실패한 경우 구분\n" +
+                        "                        if (params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME) {\n" +
+                        "                            if (env.HEALTH_CHECK_STATUS == 'FAILED') {\n" +
+                        "                                // 헬스 체크 실패 → 런타임 이슈로 셀프 힐링\n" +
+                        "                                echo \"🔧 헬스 체크 실패 → 셀프 힐링 API 호출 (RUNTIME)\"\n" +
                         "                                \n" +
-                        "                                echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
-                        "                                env.SELF_HEALING_APPLIED = 'true'\n" +
-                        "                            } catch (Exception e) {\n" +
-                        "                                echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
-                        "                            }\n" +
-                        "                        } else if (buildStatus != 'SUCCESS') {\n" +
-                        "                            echo \"❌ 빌드 실패 → 셀프 힐링 API 호출\"\n" +
-                        "                            \n" +
-                        "                            // 셀프 힐링 API 엔드포인트 구성\n" +
-                        "                            def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve/test\"\n" +
-                        "                            \n" +
-                        "                            // API 요청 파라미터 구성 (토큰은 withCredentials에서 안전하게 제공)\n" +
-                        "                            def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=BUILD\"\n" +
-                        "                            \n" +
-                        "                            // 셀프 힐링 API 호출\n" +
-                        "                            try {\n" +
-                        "                                def healingResponse = sh(script: \"\"\"\n" +
-                        "                                    curl -X POST \\\n" +
-                        "                                    -H 'Content-Type: application/json' \\\n" +
-                        "                                    -w '\\n%{http_code}' \\\n" +
-                        "                                    \"${healingApiUrl}?${queryParams}\"\n" +
-                        "                                \"\"\", returnStdout: true).trim()\n" +
+                        "                                // 셀프 힐링 API 엔드포인트 구성\n" +
+                        "                                def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve\"\n" +
                         "                                \n" +
-                        "                                echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
-                        "                                env.SELF_HEALING_APPLIED = 'true'\n" +
-                        "                            } catch (Exception e) {\n" +
-                        "                                echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
+                        "                                // API 요청 파라미터 구성\n" +
+                        "                                def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=RUNTIME\"\n" +
+                        "                                \n" +
+                        "                                // 셀프 힐링 API 호출\n" +
+                        "                                try {\n" +
+                        "                                    def healingResponse = sh(script: \"\"\"\n" +
+                        "                                        curl -X POST \\\n" +
+                        "                                        -H 'Content-Type: application/json' \\\n" +
+                        "                                        -w '\\n%{http_code}' \\\n" +
+                        "                                        \"${healingApiUrl}?${queryParams}\"\n" +
+                        "                                    \"\"\", returnStdout: true).trim()\n" +
+                        "                                    \n" +
+                        "                                    echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
+                        "                                    env.SELF_HEALING_APPLIED = 'true'\n" +
+                        "                                } catch (Exception e) {\n" +
+                        "                                    echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
+                        "                                }\n" +
+                        "                            } else if (buildStatus != 'SUCCESS' && env.HEALTH_CHECK_STATUS != 'FAILED') {\n" +
+                        "                                // 다른 빌드 실패 → 빌드 이슈로 셀프 힐링\n" +
+                        "                                echo \"❌ 빌드 실패 → 셀프 힐링 API 호출 (BUILD)\"\n" +
+                        "                                \n" +
+                        "                                // 셀프 힐링 API 엔드포인트 구성\n" +
+                        "                                def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve\"\n" +
+                        "                                \n" +
+                        "                                // API 요청 파라미터 구성\n" +
+                        "                                def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=BUILD\"\n" +
+                        "                                \n" +
+                        "                                // 셀프 힐링 API 호출\n" +
+                        "                                try {\n" +
+                        "                                    def healingResponse = sh(script: \"\"\"\n" +
+                        "                                        curl -X POST \\\n" +
+                        "                                        -H 'Content-Type: application/json' \\\n" +
+                        "                                        -w '\\n%{http_code}' \\\n" +
+                        "                                        \"${healingApiUrl}?${queryParams}\"\n" +
+                        "                                    \"\"\", returnStdout: true).trim()\n" +
+                        "                                    \n" +
+                        "                                    echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
+                        "                                    env.SELF_HEALING_APPLIED = 'true'\n" +
+                        "                                } catch (Exception e) {\n" +
+                        "                                    echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
+                        "                                }\n" +
+                        "                            } else {\n" +
+                        "                                echo \"✅ 빌드 및 헬스 체크 모두 성공 → 셀프 힐링 필요 없음\"\n" +
                         "                            }\n" +
                         "                        } else {\n" +
-                        "                            echo \"✅ 빌드 및 헬스 체크 모두 성공 → 셀프 힐링 필요 없음\"\n" +
+                        "                            echo \"💬 원본 브랜치와 다른 브랜치 빌드 → 셀프 힐링 건너뜀\"\n" +
                         "                        }\n" +
                         "                        \n" +
-                        "                        // 모든 작업이 완료된 후 마지막으로 빌드 로그 API 호출\n" +
+                        "                        // 모든 작업이 완료된 후 마지막으로 빌드 로그 API 호출 (성공/실패 여부 무관)\n" +
                         "                        echo \"📝 최종 빌드 결과 로깅 API 호출 중: 프로젝트 ID ${params.PROJECT_ID}\"\n" +
                         "                        \n" +
                         "                        // 빌드 로그 API 엔드포인트 구성\n" +

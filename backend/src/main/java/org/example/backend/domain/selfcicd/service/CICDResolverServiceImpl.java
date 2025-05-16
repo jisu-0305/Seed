@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.backend.common.auth.ProjectAccessValidator;
 import org.example.backend.controller.request.DeploymentReportSavedRequest;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.DockerContainerLogResponse;
@@ -17,10 +16,9 @@ import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.service.JenkinsService;
 import org.example.backend.domain.project.entity.Project;
-import org.example.backend.domain.project.entity.ProjectApplication;
-import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
+import org.example.backend.domain.selfcicd.enums.FailType;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.aiapi.AIApiClient;
@@ -49,43 +47,39 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final GitlabService gitlabService;
     private final ProjectRepository projectRepository;
     private final AIDeploymentReportService aiDeploymentReportService;
-    private final ApplicationRepository applicationRepository;
-    private final ProjectApplicationRepository projectApplicationRepository;
+//    private final ProjectApplicationRepository projectApplicationRepository;
     private final ObjectMapper objectMapper;
-    private final ProjectAccessValidator projectProjectAccessValidator;
     private final AIApiClient fastAIClient;
 
-    //여기서 사용하는 accessToekn은 gitlabPersonalAccessToken임
     @Override
-    public void handleSelfHealingCI(Long projectId, String accessToken) {
+    public void handleSelfHealingCI(Long projectId, String accessToken, FailType failType) {
         // 1. 프로젝트 조회
         Project project = getProject(projectId);
 
         // 1-1. 마지막 Jenkins 빌드 정보 및 에러 로그 조회
         int buildNumber = getLastBuildInfo(projectId);
-        String errorLog = getErrorLog(projectId, buildNumber);
+        String jenkinsErrorLog = getErrorLog(projectId, buildNumber);
 
         // 1-2. 프로젝트에 포함된 앱 이름 목록 조회 -> 그 참고로 appName없을수도 아님 아마도? default로 쓰는건 projects안에 fronted_framework로 받아야함, 해당 내용에 docker이미지 이름이랑 동일할거임
         List<String> appNames = getProjectAppNames(project);
+
         // 1-3. Gitlab 최신 MR의 diff 정보 조회
         GitlabCompareResponse gitDiff = getGitDiff(project, accessToken);
 
-        //현재 jenkins 관련된거 다 jwtToken안받게 메서드 설정해야함!
         // 1-4. AI API 호출하여 의심되는 앱 추론
-        List<String> suspectedApps = inferSuspectedApps(appNames, gitDiff, errorLog);
+        List<String> suspectedApps = inferSuspectedApps(appNames, gitDiff, jenkinsErrorLog);
 
         // 1-5. 의심 앱들의 GitLab 트리 정보 조회
         Map<String, List<GitlabTree>> appTrees = getGitTrees(suspectedApps, project, accessToken);
 
 //        // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
-        Map<String, String> appLogs = getDockerLogs(project, suspectedApps, gitDiff);
+        Map<String, String> appLogs = getAppLogs(project, suspectedApps, gitDiff, failType, jenkinsErrorLog);
 
 //        // 1-6. 의심앱들에 jenkins log 추가
 //        Map<String, String> appLogs = new HashMap<>();
 //        for (String app : appNames) {
 //            appLogs.put(app, errorLog); // 모든 앱에 동일한 Jenkins 로그 대입
 //        }
-
 
         // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
         List<PatchedFile> patchedFiles = new ArrayList<>();
@@ -105,7 +99,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         String commitUrl = commitPatchedFiles(project, accessToken, newBranch, patchedFiles, newBuildNumber);
 
         // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
-        triggerRebuild(projectId, newBranch);
+        triggerRebuild(projectId, newBranch, project.getGitlabTargetBranchName());
 
         // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
         // 4-1. Jenkins 빌드 결과 상태 확인
@@ -143,12 +137,13 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 
     // 1-2. 해당 프로젝트의 어플리케이션 목록 조회
     private List<String> getProjectAppNames(Project project) {
-        List<String> appNames = new ArrayList<>(
-                projectApplicationRepository.findAllByProjectId(project.getId()).stream()
-                        .map(ProjectApplication::getImageName)
-                        .filter(Objects::nonNull)
-                        .toList()
-        );
+//        List<String> appNames = new ArrayList<>(
+//                projectApplicationRepository.findAllByProjectId(project.getId()).stream()
+//                        .map(ProjectApplication::getImageName)
+//                        .filter(Objects::nonNull)
+//                        .toList()
+//        );
+        List<String> appNames = new ArrayList<>();
 
         appNames.add("spring");
         appNames.add(project.getFrontendFramework());
@@ -193,37 +188,71 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         return appTrees;
     }
 
+//    private Map<String, String> getDockerLogs(Project project, List<String> appNames, GitlabCompareResponse gitDiff) {
+//        Instant commitInstant = gitDiff.getCommit().getCreatedAt().toInstant();
+//        long since = commitInstant.getEpochSecond();
+//        long until = Instant.now().getEpochSecond();
+//
+//        // 2) 요청 DTO 생성
+//        DockerContainerLogRequest request = new DockerContainerLogRequest(since, until);
+//        Map<String, List<DockerContainerLogResponse>> dockerAppLogs = new HashMap<>();
+//
+//        // 3) 앱별로 로그 수집
+//        for (String app : appNames) {
+//            List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(project.getServerIP(), app, request);
+//            dockerAppLogs.put(app, logs);
+//        }
+//
+//        return dockerAppLogs.entrySet().stream()
+//                .collect(Collectors.toMap(
+//                        Map.Entry::getKey,
+//                        entry -> entry.getValue().stream()
+//                                .map(log -> {
+//                                    if (log.timestamp() != null) {
+//                                        return log.timestamp() + " " + log.message();
+//                                    } else {
+//                                        return log.message();
+//                                    }
+//                                })
+//                                .collect(Collectors.joining("\n"))
+//                ));
+//    }
+
     // 1-6. 해당 어플리케이션들의 log가져오기
-    private Map<String, String> getDockerLogs(Project project, List<String> appNames, GitlabCompareResponse gitDiff) {
+    private Map<String, String> getAppLogs(Project project, List<String> appNames, GitlabCompareResponse gitDiff, FailType failType, String jenkinsErrorLog) {
+        Map<String, String> appLogs = new HashMap<>();
+
+        // Docker 로그 요청을 위한 시간 범위 계산
         Instant commitInstant = gitDiff.getCommit().getCreatedAt().toInstant();
         long since = commitInstant.getEpochSecond();
         long until = Instant.now().getEpochSecond();
+        DockerContainerLogRequest dockerContainerLogRequest = new DockerContainerLogRequest(since, until);
 
-        // 2) 요청 DTO 생성
-        DockerContainerLogRequest request = new DockerContainerLogRequest(since, until);
-        Map<String, List<DockerContainerLogResponse>> dockerAppLogs = new HashMap<>();
-
-        // 3) 앱별로 로그 수집
         for (String app : appNames) {
-            List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(project.getServerIP(), app, request);
-            dockerAppLogs.put(app, logs);
+            if ("spring".equalsIgnoreCase(app) && failType == FailType.RUNTIME) {
+                List<DockerContainerLogResponse> dockerContainerlogs =
+                        dockerService.getContainerLogs(project.getServerIP(), app, dockerContainerLogRequest);
+
+                String dockerLog = dockerContainerlogs.stream()
+                        .map(log -> {
+                            if (log.timestamp() != null) {
+                                return log.timestamp() + " " + log.message();
+                            } else {
+                                return log.message();
+                            }
+                        })
+                        .collect(Collectors.joining("\n"));
+
+                appLogs.put(app, dockerLog.isEmpty() ? "Docker 로그 없음" : dockerLog);
+            } else {
+                appLogs.put(app, jenkinsErrorLog);
+            }
         }
 
-        return dockerAppLogs.entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        entry -> entry.getValue().stream()
-                                .map(log -> {
-                                    if (log.timestamp() != null) {
-                                        return log.timestamp() + " " + log.message();
-                                    } else {
-                                        return log.message();
-                                    }
-                                })
-                                .collect(Collectors.joining("\n"))
-                ));
+        return appLogs;
     }
 
+    // 2. AI를 통한 파일 수정 로직
     private List<ResolveErrorResponse> resolveFilesAndPatch(
             Project project,
             String accessToken,
@@ -336,8 +365,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 3-3. Jenkins에 해당 브렌치로 재빌드 요청
-    private void triggerRebuild(Long projectId, String branchName) {
-        jenkinsService.triggerBuildWithOutLogin(projectId, branchName);
+    private void triggerRebuild(Long projectId, String branchName, String originalBranchName) {
+        jenkinsService.triggerBuildWithOutLogin(projectId, branchName, originalBranchName);
     }
 
     // 4-1. 마지막 Jenkins 빌드 상태 조회

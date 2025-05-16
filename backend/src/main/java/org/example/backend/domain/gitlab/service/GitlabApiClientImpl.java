@@ -170,7 +170,6 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                     .block();
         } catch (WebClientResponseException ex) {
             if (ex.getStatusCode() == HttpStatus.NOT_FOUND) {
-//                log.info("삭제할 브랜치가 존재하지 않아 무시합니다: {}", branch);
                 return;
             }
 
@@ -178,7 +177,6 @@ public class GitlabApiClientImpl implements GitlabApiClient {
                 throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
             }
 
-//            log.error(">>> submitBranchDeletion error", ex);
             throw new BusinessException(ErrorCode.GITLAB_BAD_DELETE_BRANCH);
         }
     }
