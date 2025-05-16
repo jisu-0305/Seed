@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.response.gitlab.CommitResponse;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.gitlab.GitlabProjectListResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
 import org.example.backend.domain.user.entity.User;
@@ -118,6 +119,15 @@ public class GitlabServiceImpl implements GitlabService {
         int perPage = 100;
 
         return gitlabApiClient.requestProjectList(validGitlabAccessToken, page, perPage);
+    }
+
+    @Override
+    public GitlabProjectListResponse getProjectsByCursor(String gitlabPersonalAccessToken, Long lastProjectId) {
+        int pageSize = 20;
+        String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
+
+        List<GitlabProject> list = gitlabApiClient.requestProjectListBeforeCursor(validGitlabAccessToken, lastProjectId, pageSize);
+        return new GitlabProjectListResponse(list);
     }
 
     @Override

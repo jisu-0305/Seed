@@ -1,6 +1,7 @@
 package org.example.backend.domain.gitlab.service;
 
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.gitlab.GitlabProjectListResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
 import reactor.core.publisher.Mono;
@@ -26,6 +27,8 @@ public interface GitlabService {
 
     List<GitlabProject> getProjects(String gitlabPersonalAccessToken);
 
+    GitlabProjectListResponse getProjectsByCursor(String gitlabPersonalAccessToken, Long lastProjectId);
+
     GitlabProject getProjectByUrl(String gitlabPersonalAccessToken, String request);
 
     Mono<GitlabCompareResponse> fetchLatestMrDiff(String gitlabPersonalAccessToken, Long gitlabProjectId);
@@ -45,4 +48,5 @@ public interface GitlabService {
     void commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
 
     List<GitlabProject> getGitlabProjectsByUserId(Long userId);
+
 }
