@@ -27,6 +27,8 @@ public interface GitlabApiClient {
 
     List<GitlabProject> requestProjectList(String gitlabPersonalAccessToken, int page, int perPage);
 
+    List<GitlabProject> requestProjectListBeforeCursor(String gitlabPersonalAccessToken, Long lastProjectId, int pageSize);
+
     GitlabProject requestProjectInfo(String gitlabPersonalAccessToken, String projectUrl);
 
     Mono<List<GitlabMergeRequest>> requestMergedMrs(String gitlabPersonalAccessToken, Long gitlabProjectId, int page, int perPage);

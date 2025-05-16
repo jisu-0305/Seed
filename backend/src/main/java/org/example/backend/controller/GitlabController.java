@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.controller.request.gitlab.*;
 import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
+import org.example.backend.controller.response.gitlab.GitlabProjectListResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.GitlabBranch;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
@@ -115,6 +116,16 @@ public class GitlabController {
         List<GitlabProject> projects = gitlabService.getProjects(gitlabPersonalAccessToken);
         return ResponseEntity.ok(ApiResponse.success(projects));
 
+    }
+
+    @GetMapping("/projects/cursor")
+    @Operation(summary = "레포지토리 조회 _ 커서 기반", security = @SecurityRequirement(name = "PAT"))
+    public ResponseEntity<ApiResponse<GitlabProjectListResponse>> getProjects(
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken,
+            @RequestParam(name = "lastId", required = false) Long lastProjectId
+    ) {
+        GitlabProjectListResponse projects = gitlabService.getProjectsByCursor(gitlabPersonalAccessToken, lastProjectId);
+        return ResponseEntity.ok(ApiResponse.success(projects));
     }
 
     /* 6-1. 프론트_userid로 깃랩 레포지토리 조회 */

@@ -51,6 +51,21 @@ public class GitlabUriBuilder {
         );
     }
 
+    public URI buildProjectsUriByCursor(Long lastId, int perPage) {
+        UriComponentsBuilder b = builder("projects")
+                .queryParam("pagination", "keyset")
+                .queryParam("order_by", "id")
+                .queryParam("sort", "desc")
+                .queryParam("per_page", perPage);
+
+        if (lastId != null) {
+            b.queryParam("id_before", lastId);
+        }
+
+        return toUri(b);
+    }
+
+
     public URI buildProjectUri(String namespaceAndName) {
         return toUri(builder("projects", namespaceAndName));
     }

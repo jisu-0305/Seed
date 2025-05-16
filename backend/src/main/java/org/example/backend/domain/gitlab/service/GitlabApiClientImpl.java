@@ -200,6 +200,31 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         }
     }
 
+    @Override
+    public List<GitlabProject> requestProjectListBeforeCursor(
+            String gitlabPersonalAccessToken,
+            Long lastProjectId,
+            int pageSize
+    ) {
+        URI uri = uriBuilder.buildProjectsUriByCursor(lastProjectId, pageSize);
+
+        try {
+            return gitlabWebClient.get()
+                    .uri(uri)
+                    .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
+                    .retrieve()
+                    .bodyToFlux(GitlabProject.class)
+                    .collectList()
+                    .block();
+        } catch (WebClientResponseException ex) {
+            if (ex.getStatusCode() == HttpStatus.UNAUTHORIZED) {
+                throw new BusinessException(ErrorCode.GITLAB_BAD_REQUEST);
+            }
+            log.error(">>> requestProjectListBeforeCursor error", ex);
+            throw new BusinessException(ErrorCode.GITLAB_BAD_PROJECTS);
+        }
+    }
+
     /* 레포지토리 단건 조회 (URL) */
     @Override
     public GitlabProject requestProjectInfo(String gitlabPersonalAccessToken, String projectPath) {
