@@ -15,7 +15,7 @@ public interface JenkinsService {
     String getBuildLog(int buildNumber, Long projectId, String accessToken);
     String getBuildStatusWithOutLogin(int buildNumber, Long projectId);
     String getBuildStatus(int buildNumber, Long projectId, String accessToken);
-    void triggerBuildWithOutLogin(Long projectId, String branchName);
+    void triggerBuildWithOutLogin(Long projectId, String branchName, String originalBranchName);
     void triggerBuild(Long projectId, String accessToken, String branchName);
     List<JenkinsBuildChangeResponse> getBuildChanges(int buildNumber, Long projectId, String accessToken);
     List<JenkinsBuildChangeSummaryResponse> getBuildChangesWithSummary(int buildNumber, Long projectId, String accessToken);

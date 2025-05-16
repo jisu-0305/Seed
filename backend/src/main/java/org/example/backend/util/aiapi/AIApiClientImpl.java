@@ -82,7 +82,7 @@ public class AIApiClientImpl implements AIApiClient {
         formData.add("tree", suspectFileRequest.getTree());
         formData.add("log", suspectFileRequest.getLog());
 
-//        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", formData);
+//        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", suspectFileRequest.getLog());
         String response = webClient.post()
                 .uri(fastApiBaseUrl + "/ai/filepath")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -90,6 +90,8 @@ public class AIApiClientImpl implements AIApiClient {
                 .retrieve()
                 .bodyToMono(String.class)
                 .block();
+
+//        log.debug(">>>>>>>> [Fast API]responseSupectedFiles: {}", response);
 
         try {
             SuspectFileResponse dto = objectMapper.readValue(response, SuspectFileResponse.class);
