@@ -83,9 +83,10 @@ export async function fetchBuilds(
  * 특정 빌드의 상세(스텝) 정보를 가져와 Task[] 타입으로 변환합니다.
  */
 function toTaskStatus(s: string): TaskStatus {
-  if (s === 'SUCCESS' || s === 'FAIL' || s === 'FAILED' || s === '-') return s;
-  console.warn(`Unknown status "${s}", defaulting to "-"`);
-  return '-';
+  if (s === 'SUCCESS' || s === 'FAIL' || s === 'FAILED' || s === 'IN PROGRESS')
+    return s;
+  console.warn(`Unknown status "${s}", defaulting to "IN PROGRESS"`);
+  return 'IN PROGRESS';
 }
 
 export async function fetchBuildDetail(

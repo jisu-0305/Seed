@@ -1,5 +1,5 @@
 // 빌드 상태
-export type TaskStatus = 'SUCCESS' | 'FAIL' | 'FAILED' | '-';
+export type TaskStatus = 'SUCCESS' | 'FAIL' | 'FAILED' | 'IN PROGRESS';
 
 export interface Task {
   stepNumber: number;
