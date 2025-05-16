@@ -15,12 +15,9 @@ public interface GitlabService {
 
     String triggerPushEvent(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch);
 
-    MergeRequestCreateResponse createMergeRequest(String gitlabPersonalAccessToken,
-                                                  Long gitlabProjectId,
-                                                  String sourceBranch,
-                                                  String targetBranch,
-                                                  String title,
-                                                  String description);
+    MergeRequestCreateResponse createMergeRequest(String gitlabPersonalAccessToken, Long gitlabProjectId,
+                                                  String sourceBranch, String targetBranch,
+                                                  String title, String description);
 
     GitlabBranch createBranch(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String ref);
 
@@ -32,21 +29,19 @@ public interface GitlabService {
 
     GitlabProject getProjectByUrl(String gitlabPersonalAccessToken, String request);
 
+    GitlabProjectListResponse getGitlabProjectsByUserIdAndCursor(Long userId, Long lastProjectId);
+
     Mono<GitlabCompareResponse> fetchLatestMrDiff(String gitlabPersonalAccessToken, Long gitlabProjectId);
 
     Mono<GitlabCompareResponse> compareCommits(String gitlabPersonalAccessToken, Long gitlabProjectId, String from, String to);
 
-    List<GitlabTree> getRepositoryTree(
-            String gitlabPersonalAccessToken,
-            Long gitlabProjectId,
-            String path,
-            boolean recursive,
-            String branchName
-    );
+    List<GitlabTree> getRepositoryTree(String gitlabPersonalAccessToken, Long gitlabProjectId,
+                                        String path, boolean recursive, String branchName);
 
     String getRawFileContent(String gitlabPersonalAccessToken, Long gitlabProjectId, String path, String ref);
 
-    CommitResponse commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch, String commitMessage, List<PatchedFile> patchedFiles);
+    CommitResponse commitPatchedFiles(String gitlabPersonalAccessToken, Long gitlabProjectId,
+                                      String branch, String commitMessage, List<PatchedFile> patchedFiles);
 
     List<GitlabProject> getGitlabProjectsByUserId(Long userId);
 

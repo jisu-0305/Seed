@@ -38,7 +38,6 @@ public class GitlabServiceImpl implements GitlabService {
     @Override
     public String triggerPushEvent(String gitlabPersonalAccessToken, Long gitlabProjectId, String branch) {
 
-        // 유효성 검사
         String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
         branchValidCheck(validGitlabAccessToken, gitlabProjectId, branch);
 
@@ -79,8 +78,6 @@ public class GitlabServiceImpl implements GitlabService {
                                                          String title,
                                                          String description
     ) {
-
-        // 유효성 검사
         String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
         branchValidCheck(validGitlabAccessToken, gitlabProjectId, sourceBranch);
         branchValidCheck(validGitlabAccessToken, gitlabProjectId, targetBranch);
@@ -113,10 +110,9 @@ public class GitlabServiceImpl implements GitlabService {
     /*레포지토리 목록 조회*/
     @Override
     public List<GitlabProject> getProjects(String gitlabPersonalAccessToken) {
-        String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
-        log.info(">>>>>>>>>>>>>>>>> {}",validGitlabAccessToken);
         int page = 1;
         int perPage = 100;
+        String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
 
         return gitlabApiClient.requestProjectList(validGitlabAccessToken, page, perPage);
     }
@@ -132,9 +128,22 @@ public class GitlabServiceImpl implements GitlabService {
 
     @Override
     public List<GitlabProject> getGitlabProjectsByUserId(Long userId) {
+        int page = 1;
+        int perPage = 100;
         User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         String personalAccessToken = user.getGitlabPersonalAccessToken();
-        return gitlabApiClient.requestProjectList(personalAccessToken, 1, 100);
+
+        return gitlabApiClient.requestProjectList(personalAccessToken, page, perPage);
+    }
+
+    @Override
+    public GitlabProjectListResponse getGitlabProjectsByUserIdAndCursor(Long userId, Long lastProjectId) {
+        int pageSize = 20;
+        User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        String personalAccessToken = user.getGitlabPersonalAccessToken();
+
+        List<GitlabProject> list = gitlabApiClient.requestProjectListBeforeCursor(personalAccessToken, lastProjectId, pageSize);
+        return new GitlabProjectListResponse(list);
     }
 
     /* 레포지토리 단건 조회 (URL) */
@@ -186,15 +195,8 @@ public class GitlabServiceImpl implements GitlabService {
         int page = 1;
         int perPage = 100;
 
-        return gitlabApiClient.requestRepositoryTree(
-                validGitlabAccessToken,
-                gitlabProjectId,
-                path,
-                recursive,
-                page,
-                perPage,
-                branchName
-        );
+        return gitlabApiClient.requestRepositoryTree(validGitlabAccessToken, gitlabProjectId,
+                                                    path, recursive, page, perPage, branchName);
     }
 
     /* 파일 원본 조회  */

@@ -30,6 +30,8 @@ public class Notification {
 
     private LocalDateTime createdAt;
 
+    private Long invitationId;
+
     public void setRead(boolean read) { this.isRead = read; }
 
 }
