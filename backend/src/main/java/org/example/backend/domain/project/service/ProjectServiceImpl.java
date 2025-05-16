@@ -8,6 +8,7 @@ import org.example.backend.controller.request.project.ProjectCreateRequest;
 import org.example.backend.controller.request.project.ProjectUpdateRequest;
 import org.example.backend.controller.response.project.*;
 import org.example.backend.domain.project.entity.*;
+import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.enums.FileType;
@@ -78,6 +79,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .jdkBuildTool(request.getJdkBuildTool())
                 .autoDeploymentEnabled(false)
                 .httpsEnabled(false)
+                .serverStatus(ServerStatus.INIT)
                 .build();
 
         projectRepository.save(project);
@@ -172,6 +174,9 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
+        project.initAutoDeploymentStatus();
+
         if (request.getServerIP() != null && !request.getServerIP().isBlank()) {
             project.updateServerIP(request.getServerIP());
         }
@@ -478,6 +483,16 @@ public class ProjectServiceImpl implements ProjectService {
                 })
                 .toList();
 
+    }
+
+    @Override
+    public ProjectAutoDeploymentStatusResponse getProjectAutoDeploymentStatus(Long projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
+
+        return ProjectAutoDeploymentStatusResponse.builder()
+                .serverStatus(project.getServerStatus())
+                .build();
     }
 
     private void upsertEnvFile(Long projectId, MultipartFile file, FileType type) throws IOException {

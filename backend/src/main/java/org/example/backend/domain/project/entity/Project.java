@@ -2,6 +2,7 @@ package org.example.backend.domain.project.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ProjectStructure;
 
@@ -25,6 +26,7 @@ public class Project {
     private String serverIP;
     private LocalDateTime createdAt;
     private String repositoryUrl;
+    private ServerStatus serverStatus;
 
     @Enumerated(EnumType.STRING)
     private ProjectStructure structure;
@@ -60,6 +62,14 @@ public class Project {
 
     public void enableHttps() {
         this.httpsEnabled = true;
+    }
+
+    public void initAutoDeploymentStatus() {
+        this.serverStatus = ServerStatus.INIT;
+    }
+
+    public void updateAutoDeploymentStatus(ServerStatus status) {
+        this.serverStatus = status;
     }
 
     public void updateBuildStatus(BuildStatus status) {

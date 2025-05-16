@@ -123,4 +123,14 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.success(apps));
     }
 
+    @GetMapping("/{projectId}/server-status")
+    @Operation(summary = "서버 상태 조회", description = "프로젝트 자동 배포 상태 조회")
+    public ResponseEntity<ApiResponse<ProjectAutoDeploymentStatusResponse>> getProjectAutoDeploymentStatus(
+            @PathVariable Long projectId) {
+
+        ProjectAutoDeploymentStatusResponse response = projectService.getProjectAutoDeploymentStatus(projectId);
+
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
 }
