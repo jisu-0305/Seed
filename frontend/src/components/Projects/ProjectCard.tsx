@@ -103,6 +103,11 @@ const Right = styled.div`
 const Title = styled.h3`
   ${({ theme }) => theme.fonts.EnTitle2};
   color: ${({ theme }) => theme.colors.Black};
+  max-width: 20rem;
+
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 const ProjectImage = styled.img`

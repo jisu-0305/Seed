@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 // eslint-disable-next-line import/no-cycle
 import { useProjectFileStore } from '@/stores/projectStore';
+import { ExecutionsByDate, ExecutionsResponse } from '@/types/execution';
 import {
   ProjectCardInfo,
   ProjectDetailData,
@@ -47,7 +48,7 @@ export async function fetchProjectDetail(
 
 // 대시보드 프로젝트 목록 조회
 export async function getProjects(): Promise<ProjectCardInfo[]> {
-  const { data } = await client.get('/projects/status');
+  const { data } = await client.get('/projects');
   return data.data;
 }
 
@@ -57,6 +58,18 @@ export function useProjectCards() {
     queryFn: getProjects,
   });
 }
+
+export const fetchProjectExecutions = async (): Promise<ExecutionsByDate[]> => {
+  const res = await client.get<ExecutionsResponse>('/projects/executions');
+  return res.data.data;
+};
+
+export const useProjectExecutions = () => {
+  return useQuery<ExecutionsByDate[], Error>({
+    queryKey: ['projectExecutions'],
+    queryFn: fetchProjectExecutions,
+  });
+};
 
 /**
  * 프로젝트를 삭제합니다.
