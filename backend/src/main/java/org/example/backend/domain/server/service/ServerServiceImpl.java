@@ -241,12 +241,12 @@ public class ServerServiceImpl implements ServerService {
         List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         return Stream.of(
-                //setSwapMemory(),
-                //updatePackageManager(),
-                //setJDK(),
-                //setDocker(),
-                //runApplicationList(projectApplicationList, backEnvFile),
-                //setNginx(project.getServerIP()),
+                setSwapMemory(),
+                updatePackageManager(),
+                setJDK(),
+                setDocker(),
+                runApplicationList(projectApplicationList, backEnvFile),
+                setNginx(project.getServerIP()),
                 setJenkins(),
                 setJenkinsConfigure(),
                 makeJenkinsJob("auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
