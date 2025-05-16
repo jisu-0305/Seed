@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { startBuild } from '@/apis/build';
 import { convertServer } from '@/apis/server';
@@ -33,9 +33,11 @@ export function ActionButtons({
   const https = useModal();
 
   // https 모달용
-  const [loading, setLoading] = useState(false);
+  const [isHttpsDisabled, setIsHttpsDisabled] = useState(httpsEnabled);
+  const [HttpsLoading, setHttpsLoading] = useState(false);
 
   // ■ 빌드용 로딩 & 메시지
+  const [isBuildDisabled, setIsBuildDisabled] = useState(deployEnabled);
   const [buildLoading, setBuildLoading] = useState(false);
   const [buildMessage, setBuildMessage] = useState<string | null>(null);
 
@@ -56,7 +58,8 @@ export function ActionButtons({
     try {
       const data = await startBuild(projectId);
       console.log('✔️ EC2 세팅 성공:', data);
-      window.location.reload();
+      setIsBuildDisabled(true);
+      setBuildMessage('EC2 세팅이 완료되었습니다!');
     } catch (err) {
       console.error('❌ EC2 세팅 실패:', err);
       setBuildMessage('EC2 세팅에 실패했습니다...');
@@ -64,6 +67,10 @@ export function ActionButtons({
       setBuildLoading(false);
     }
   };
+
+  useEffect(() => {
+    setIsBuildDisabled(deployEnabled);
+  }, [deployEnabled]);
 
   const handleConfigSubmit = async ({ domain, email }: HttpsConfig) => {
     if (projectId == null) {
@@ -73,17 +80,23 @@ export function ActionButtons({
     }
 
     try {
-      setLoading(true);
+      setHttpsLoading(true);
       const data = await convertServer(projectId, domain, email);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
+      setIsHttpsDisabled(true);
+      setBuildMessage('HTTPS 설정이 완료되었습니다!');
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);
+      setBuildMessage('HTTPS 설정에 실패했습니다...');
     } finally {
-      setLoading(false);
+      setHttpsLoading(false);
       https.toggle();
-      window.location.reload();
     }
   };
+
+  useEffect(() => {
+    setIsHttpsDisabled(httpsEnabled);
+  }, [httpsEnabled]);
 
   const goToGitLab = () => {
     window.open(gitlab?.toString(), '_blank');
@@ -115,7 +128,11 @@ export function ActionButtons({
             <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
             AI 보고서
           </Button>
-          <Button variant="build" onClick={runBuild} disabled={deployEnabled}>
+          <Button
+            variant="build"
+            onClick={runBuild}
+            disabled={buildLoading || isBuildDisabled}
+          >
             {buildLoading ? (
               <LoadingSpinner />
             ) : (
@@ -126,7 +143,7 @@ export function ActionButtons({
           <Button
             variant="https"
             onClick={https.toggle}
-            disabled={httpsEnabled}
+            disabled={isHttpsDisabled || HttpsLoading}
           >
             <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
             Https 설정
@@ -158,7 +175,7 @@ export function ActionButtons({
         />
       </ModalWrapper>
       <ModalWrapper isShowing={https.isShowing}>
-        {loading && <LoadingSpinner />}
+        {HttpsLoading && <LoadingSpinner />}
         <HttpsConfigModal
           isShowing={https.isShowing}
           handleClose={https.toggle}
