@@ -40,11 +40,10 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<Void>> createPushWebhook(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @Validated @RequestBody ProjectHookRequest request,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, request.url(), request.wildcard());
         return ResponseEntity.ok(ApiResponse.success());
-
     }
 
     /* 2. Push 트리거 */
@@ -65,8 +64,8 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<MergeRequestCreateResponse>> createMergeRequest(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @Valid @RequestBody CreateMrRequest request,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         MergeRequestCreateResponse created = gitlabService.createMergeRequest(
                 gitlabPersonalAccessToken,
                 projectId,
@@ -76,9 +75,7 @@ public class GitlabController {
                 request.description()
         );
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success(created));
-
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
     }
 
     /*4. 브랜치 생성*/
@@ -87,11 +84,10 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<GitlabBranch>> createBranch(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @Valid @RequestBody CreateBranchRequest request,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         GitlabBranch created = gitlabService.createBranch(gitlabPersonalAccessToken, projectId, request.branch(), request.baseBranch());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created));
-
     }
 
     /* 5. 브랜치 삭제 */
@@ -100,11 +96,10 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<String>> deleteBranch(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @RequestParam("branch") String branch,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         gitlabService.deleteBranch(gitlabPersonalAccessToken, projectId, branch);
         return ResponseEntity.ok(ApiResponse.success(branch));
-
     }
 
     /* 6. 레포지토리 목록 조회 */
@@ -136,16 +131,25 @@ public class GitlabController {
         return ResponseEntity.ok(ApiResponse.success(projects));
     }
 
+    @GetMapping("/users/{userId}/projects/cursor")
+    @Operation(summary = "프론트_깃랩 레포지토리 조회_cursor 방식")
+    public ResponseEntity<ApiResponse<GitlabProjectListResponse>> getGitlabProjectsByCursor(
+            @PathVariable Long userId,
+            @RequestParam(name = "lastId", required = false) Long lastProjectId
+    ) {
+        GitlabProjectListResponse projects = gitlabService.getGitlabProjectsByUserIdAndCursor(userId, lastProjectId);
+        return ResponseEntity.ok(ApiResponse.success(projects));
+    }
+
     /* 7. 레포지토리 단건 조회 (URL) */
     @GetMapping(value = "/projects", params = "repoUrl")
     @Operation(summary = "레포지토리 조회", security = @SecurityRequirement(name = "PAT"))
     public ResponseEntity<ApiResponse<GitlabProject>> getProjectByUrl(
             @Parameter(description = "조회할 레포지토리 URL") @RequestParam(name = "repoUrl", required = false) String repoUrl,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         GitlabProject projectInfo = gitlabService.getProjectByUrl(gitlabPersonalAccessToken, repoUrl);
         return ResponseEntity.ok(ApiResponse.success(projectInfo));
-
     }
 
     /* 8. Diff 1 ) 최신 MR 기준 diff 조회 */
@@ -155,8 +159,8 @@ public class GitlabController {
             security = @SecurityRequirement(name = "PAT"))
     public Mono<ResponseEntity<ApiResponse<GitlabCompareResponse>>> fetchLatestMrDiff(
             @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         return gitlabService.fetchLatestMrDiff(gitlabPersonalAccessToken, projectId)
                 .map(ApiResponse::success)
                 .map(ResponseEntity::ok);
@@ -168,8 +172,8 @@ public class GitlabController {
     public Mono<ResponseEntity<ApiResponse<GitlabCompareResponse>>> compareCommits(
             @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
             @ParameterObject @Valid @ModelAttribute DiffCommitRequest request,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         return gitlabService.compareCommits(gitlabPersonalAccessToken, projectId, request.from(), request.to())
                 .map(ApiResponse::success)
                 .map(ResponseEntity::ok);
@@ -181,16 +185,11 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<List<GitlabTree>>> getRepositoryTree(
             @Parameter(description = "프로젝트 ID", required = true, example = "998708") @PathVariable Long projectId,
             @ParameterObject @ModelAttribute TreeRequest request,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
-        List<GitlabTree> tree = gitlabService.getRepositoryTree(
-                gitlabPersonalAccessToken,
-                projectId,
-                request.path(),
-                request.recursive(),
-                request.branchName()
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
+        List<GitlabTree> tree = gitlabService.getRepositoryTree(gitlabPersonalAccessToken, projectId,
+                request.path(), request.recursive(), request.branchName()
         );
-
         return ResponseEntity.ok(ApiResponse.success(tree));
     }
 
@@ -200,11 +199,10 @@ public class GitlabController {
     public ResponseEntity<ApiResponse<String>> getRawFileContent(
             @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
             @ParameterObject @Validated @ModelAttribute ReadFileRequest request,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         String content = gitlabService.getRawFileContent(gitlabPersonalAccessToken, projectId, request.filePath(), request.branch());
         return ResponseEntity.ok(ApiResponse.success(content));
-
     }
 
     /* ai 자동수정된 파일들을 한 번에 커밋 */
@@ -218,11 +216,10 @@ public class GitlabController {
             @Parameter(description = "프로젝트 ID", required = true, example = "998708")
             @PathVariable Long projectId,
             @RequestBody CommitPatchedFilesRequest request,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken) {
-
+            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+    ) {
         gitlabService.commitPatchedFiles(gitlabPersonalAccessToken, projectId, request.branch(), request.commitMessage(), request.patchedFiles());
         return ResponseEntity.ok(ApiResponse.success());
-
     }
 
 }
