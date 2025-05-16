@@ -4,8 +4,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.controller.request.server.*;
 import org.example.backend.controller.response.log.HttpsLogResponse;
-import org.example.backend.domain.project.entity.Application;
-import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.domain.project.service.ProjectService;
 import org.example.backend.domain.server.service.HttpsLogService;
 import org.example.backend.domain.server.service.ServerService;
@@ -13,9 +11,7 @@ import org.example.backend.global.response.ApiResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -26,7 +22,6 @@ public class ServerController {
     private final ServerService serverService;
     private final ProjectService projectService;
     private final HttpsLogService httpsLogService;
-    private final ApplicationRepository applicationRepository;
 
     @PostMapping("/deployment")
     public ResponseEntity<ApiResponse<Void>> registerDeployment(

@@ -545,7 +545,6 @@ public class ServerServiceImpl implements ServerService {
 
     private List<String> setJenkinsConfigure(Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.INSTALL_JENKINS_PLUGINS);
-
         return List.of(
                 // 기본 폴더 초기화
                 "sudo rm -rf /var/lib/jenkins/*",
@@ -590,36 +589,12 @@ public class ServerServiceImpl implements ServerService {
                 "curl -L https://github.com/jenkinsci/plugin-installation-manager-tool/releases/download/2.12.13/jenkins-plugin-manager-2.12.13.jar -o ~/jenkins-plugin-cli.jar",
                 "sudo systemctl stop jenkins",
 
-                // 플러그인 설치 1단계
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins gitlab-plugin --verbose < /dev/null",
-
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins gitlab-api --verbose < /dev/null",
-
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins git --verbose < /dev/null",
-
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins workflow-aggregator --verbose < /dev/null",
-
-                // 플러그인 설치 2단계
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins docker-plugin docker-workflow pipeline-stage-view --verbose < /dev/null",
-
-                // 플러그인 설치 3단계
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins credentials credentials-binding workflow-api pipeline-rest-api --verbose < /dev/null",
-
-                "sudo java -jar ~/jenkins-plugin-cli.jar --war /usr/share/java/jenkins.war " +
-                        "--plugin-download-directory=/var/lib/jenkins/plugins " +
-                        "--plugins http_request --verbose < /dev/null",
+                // 기존 코드와 동일하게 플러그인 설치
+                "sudo mkdir -p /var/lib/jenkins/plugins",
+                "cd /tmp",
+                "wget https://a609-betty-bucket.s3.ap-northeast-2.amazonaws.com/jenkins/plugins/plugins-cache.tar.gz",
+                "tar xzf plugins-cache.tar.gz",
+                "sudo cp *.jpi /var/lib/jenkins/plugins/",
 
                 "sudo chown -R jenkins:jenkins /var/lib/jenkins/plugins",
                 "sudo usermod -aG docker jenkins",
