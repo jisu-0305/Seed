@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { ChangeEvent, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 
 import { getProjectApplications } from '@/apis/gitlab';
 import SmallModal from '@/components/Common/Modal/SmallModal';
@@ -37,6 +37,11 @@ const SearchDockerImageModal = ({
 
     setImageList(data);
   };
+
+  useEffect(() => {
+    if (!isShowing) return;
+    fetchDockerImage();
+  }, [isShowing]);
 
   const handleSearch = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.value.length === 0) {
