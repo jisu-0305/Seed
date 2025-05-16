@@ -1,8 +1,13 @@
 import styled from '@emotion/styled';
-import { useQuery } from '@tanstack/react-query';
+import {
+  InfiniteData,
+  useInfiniteQuery,
+  useQuery,
+} from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
 import {
+  BuildListResponse,
   BuildSummary,
   fetchBuildDetail,
   fetchBuildLogs,
@@ -27,27 +32,48 @@ export function BuildHistoryPanel({
   selectedTab,
 }: BuildHistoryPanelProps) {
   const { mode } = useThemeStore();
+  const [selectedBuild, setSelectedBuild] = useState<number | null>(null);
 
-  // 1) 빌드 목록 조회
   const {
-    data: builds = [],
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
     isLoading: loadingBuilds,
-    error: buildsError,
-  } = useQuery<BuildSummary[], Error>({
+    isError: buildsError,
+  } = useInfiniteQuery<
+    BuildListResponse,
+    Error,
+    InfiniteData<BuildListResponse>,
+    ['builds', number],
+    number
+  >({
     queryKey: ['builds', projectId],
-    queryFn: () => fetchBuilds(projectId),
+    queryFn: ({ pageParam = 0 }) => fetchBuilds(projectId, pageParam),
+    getNextPageParam: (lastPage) =>
+      lastPage.hasNext ? lastPage.nextStart : undefined,
+    initialPageParam: 0,
     staleTime: 1000 * 60 * 5,
   });
 
-  // 2) 선택된 빌드 번호 관리
-  const [selectedBuild, setSelectedBuild] = useState<number | null>(null);
+  const allBuilds = data?.pages.flatMap((page) => page.builds) ?? [];
 
-  // 빌드 목록 로드 후 기본 선택 세팅
   useEffect(() => {
-    if (builds.length > 0 && selectedBuild === null) {
-      setSelectedBuild(builds[0].buildNumber);
+    if (allBuilds.length > 0 && selectedBuild === null) {
+      setSelectedBuild(allBuilds[0].buildNumber);
     }
-  }, [builds, selectedBuild]);
+  }, [allBuilds]);
+
+  const onScroll: React.UIEventHandler<HTMLDivElement> = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (
+      scrollHeight - scrollTop - clientHeight < 100 &&
+      hasNextPage &&
+      !isFetchingNextPage
+    ) {
+      fetchNextPage();
+    }
+  };
 
   // 3) 선택된 빌드 상세(스텝) 조회
   const {
@@ -95,8 +121,8 @@ export function BuildHistoryPanel({
 
   return (
     <Wrapper>
-      <LeftPanel>
-        {builds.map((b) => (
+      <LeftPanel onScroll={onScroll}>
+        {allBuilds.map((b) => (
           <BuildItem
             key={b.buildNumber}
             active={b.buildNumber === selectedBuild}
@@ -133,7 +159,7 @@ export function BuildHistoryPanel({
             <LinkButton
               onClick={() =>
                 handleShowLog(
-                  builds.find((b) => b.buildNumber === selectedBuild)!,
+                  allBuilds.find((b) => b.buildNumber === selectedBuild)!,
                 )
               }
             >

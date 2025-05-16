@@ -73,7 +73,7 @@ export async function fetchBuilds(
   limit = 20,
 ): Promise<BuildListResponse> {
   const res = await client.get<BuildListResponse>(
-    `/api/jenkins/${projectId}/builds`,
+    `/jenkins/${projectId}/builds`,
     { params: { start, limit } },
   );
   return res.data;
