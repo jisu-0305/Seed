@@ -264,7 +264,7 @@ const Icon = styled.div<{ status: string }>`
   height: 3rem;
   border-radius: 50%;
   background: ${({ status, theme }) =>
-    status === 'SUCCESS' ? theme.colors.Text : theme.colors.Red2};
+    status === 'FAILURE' ? theme.colors.Red2 : theme.colors.Text};
 
   img {
     width: 2rem;

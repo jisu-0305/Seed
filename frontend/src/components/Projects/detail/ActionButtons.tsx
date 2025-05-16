@@ -20,6 +20,10 @@ interface ActionButtonsProps {
   gitlab?: string | URL;
   httpsEnabled: boolean;
   deployEnabled: boolean;
+
+  /** 세팅 완료 후 부모에게 알려줄 콜백 */
+  onHttpsComplete?: () => void;
+  onDeployComplete?: () => void;
 }
 
 export function ActionButtons({
@@ -27,6 +31,8 @@ export function ActionButtons({
   gitlab,
   httpsEnabled,
   deployEnabled,
+  onHttpsComplete,
+  onDeployComplete,
 }: ActionButtonsProps) {
   const { mode } = useThemeStore();
   const team = useModal();
@@ -60,9 +66,9 @@ export function ActionButtons({
       console.log('✔️ EC2 세팅 성공:', data);
       setIsBuildDisabled(true);
       setBuildMessage('EC2 세팅이 완료되었습니다!');
+      onDeployComplete?.();
     } catch (err) {
       console.error('❌ EC2 세팅 실패:', err);
-      setBuildMessage('EC2 세팅에 실패했습니다...');
     } finally {
       setBuildLoading(false);
     }
@@ -85,6 +91,7 @@ export function ActionButtons({
       console.log('✔️ HTTPS 변환 요청 성공:', data);
       setIsHttpsDisabled(true);
       setBuildMessage('HTTPS 설정이 완료되었습니다!');
+      onHttpsComplete?.();
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);
       setBuildMessage('HTTPS 설정에 실패했습니다...');

@@ -186,7 +186,7 @@ export default function GitlabInput() {
               alt="repo structure"
             />
             <StyledInput
-              placeholder={gitlab.structure === '모노' ? 'Frontend' : 'dev/fe'}
+              placeholder={gitlab.structure === '모노' ? 'frontend' : 'dev/fe'}
               value={gitlab.directory?.client || ''}
               onChange={(e) => handleDirectoryChange('client', e.target.value)}
             />
@@ -204,7 +204,7 @@ export default function GitlabInput() {
               alt="repo structure"
             />
             <StyledInput
-              placeholder={gitlab.structure === '모노' ? 'Backend' : 'dev/be'}
+              placeholder={gitlab.structure === '모노' ? 'backend' : 'dev/be'}
               value={gitlab.directory?.server || ''}
               onChange={(e) => handleDirectoryChange('server', e.target.value)}
             />

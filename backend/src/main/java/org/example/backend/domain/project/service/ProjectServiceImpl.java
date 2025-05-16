@@ -297,10 +297,22 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(UserProject::getProjectId)
                 .toList();
 
+        if (projectIdList.isEmpty()) {
+            return List.of();
+        }
+
         Map<Long, Project> projectMap = projectRepository.findByIdIn(projectIdList).stream()
                 .collect(Collectors.toMap(Project::getId, p -> p));
 
-        List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);
+        List<Long> validProjectIds = projectIdList.stream()
+                .filter(projectMap::containsKey)
+                .toList();
+
+        if (validProjectIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(validProjectIds);
         List<Long> allUserIdList = allUserProjectList.stream().map(UserProject::getUserId).distinct().toList();
 
         Map<Long, User> userMap = userRepository.findAllById(allUserIdList).stream()
@@ -320,7 +332,7 @@ public class ProjectServiceImpl implements ProjectService {
                         }, Collectors.toList())
                 ));
 
-        return projectIdList.stream()
+        return validProjectIds.stream()
                 .map(id -> {
                     Project project = projectMap.get(id);
                     List<UserInProject> memberList = projectUsersMap.getOrDefault(id, List.of());
@@ -336,6 +348,7 @@ public class ProjectServiceImpl implements ProjectService {
                 })
                 .toList();
     }
+
 
 
     @Override

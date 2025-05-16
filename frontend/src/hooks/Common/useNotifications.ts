@@ -17,7 +17,7 @@ export function useNotifications() {
   } = useQuery<NotificationItem[]>({
     queryKey: ['notifications'],
     queryFn: fetchNotifications,
-    staleTime: 1000 * 60 * 5, // 5분
+    staleTime: 1000 * 60 * 5,
   });
 
   const removeFromCache = (id: number) => {
@@ -41,15 +41,27 @@ export function useNotifications() {
     },
   });
 
-  const accept = useMutation({
-    mutationFn: async (id: number) => {
-      await acceptInvitation(id);
-      await markNotificationRead(id);
+  const accept = useMutation<
+    void,
+    Error,
+    { notificationId: number; invitationId: number },
+    { previous?: NotificationItem[] }
+  >({
+    mutationFn: async ({ notificationId, invitationId }) => {
+      await acceptInvitation(invitationId);
+      await markNotificationRead(notificationId);
     },
-    onMutate: async (id: number) => {
+    onMutate: async (variables) => {
+      const { notificationId } = variables;
       await qc.cancelQueries({ queryKey: ['notifications'] });
       const previous = qc.getQueryData<NotificationItem[]>(['notifications']);
-      removeFromCache(id);
+      // 낙관적 업데이트: 해당 알림만 제거
+      if (previous) {
+        qc.setQueryData<NotificationItem[]>(
+          ['notifications'],
+          previous.filter((n) => n.id !== notificationId),
+        );
+      }
       return { previous };
     },
     onError: (_err, _id, context) => {

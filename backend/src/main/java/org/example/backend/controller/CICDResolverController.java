@@ -39,15 +39,7 @@ import java.util.stream.Collectors;
 public class CICDResolverController {
 
     private final CICDResolverService cicdResolverService;
-    private final AIApiClient fastAIClient;
-    private final GitlabService gitlabService;
-    private final ObjectMapper objectMapper;
 
-    /**
-     * Jenkins 워크플로우에서 빌드 실패 시 호출할 엔드포인트
-     * - Authorization 헤더에 Bearer <cicdToken>
-     * - body에는 buildNumber만 전달
-     */
     @PostMapping("/resolve")
     @Operation(summary = "CI/CD 셀프 힐링 트리거")
     public ResponseEntity<ApiResponse<String>> triggerSelfHealingCI(
