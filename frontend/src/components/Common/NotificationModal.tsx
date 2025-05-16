@@ -1,105 +1,64 @@
 'use client';
 
 import styled from '@emotion/styled';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 
-import {
-  acceptInvitation,
-  fetchNotifications,
-  markNotificationRead,
-} from '@/apis/user';
+import { useNotifications } from '@/hooks/Common/useNotifications';
 import { useThemeStore } from '@/stores/themeStore';
-import { useUserStore } from '@/stores/userStore';
-import { NotificationItem } from '@/types/notification';
 
-const NotificationModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-  const user = useUserStore((s) => s.user);
+const NotificationModal: React.FC<{
+  onClose: () => void;
+}> = ({ onClose }) => {
   const { mode } = useThemeStore();
 
-  const [notifications, setNotifications] = useState<NotificationItem[] | null>(
-    null,
-  );
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  // 1) 유저 정보 로딩 완료되면 알림 API 호출
-  useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    fetchNotifications()
-      .then((data) => setNotifications(data))
-      .catch(() => setError('알림을 불러올 수 없습니다.'))
-      .finally(() => setLoading(false));
-  }, [user]);
+  const { notifications, isLoading, error, markRead, accept } =
+    useNotifications();
 
   if (mode === null) return null;
-
-  const handleAccept = async (notifId: number) => {
-    try {
-      await acceptInvitation(notifId);
-      handleRead(notifId);
-    } catch (err) {
-      console.error('초대 수락 실패', err);
-    }
-  };
-
-  const handleRead = async (notifId: number) => {
-    try {
-      await markNotificationRead(notifId);
-      setNotifications((prev) =>
-        prev ? prev.filter((n) => n.id !== notifId) : prev,
-      );
-    } catch (err) {
-      console.error('알림 읽음 처리 실패', err);
-    }
-  };
 
   return (
     <>
       <Backdrop onClick={onClose} />
       <Modal>
-        {user && (
-          <>
-            {loading && <p>알림 로딩 중…</p>}
-            {error && <p>{error}</p>}
+        {isLoading && <p>로딩 중…</p>}
+        {error && <p>불러오기 실패</p>}
 
-            {!loading && notifications?.length === 0 && (
-              <Header>
-                <Heading>
-                  <Icon src="/assets/icons/ic_speaker.svg" alt="notification" />
-                  알림
-                </Heading>
-                <Message>새 알림이 없습니다.</Message>
-              </Header>
-            )}
-
-            <List>
-              {notifications?.map((n) => (
-                <Item key={n.id}>
-                  <Info>
-                    <Icon
-                      src="/assets/icons/ic_speaker.svg"
-                      alt="notification"
-                    />
-                    <Text>
-                      <Title>{n.notificationTitle}</Title>
-                      <Message>{n.notificationContent}</Message>
-                    </Text>
-                  </Info>
-                  {n.notificationType === 'INVITATION_CREATED_TYPE' ? (
-                    <AcceptButton onClick={() => handleAccept(n.id)}>
-                      수락하기
-                    </AcceptButton>
-                  ) : (
-                    <AcceptButton onClick={() => handleRead(n.id)}>
-                      읽음처리
-                    </AcceptButton>
-                  )}
-                </Item>
-              ))}
-            </List>
-          </>
+        {!isLoading && notifications?.length === 0 && (
+          <Header>
+            <Heading>
+              <Icon src="/assets/icons/ic_speaker.svg" alt="notification" />
+              알림
+            </Heading>
+            <Message>새 알림이 없습니다.</Message>
+          </Header>
         )}
+
+        <List>
+          {notifications?.map((n) => (
+            <Item key={n.id}>
+              <Info>
+                <Icon src="/assets/icons/ic_speaker.svg" alt="notification" />
+                <Text>
+                  <Title>{n.notificationTitle}</Title>
+                  <Message>{n.notificationContent}</Message>
+                </Text>
+              </Info>
+              <AcceptButton
+                onClick={() => {
+                  if (n.notificationType === 'INVITATION_CREATED_TYPE') {
+                    accept.mutate(n.id);
+                  } else {
+                    markRead.mutate(n.id);
+                  }
+                }}
+              >
+                {n.notificationType === 'INVITATION_CREATED_TYPE'
+                  ? '수락하기'
+                  : '읽음처리'}
+              </AcceptButton>
+            </Item>
+          ))}
+        </List>
       </Modal>
     </>
   );

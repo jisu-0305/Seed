@@ -52,7 +52,7 @@ export function ActionButtons({
     if (!projectId) return;
 
     // 메시지 띄우기
-    setBuildMessage('커피 한 잔 하고 올까요? ☕');
+    setBuildMessage('EC2 세팅 중... 커피 한 잔 하고 올까요? ☕');
     setBuildLoading(true);
 
     try {
