@@ -1136,6 +1136,9 @@ public class ServerServiceImpl implements ServerService {
                         "        }\n" +
                         "        stage('Health Check') {\n" +
                         "            steps {\n" +
+                        "                // Health Check 전에 30초 대기\n" +
+                        "                echo '⏳ Health Check 전에 30초 대기'\n" +
+                        "                sleep time: 30, unit: 'SECONDS'\n" +
                         "                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {\n" +
                         "                    script {\n" +
                         "                        // 헬스 체크 로직 추가\n" +
