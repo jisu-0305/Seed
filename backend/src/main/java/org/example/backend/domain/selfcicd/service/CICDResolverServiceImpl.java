@@ -53,6 +53,9 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 
     @Override
     public void handleSelfHealingCI(Long projectId, String accessToken, String failType) {
+        // 0. sleep 15초 걸기
+        waitBeforeStart();
+
         // 1. 프로젝트 조회
         Project project = getProject(projectId);
 
@@ -72,14 +75,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         // 1-5. 의심 앱들의 GitLab 트리 정보 조회
         Map<String, List<GitlabTree>> appTrees = getGitTrees(suspectedApps, project, accessToken);
 
-//        // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
+        // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
         Map<String, String> appLogs = getAppLogs(project, suspectedApps, gitDiff, failType, jenkinsErrorLog);
-
-//        // 1-6. 의심앱들에 jenkins log 추가
-//        Map<String, String> appLogs = new HashMap<>();
-//        for (String app : appNames) {
-//            appLogs.put(app, errorLog); // 모든 앱에 동일한 Jenkins 로그 대입
-//        }
 
         // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
         List<PatchedFile> patchedFiles = new ArrayList<>();
@@ -112,11 +109,21 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             mergeRequestUrl = createMergeRequest(project, accessToken, newBranch);
         }
 
-//        // 4-3. AI 요약 보고서 생성 요청 및 수신
+        // 4-3. AI 요약 보고서 생성 요청 및 수신
         Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps);
 
-//        // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
+        // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
         saveAIReports(projectId, reportResponses, reportStatus, commitUrl, mergeRequestUrl, newBuildNumber);
+    }
+
+    // 0. 호출 API Jenkins build 시간에 맞춰 작동
+    private void waitBeforeStart() {
+        try {
+            Thread.sleep(15_000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+        }
     }
 
     // 1. 프로젝트 조회
@@ -187,36 +194,6 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         }
         return appTrees;
     }
-
-//    private Map<String, String> getDockerLogs(Project project, List<String> appNames, GitlabCompareResponse gitDiff) {
-//        Instant commitInstant = gitDiff.getCommit().getCreatedAt().toInstant();
-//        long since = commitInstant.getEpochSecond();
-//        long until = Instant.now().getEpochSecond();
-//
-//        // 2) 요청 DTO 생성
-//        DockerContainerLogRequest request = new DockerContainerLogRequest(since, until);
-//        Map<String, List<DockerContainerLogResponse>> dockerAppLogs = new HashMap<>();
-//
-//        // 3) 앱별로 로그 수집
-//        for (String app : appNames) {
-//            List<DockerContainerLogResponse> logs = dockerService.getContainerLogs(project.getServerIP(), app, request);
-//            dockerAppLogs.put(app, logs);
-//        }
-//
-//        return dockerAppLogs.entrySet().stream()
-//                .collect(Collectors.toMap(
-//                        Map.Entry::getKey,
-//                        entry -> entry.getValue().stream()
-//                                .map(log -> {
-//                                    if (log.timestamp() != null) {
-//                                        return log.timestamp() + " " + log.message();
-//                                    } else {
-//                                        return log.message();
-//                                    }
-//                                })
-//                                .collect(Collectors.joining("\n"))
-//                ));
-//    }
 
     // 1-6. 해당 어플리케이션들의 log가져오기
     private Map<String, String> getAppLogs(Project project, List<String> appNames, GitlabCompareResponse gitDiff, String failType, String jenkinsErrorLog) {
