@@ -1,7 +1,7 @@
 package org.example.backend.domain.fcm.enums;
 
 public enum NotificationType {
-    // 초대 관련
+    // 초대 관련 -> 수락, 거절 등 필요
     INVITATION_CREATED_TYPE,
     INVITATION_ACCEPTED_TYPE,
 

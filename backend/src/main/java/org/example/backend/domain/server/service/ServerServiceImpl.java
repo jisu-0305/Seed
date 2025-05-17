@@ -6,6 +6,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.server.HttpsConvertRequest;
+import org.example.backend.domain.fcm.service.NotificationServiceImpl;
+import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
 import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
@@ -47,6 +49,7 @@ public class ServerServiceImpl implements ServerService {
     private final JenkinsInfoRepository jenkinsInfoRepository;
     private final HttpsLogRepository httpsLogRepository;
     private final ApplicationRepository applicationRepository;
+    private final NotificationServiceImpl notificationService;
 
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
     private final ProjectApplicationRepository projectApplicationRepository;
@@ -96,8 +99,17 @@ public class ServerServiceImpl implements ServerService {
             execCommand(sshSession, "sudo rm -f /tmp/jenkins_token");
             log.info("Jenkins 토큰 발급 및 스크립트 정리 완료");
 
+            // ec2 세팅 성공 메시지 전송
+            notificationService.notifyProjectStatusForUsers(
+                    projectId,
+                    NotificationMessageTemplate.EC2_SETUP_COMPLETED_SUCCESS
+            );
         } catch (JSchException | IOException e) {
             log.error("배포 중 오류 발생: {}", e.getMessage(), e);
+            notificationService.notifyProjectStatusForUsers(
+                    projectId,
+                    NotificationMessageTemplate.EC2_SETUP_FAILED
+            );
             throw new BusinessException(ErrorCode.BUSINESS_ERROR);
         } finally {
             if (sshSession != null && sshSession.isConnected()) {
@@ -1491,7 +1503,6 @@ public class ServerServiceImpl implements ServerService {
         String host = project.getServerIP();
         Session sshSession = null;
 
-
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
@@ -1515,15 +1526,26 @@ public class ServerServiceImpl implements ServerService {
                 }
             }
 
-
             // 3) 성공 로그
             log.info("Https 전환을 성공했습니다.");
+            notificationService.notifyProjectStatusForUsers(
+                    request.getProjectId(),
+                    NotificationMessageTemplate.HTTPS_SETUP_COMPLETED
+            );
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
+            notificationService.notifyProjectStatusForUsers(
+                    request.getProjectId(),
+                    NotificationMessageTemplate.HTTPS_SETUP_FAILED
+            );
             throw new BusinessException(ErrorCode.BUSINESS_ERROR);
         } catch (IOException e) {
             log.error("PEM 파일 로드 실패: {}", e.getMessage());
+            notificationService.notifyProjectStatusForUsers(
+                    request.getProjectId(),
+                    NotificationMessageTemplate.HTTPS_SETUP_FAILED
+            );
             throw new BusinessException(ErrorCode.BUSINESS_ERROR);
 
         } finally {

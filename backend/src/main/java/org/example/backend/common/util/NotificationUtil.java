@@ -31,7 +31,7 @@ public class NotificationUtil {
             String token = entry.getKey();
 
             Message fcmMessage = Message.builder()
-                    // .putData("type",  message.getNotificationType().name()) // 타입을 같이 메시지로 보여줄거면 여기 주석 해제하기
+                    .putData("type",  message.getNotificationType().name())
                     .putData("title", message.getNotificationTitle())
                     .putData("body", message.getNotificationContent())
                     .setToken(token)

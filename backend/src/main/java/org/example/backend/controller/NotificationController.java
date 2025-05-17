@@ -1,7 +1,6 @@
 package org.example.backend.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.*;
@@ -64,35 +63,17 @@ public class NotificationController {
     @PostMapping("/test")
     @Operation(
             summary = "테스트용 알림 전송",
-            description = "userIds, template, projectName, invitationId(optional) 를 입력해서 Swagger에서 테스트",
+            description = "projectId와 template(enum 이름)를 입력해서 Swagger에서 테스트",
             security = @SecurityRequirement(name = "JWT")
     )
     public ResponseEntity<ApiResponse<Void>> sendTestNotification(
-            @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken,
-            @RequestBody TestNotificationRequest req
+            @RequestParam Long projectId,
+            @RequestParam String template
     ) {
+        NotificationMessageTemplate tmpl = NotificationMessageTemplate.valueOf(template);
+        notificationService.notifyProjectStatusForUsers(projectId, tmpl);
 
-        notificationService.notifyUsers(
-                req.getUserIds(),
-                req.getTemplate(),
-                req.getProjectName()
-        );
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class TestNotificationRequest {
-        @Schema(description = "푸시 받을 유저 ID 리스트")
-        private List<Long> userIds;
-
-        @Schema(description = "사용할 템플릿 (enum 값 중 하나)")
-        private NotificationMessageTemplate template;
-
-        @Schema(description = "템플릿 본문에 들어갈 문자열 (프로젝트명, 보고서명 등)")
-        private String projectName;
-    }
 }
