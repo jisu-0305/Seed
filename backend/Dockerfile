@@ -17,7 +17,7 @@ COPY . .
 RUN ./gradlew bootJar --no-daemon
 
 # 2단계: 실행 스테이지
-FROM openjdk:17-jdk-slim
+FROM openjdk:17-jdk
 WORKDIR /app
 
 # 빌드 결과 JAR 파일 복사 (필요시 명시적 파일명으로 변경)

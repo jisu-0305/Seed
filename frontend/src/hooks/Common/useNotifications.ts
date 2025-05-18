@@ -20,8 +20,6 @@ export function useNotifications() {
     staleTime: 1000 * 60 * 5,
   });
 
-  console.log('notifications:', notifications);
-
   const removeFromCache = (id: number) => {
     qc.setQueryData<NotificationItem[]>(['notifications'], (old = []) =>
       old.filter((n) => n.id !== id),

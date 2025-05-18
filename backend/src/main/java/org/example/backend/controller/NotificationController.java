@@ -3,12 +3,13 @@ package org.example.backend.controller;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
+import lombok.*;
 import org.example.backend.common.session.RedisSessionManager;
 import org.example.backend.domain.fcm.dto.NotificationDto;
 import org.example.backend.domain.fcm.entity.Notification;
 import org.example.backend.domain.fcm.mapper.NotificationMapper;
 import org.example.backend.domain.fcm.service.NotificationService;
+import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
 import org.example.backend.global.response.ApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -58,4 +59,21 @@ public class NotificationController {
         notificationService.markAsRead(id, accessToken);
         return ResponseEntity.ok(ApiResponse.success());
     }
+
+    @PostMapping("/test")
+    @Operation(
+            summary = "테스트용 알림 전송",
+            description = "projectId와 template(enum 이름)를 입력해서 Swagger에서 테스트",
+            security = @SecurityRequirement(name = "JWT")
+    )
+    public ResponseEntity<ApiResponse<Void>> sendTestNotification(
+            @RequestParam Long projectId,
+            @RequestParam String template
+    ) {
+        NotificationMessageTemplate tmpl = NotificationMessageTemplate.valueOf(template);
+        notificationService.notifyProjectStatusForUsers(projectId, tmpl);
+
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
 }
