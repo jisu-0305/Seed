@@ -127,6 +127,7 @@ public class ProjectController {
     @Operation(summary = "서버 상태 조회", description = "프로젝트 자동 배포 상태 조회")
     public ResponseEntity<ApiResponse<ProjectAutoDeploymentStatusResponse>> getProjectAutoDeploymentStatus(
             @PathVariable Long projectId) {
+        //이거 sercurity 적용하고 써야하는거 아닌가?
 
         ProjectAutoDeploymentStatusResponse response = projectService.getProjectAutoDeploymentStatus(projectId);
 
