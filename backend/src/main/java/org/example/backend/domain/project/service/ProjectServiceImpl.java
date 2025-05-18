@@ -492,11 +492,18 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     @Override
-    public ProjectAutoDeploymentStatusResponse getProjectAutoDeploymentStatus(Long projectId) {
+    public ServerStatusResponse getServerStatus(Long projectId, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
+        }
+
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
 
-        return ProjectAutoDeploymentStatusResponse.builder()
+        return ServerStatusResponse.builder()
                 .serverStatus(project.getServerStatus())
                 .build();
     }
