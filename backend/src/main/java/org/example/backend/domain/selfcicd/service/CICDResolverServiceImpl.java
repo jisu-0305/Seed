@@ -122,6 +122,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps);
 
         // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
+        project.updateAutoDeploymentStatus(ServerStatus.SAVING_REPORT);
         saveAIReports(projectId, reportResponses, reportStatus, commitUrl, mergeRequestUrl, newBuildNumber);
 
         if (reportStatus == ReportStatus.SUCCESS) {
