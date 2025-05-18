@@ -8,7 +8,7 @@ import org.example.backend.domain.project.enums.ServerStatus;
 @Getter
 @Builder
 @AllArgsConstructor
-public class ProjectAutoDeploymentStatusResponse {
+public class ServerStatusResponse {
     private ServerStatus serverStatus;
     private boolean isServerLive;
 }
