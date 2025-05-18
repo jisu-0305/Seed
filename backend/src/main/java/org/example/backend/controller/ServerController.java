@@ -31,19 +31,21 @@ public class ServerController {
     @PostMapping("/deployment")
     public ResponseEntity<ApiResponse<Void>> registerDeployment(
             @RequestParam Long projectId,
+            @RequestPart("pemFile") MultipartFile pemFile,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.registerDeployment(projectId, accessToken);
+        serverService.registerDeployment(projectId, pemFile, accessToken);
 
         return ResponseEntity.ok(ApiResponse.success());
     }
 
     @PostMapping(value = "/convert")
     public ResponseEntity<ApiResponse<String>> convertHttps(
-            @RequestBody HttpsConvertRequest request,
+            @RequestPart HttpsConvertRequest request,
+            @RequestPart("pemFile") MultipartFile pemFile,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
-        serverService.convertHttpToHttps(request, accessToken);
+        serverService.convertHttpToHttps(request, pemFile, accessToken);
 
         projectService.markHttpsConverted(request.getProjectId());
 

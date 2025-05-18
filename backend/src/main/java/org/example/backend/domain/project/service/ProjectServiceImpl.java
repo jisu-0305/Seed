@@ -99,17 +99,8 @@ public class ProjectServiceImpl implements ProjectService {
                     .data(backendEnvFile.getBytes())
                     .build();
 
-            ProjectFile newPemFile = ProjectFile.builder()
-                    .projectId(project.getId())
-                    .fileName(pemFile.getOriginalFilename())
-                    .fileType(FileType.PEM)
-                    .contentType(pemFile.getContentType())
-                    .data(pemFile.getBytes())
-                    .build();
-
             projectFileRepository.save(newFrontendEnvFile);
             projectFileRepository.save(newBackendEnvFile);
-            projectFileRepository.save(newPemFile);
 
         } catch (IOException e) {
             throw new BusinessException(ErrorCode.FILE_SAVE_FAILED);
