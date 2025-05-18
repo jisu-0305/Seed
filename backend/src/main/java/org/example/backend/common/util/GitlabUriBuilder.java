@@ -14,6 +14,14 @@ public class GitlabUriBuilder {
     @Value("${gitlab.api.base-url}")
     private String baseUrl;
 
+    public URI buildListWebhooksUri(Long gitlabProjectId) {
+        return toUri(builder("projects", gitlabProjectId.toString(), "hooks"));
+    }
+
+    public URI buildDeleteWebhookUri(Long gitlabProjectId, Integer hookId) {
+        return toUri(builder("projects", gitlabProjectId.toString(), "hooks", hookId.toString()));
+    }
+
     public URI buildPushWebhookUri(Long gitlabProjectId, String hookUrl, String wildcard) {
         return toUri(builder("projects", gitlabProjectId.toString(), "hooks")
                 .queryParam("url", hookUrl)

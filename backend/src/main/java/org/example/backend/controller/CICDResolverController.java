@@ -39,22 +39,15 @@ import java.util.stream.Collectors;
 public class CICDResolverController {
 
     private final CICDResolverService cicdResolverService;
-    private final AIApiClient fastAIClient;
-    private final GitlabService gitlabService;
-    private final ObjectMapper objectMapper;
 
-    /**
-     * Jenkins 워크플로우에서 빌드 실패 시 호출할 엔드포인트
-     * - Authorization 헤더에 Bearer <cicdToken>
-     * - body에는 buildNumber만 전달
-     */
     @PostMapping("/resolve")
     @Operation(summary = "CI/CD 셀프 힐링 트리거")
     public ResponseEntity<ApiResponse<String>> triggerSelfHealingCI(
             @RequestParam Long projectId,
             @RequestParam String personalAccessToken,
-            @RequestParam FailType failType
+            @RequestParam String failType
     ) {
+        log.info("CI/CD 셀프 힐링 트리거 API 요청은 왔다");
         cicdResolverService.handleSelfHealingCI(projectId, personalAccessToken, failType);
         String message = "셀프 힐링 작업이 트리거되었습니다.";
         return ResponseEntity.ok(ApiResponse.success(message));
@@ -68,6 +61,7 @@ public class CICDResolverController {
             @RequestParam String failType // BUILD, RUNTIME
     ) {
 
+        log.info("CI/CD 셀프 힐링 트리거 API 테스트 요청은 왔다");
         String message = String.format(
                 "🔧 셀프 힐링 작업이 트리거되었습니다. [projectId=%d, personalAccessToken=%s, failType=%s]",
                 projectId, personalAccessToken, failType

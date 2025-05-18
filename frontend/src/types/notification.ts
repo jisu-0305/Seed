@@ -4,6 +4,7 @@ export interface NotificationItem {
   notificationContent: string;
   createdAt: string;
   notificationType: string;
+  invitationId: number;
   read: boolean;
 }
 

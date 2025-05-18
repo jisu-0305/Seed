@@ -31,6 +31,15 @@ public class GitlabServiceImpl implements GitlabService {
     @Override
     public void createPushWebhook(String gitlabPersonalAccessToken, Long gitlabProjectId, String hookUrl, String branchFilter) {
         String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
+
+        List<Integer> existingHookIds = gitlabApiClient.listProjectWebhooks(validGitlabAccessToken, gitlabProjectId).stream()
+                .filter(hook -> hookUrl.equals(hook.getUrl()))
+                .map(Webhook::getId)
+                .toList();
+        existingHookIds.forEach(hookId ->
+                gitlabApiClient.deleteProjectWebhook(validGitlabAccessToken, gitlabProjectId, hookId)
+        );
+
         gitlabApiClient.registerPushWebhook(validGitlabAccessToken, gitlabProjectId, hookUrl, branchFilter);
     }
 

@@ -46,7 +46,10 @@ const NotificationModal: React.FC<{
               <AcceptButton
                 onClick={() => {
                   if (n.notificationType === 'INVITATION_CREATED_TYPE') {
-                    accept.mutate(n.id);
+                    accept.mutate({
+                      notificationId: n.id,
+                      invitationId: n.invitationId,
+                    });
                   } else {
                     markRead.mutate(n.id);
                   }

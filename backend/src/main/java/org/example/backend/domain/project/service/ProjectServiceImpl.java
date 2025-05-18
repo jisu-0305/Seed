@@ -7,7 +7,10 @@ import org.example.backend.common.session.dto.SessionInfoDto;
 import org.example.backend.controller.request.project.ProjectCreateRequest;
 import org.example.backend.controller.request.project.ProjectUpdateRequest;
 import org.example.backend.controller.response.project.*;
+import org.example.backend.domain.gitlab.dto.GitlabProject;
+import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.project.entity.*;
+import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
 import org.example.backend.domain.project.enums.FileType;
@@ -46,6 +49,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectApplicationRepository projectApplicationRepository;
     private final ProjectExecutionRepository projectExecutionRepository;
     private final UserRepository userRepository;
+    private final GitlabService gitlabService;
     private final ProjectFileRepository projectFileRepository;
 
     @Value("${file.base-path}")
@@ -59,6 +63,11 @@ public class ProjectServiceImpl implements ProjectService {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), request.getRepositoryUrl());
+
         String projectName = extractProjectNameFromUrl(request.getRepositoryUrl());
 
         Project project = Project.builder()
@@ -68,6 +77,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
                 .gitlabProjectId(request.getGitlabProjectId())
+                .gitlabProjectId(gitlabProject.getGitlabProjectId())
                 .structure(request.getStructure())
                 .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())
@@ -78,6 +88,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .jdkBuildTool(request.getJdkBuildTool())
                 .autoDeploymentEnabled(false)
                 .httpsEnabled(false)
+                .serverStatus(ServerStatus.INIT)
                 .build();
 
         projectRepository.save(project);
@@ -138,9 +149,6 @@ public class ProjectServiceImpl implements ProjectService {
             projectApplicationRepository.saveAll(updateApplicatinList);
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
-
         List<UserInProject> memberList = List.of(UserInProject.builder()
                 .userId(user.getId())
                 .userName(user.getUserName())
@@ -172,6 +180,9 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
+        project.initAutoDeploymentStatus();
+
         if (request.getServerIP() != null && !request.getServerIP().isBlank()) {
             project.updateServerIP(request.getServerIP());
         }
@@ -286,10 +297,22 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(UserProject::getProjectId)
                 .toList();
 
+        if (projectIdList.isEmpty()) {
+            return List.of();
+        }
+
         Map<Long, Project> projectMap = projectRepository.findByIdIn(projectIdList).stream()
                 .collect(Collectors.toMap(Project::getId, p -> p));
 
-        List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(projectIdList);
+        List<Long> validProjectIds = projectIdList.stream()
+                .filter(projectMap::containsKey)
+                .toList();
+
+        if (validProjectIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<UserProject> allUserProjectList = userProjectRepository.findByProjectIdIn(validProjectIds);
         List<Long> allUserIdList = allUserProjectList.stream().map(UserProject::getUserId).distinct().toList();
 
         Map<Long, User> userMap = userRepository.findAllById(allUserIdList).stream()
@@ -309,7 +332,7 @@ public class ProjectServiceImpl implements ProjectService {
                         }, Collectors.toList())
                 ));
 
-        return projectIdList.stream()
+        return validProjectIds.stream()
                 .map(id -> {
                     Project project = projectMap.get(id);
                     List<UserInProject> memberList = projectUsersMap.getOrDefault(id, List.of());
@@ -325,6 +348,7 @@ public class ProjectServiceImpl implements ProjectService {
                 })
                 .toList();
     }
+
 
 
     @Override
@@ -465,6 +489,23 @@ public class ProjectServiceImpl implements ProjectService {
                 })
                 .toList();
 
+    }
+
+    @Override
+    public ServerStatusResponse getServerStatus(Long projectId, String accessToken) {
+        SessionInfoDto session = redisSessionManager.getSession(accessToken);
+        Long userId = session.getUserId();
+
+        if (!userProjectRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            throw new BusinessException(ErrorCode.USER_PROJECT_NOT_FOUND);
+        }
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_STATUS_NOT_FOUND));
+
+        return ServerStatusResponse.builder()
+                .serverStatus(project.getServerStatus())
+                .build();
     }
 
     private void upsertEnvFile(Long projectId, MultipartFile file, FileType type) throws IOException {

@@ -17,4 +17,5 @@ public interface ProjectService {
     List<ProjectStatusResponse> getMyProjectStatuses(String accessToken);
     List<ProjectExecutionGroupResponse> getMyProjectExecutionsGroupedByDate(String accessToken);
     List<ProjectApplicationResponse> searchAvailableApplications(String accessToken, String keyword);
+    ServerStatusResponse getServerStatus(Long projectId, String accessToken);
 }

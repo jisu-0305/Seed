@@ -1,37 +1,92 @@
 import 'swiper/css';
 
 import styled from '@emotion/styled';
-import { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useMemo, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
-import { useProjectCards } from '@/apis/project';
+import { useProjectCards, useProjectExecutions } from '@/apis/project';
 import { useVerticalDragScroll } from '@/hooks/Common/useVerticalDragScroll';
+import { Execution } from '@/types/execution';
 
+import { LoadingSpinner } from '../Common/LoadingSpinner';
 import { ActivityCard } from './ActivityCard';
 import { Calender } from './Calender';
 import { ProjectCard } from './ProjectCard';
 
-const activityDates = [
-  new Date(2025, 4, 4),
-  new Date(2025, 4, 6),
-  new Date(2025, 4, 12),
-  new Date(2025, 4, 14),
-  new Date(2025, 4, 24),
-];
-
-const createdDates = [new Date(2025, 4, 6), new Date(2025, 4, 22)];
+const FCMButton = dynamic(() => import('@/components/Common/FCMButton'), {
+  ssr: false,
+});
 
 export default function HomePage() {
   const verticalDragRef = useVerticalDragScroll<HTMLDivElement>();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const { data: projectCards, isLoading } = useProjectCards();
+  const { data: projectCards = [], isLoading: loadingProjects } =
+    useProjectCards();
+  const { data: executionsByDate = [], isLoading: loadingExec } =
+    useProjectExecutions();
+
+  // useEffect(() => {
+  //   console.log('📦 projectCards:', projectCards);
+  // }, [projectCards]);
+
+  // useEffect(() => {
+  //   console.log('🔄 executionsByDate:', executionsByDate);
+  // }, [executionsByDate]);
+
+  // 1) 캘린더에 찍을 날짜 배열
+  const activityDates: Date[] = useMemo(
+    () =>
+      executionsByDate.map((grp) => {
+        const [year, month, day] = grp.date.split('-').map(Number);
+        // monthIndex 는 0부터 시작
+        return new Date(year, month - 1, day);
+      }),
+    [executionsByDate],
+  );
+  const createdDates = useMemo(
+    () =>
+      projectCards
+        .map((pc) => (pc.createdAt ? new Date(pc.createdAt) : null))
+        .filter((d): d is Date => d !== null),
+    [projectCards],
+  );
+
+  // 2) 실행 기록을 Map<YYYY-MM-DD, Execution[]>
+  const execMap = useMemo(() => {
+    const m = new Map<string, Execution[]>();
+    executionsByDate.forEach((grp) => {
+      m.set(grp.date, grp.executionList);
+    });
+    return m;
+  }, [executionsByDate]);
+
+  // 3) 선택된 날짜 키
+  const selectedKey = `${selectedDate.getFullYear()}-${String(
+    selectedDate.getMonth() + 1,
+  ).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+
+  // 4) 오늘 생성 & 실행 리스트
+  const todayCreated = projectCards.filter((pc) =>
+    pc.createdAt?.startsWith(selectedKey),
+  );
+  const todayExecList = execMap.get(selectedKey) ?? [];
+
+  // 5) 실행 타입 → ActivityCard type 매핑
+  const mapType = (execType: string, status: string) => {
+    if (execType === 'BUILD') return status === 'SUCCESS' ? 'success' : 'fail';
+    if (execType === 'DEPLOY') return 'deploy';
+    if (execType === 'HTTPS') return 'https';
+    return 'success';
+  };
 
   return (
     <PageWrapper>
       <WorkspaceSection>
+        <FCMButton />
         <SectionTitle>Workspace</SectionTitle>
-        {isLoading ? (
+        {loadingProjects ? (
           <p>로딩 중...</p>
         ) : projectCards?.length === 0 ? (
           <EmptyMessage>아직 프로젝트가 없습니다</EmptyMessage>
@@ -96,30 +151,33 @@ export default function HomePage() {
         <TaskBox>
           <Title>Day {selectedDate.getDate()}</Title>
           <ActivityWrapper ref={verticalDragRef}>
-            <ActivityCard
-              title="초기 배포설정"
-              project="S12P31A206"
-              time="10:30:24"
-              type="deploy"
-            />
-            <ActivityCard
-              title="Https 설정"
-              project="S12P31A206"
-              time="10:40:72"
-              type="https"
-            />
-            <ActivityCard
-              title="#132 MR 빌드"
-              project="Project2"
-              time="11:30:02"
-              type="success"
-            />
-            <ActivityCard
-              title="#133 MR 빌드"
-              project="Project2"
-              time="16:17:23"
-              type="fail"
-            />
+            {loadingExec || loadingProjects ? (
+              <LoadingSpinner />
+            ) : todayCreated.length === 0 && todayExecList.length === 0 ? (
+              <EmptyMessage>생성/실행된 기록이 없습니다</EmptyMessage>
+            ) : (
+              <>
+                {todayCreated.map((pc) => (
+                  <ActivityCard
+                    key={`create-${pc.id}`}
+                    title="프로젝트 생성"
+                    project={pc.projectName}
+                    time={pc.createdAt!.slice(0, 10)}
+                    type="deploy"
+                  />
+                ))}
+
+                {todayExecList.map((exec) => (
+                  <ActivityCard
+                    key={exec.id}
+                    title={exec.projectExecutionTitle}
+                    project={exec.projectName}
+                    time={exec.createdAt}
+                    type={mapType(exec.executionType, exec.executionStatus)}
+                  />
+                ))}
+              </>
+            )}
           </ActivityWrapper>
         </TaskBox>
       </DevelopmentSection>
@@ -180,8 +238,9 @@ const ActivityWrapper = styled.div`
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  overflow-y: auto;
 
-  height: 30rem;
+  height: 31rem;
 
   cursor: grab;
   -webkit-overflow-scrolling: touch;
@@ -192,7 +251,8 @@ const ActivityWrapper = styled.div`
 `;
 
 const TaskBox = styled.div`
-  min-width: 30rem;
+  min-width: 45rem;
+  overflow: hidden;
 
   display: flex;
   flex-direction: column;
@@ -202,7 +262,7 @@ const TaskBox = styled.div`
 `;
 
 const EmptyMessage = styled.div`
-  padding: 2rem;
+  padding: 1rem;
   text-align: center;
   ${({ theme }) => theme.fonts.Body1};
   color: ${({ theme }) => theme.colors.Text};

@@ -61,6 +61,31 @@ public class GitlabApiClientImpl implements GitlabApiClient {
         }
     }
 
+    @Override
+    public List<Webhook> listProjectWebhooks(String gitlabPersonalAccessToken, Long projectId) {
+        URI uri = uriBuilder.buildListWebhooksUri(projectId);
+        return gitlabWebClient.get()
+                .uri(uri)
+                .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
+                .retrieve()
+                .bodyToFlux(Webhook.class)
+                .collectList()
+                .block();
+    }
+
+    @Override
+    public void deleteProjectWebhook(String gitlabPersonalAccessToken,
+                                     Long projectId,
+                                     Integer hookId) {
+        URI uri = uriBuilder.buildDeleteWebhookUri(projectId, hookId);
+        gitlabWebClient.delete()
+                .uri(uri)
+                .headers(h -> h.set("Private-Token", gitlabPersonalAccessToken))
+                .retrieve()
+                .toBodilessEntity()
+                .block();
+    }
+
     /* Push 트리거 (커밋 날리기) */
     @Override
     public CommitResponse submitCommit(String gitlabPersonalAccessToken,
