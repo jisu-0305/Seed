@@ -10,6 +10,9 @@ import org.example.backend.domain.fcm.entity.Notification;
 import org.example.backend.domain.fcm.mapper.NotificationMapper;
 import org.example.backend.domain.fcm.repository.NotificationRepository;
 import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
+import org.example.backend.domain.project.repository.ProjectRepository;
+import org.example.backend.domain.userproject.entity.UserProject;
+import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.data.domain.Page;
@@ -18,6 +21,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,13 +30,17 @@ public class NotificationServiceImpl implements NotificationService{
     private final NotificationUtil notificationUtil;
     private final NotificationRepository notificationRepository;
     private final RedisSessionManager redisSessionManager;
+    private final UserProjectRepository userProjectRepository;
+    private final ProjectRepository projectRepository;
 
-
-    @Override
-    public void notifyUsers(List<Long> userIdList, NotificationMessageTemplate template, String projectName) {
+    public void notifyUsers(List<Long> userIdList,
+                            NotificationMessageTemplate template,
+                            String projectName) {
+        // fcm 메시지 전송
         NotificationMessage message = template.toMessage(projectName);
         notificationUtil.sendToUsers(userIdList, message);
 
+        // db에 알림 저장
         List<Notification> notifications = userIdList.stream()
                 .map(userId -> Notification.builder()
                         .receiverId(userId)
@@ -45,6 +53,22 @@ public class NotificationServiceImpl implements NotificationService{
                 .toList();
 
         notificationRepository.saveAll(notifications);
+    }
+
+    @Override
+    public void notifyProjectStatusForUsers(Long projectId, NotificationMessageTemplate template) {
+
+        // 프로젝트 이름 찾기
+        String projectName = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND))
+                .getProjectName();
+
+        // 프로젝트랑 관련된 유저들 찾기
+        List<Long> userIds = userProjectRepository.findByProjectId(projectId).stream()
+                .map(UserProject::getUserId)
+                .collect(Collectors.toList());
+
+        notifyUsers(userIds, template, projectName);
     }
 
     @Override
@@ -99,26 +123,12 @@ public class NotificationServiceImpl implements NotificationService{
         return notificationRepository.findByReceiverIdOrderByCreatedAtDesc(userId, pageable);
     }
 
-//    @Override
-//    public List<Notification> getUnreadNotifications(String accessToken) {
-//        Long userId = redisSessionManager.getSession(accessToken).getUserId();
-//        return notificationRepository.findByReceiverIdAndIsReadFalseOrderByCreatedAtDesc(userId);
-//    }
-//
-@Override
+    @Override
     public List<NotificationDto> getUnreadNotifications(String accessToken) {
         Long userId = redisSessionManager.getSession(accessToken).getUserId();
-
-        // 1) Notification 엔티티 리스트 조회
-        List<Notification> notis = notificationRepository
-                .findByReceiverIdAndIsReadFalseOrderByCreatedAtDesc(userId);
-
-        // 2) 엔티티 → DTO 로 변환 (invitationId 포함!)
+        List<Notification> notis = notificationRepository.findByReceiverIdAndIsReadFalseOrderByCreatedAtDesc(userId);
         return NotificationMapper.toDtoList(notis);
     }
-
-
-
 
     @Override
     @Transactional

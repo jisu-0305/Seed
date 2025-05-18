@@ -11,6 +11,8 @@ import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.domain.aireport.enums.ReportStatus;
 import org.example.backend.domain.aireport.service.AIDeploymentReportService;
 import org.example.backend.domain.docker.service.DockerService;
+import org.example.backend.domain.fcm.service.NotificationService;
+import org.example.backend.domain.fcm.template.NotificationMessageTemplate;
 import org.example.backend.domain.gitlab.dto.GitlabTree;
 import org.example.backend.domain.gitlab.dto.PatchedFile;
 import org.example.backend.domain.gitlab.service.GitlabService;
@@ -51,6 +53,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 //    private final ProjectApplicationRepository projectApplicationRepository;
     private final ObjectMapper objectMapper;
     private final AIApiClient fastAIClient;
+    private final NotificationService notificationService;
 
     @Override
     public void handleSelfHealingCI(Long projectId, String accessToken, String failType) {
@@ -115,6 +118,12 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         if (reportStatus == ReportStatus.SUCCESS) {
             project.updateAutoDeploymentStatus(ServerStatus.CREATE_PULL_REQUEST);
             mergeRequestUrl = createMergeRequest(project, accessToken, newBranch);
+
+            // 빌드 성공 알림 보내기
+            notificationService.notifyProjectStatusForUsers(
+                    projectId,
+                    NotificationMessageTemplate.CICD_BUILD_COMPLETED
+            );
         }
 
         // 4-3. AI 요약 보고서 생성 요청 및 수신
