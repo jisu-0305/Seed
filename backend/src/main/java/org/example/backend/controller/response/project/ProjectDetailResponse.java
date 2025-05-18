@@ -3,6 +3,7 @@ package org.example.backend.controller.response.project;
 import lombok.Builder;
 import lombok.Getter;
 import org.example.backend.domain.project.enums.ProjectStructure;
+import org.example.backend.domain.project.enums.ServerStatus;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +17,7 @@ public class ProjectDetailResponse {
     private String serverIP;
     private LocalDateTime createdAt;
     private String repositoryUrl;
+    private ServerStatus serverStatus;
     private ProjectStructure structure;
 
     private String frontendDirectoryName;
