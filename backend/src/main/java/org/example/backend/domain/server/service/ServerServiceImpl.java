@@ -1,6 +1,7 @@
 package org.example.backend.domain.server.service;
 
 import com.jcraft.jsch.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
@@ -54,6 +55,7 @@ public class ServerServiceImpl implements ServerService {
     private final ProjectFileRepository projectFileRepository;
 
     @Override
+    @Transactional
     public void registerDeployment(Long projectId, MultipartFile pemFile, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -1470,6 +1472,7 @@ public class ServerServiceImpl implements ServerService {
 
 
     @Override
+    @Transactional
     public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
