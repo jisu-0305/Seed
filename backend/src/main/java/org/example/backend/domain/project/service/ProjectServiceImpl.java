@@ -66,8 +66,6 @@ public class ProjectServiceImpl implements ProjectService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), request.getRepositoryUrl());
-
         String projectName = extractProjectNameFromUrl(request.getRepositoryUrl());
 
         Project project = Project.builder()
@@ -77,7 +75,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .repositoryUrl(request.getRepositoryUrl())
                 .createdAt(LocalDateTime.now())
                 .gitlabProjectId(request.getGitlabProjectId())
-                .gitlabProjectId(gitlabProject.getGitlabProjectId())
                 .structure(request.getStructure())
                 .gitlabTargetBranchName(request.getGitlabTargetBranch())
                 .frontendDirectoryName(request.getFrontendDirectoryName())
