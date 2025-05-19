@@ -96,7 +96,8 @@ public enum ErrorCode {
     AI_REPORT_REQUEST_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6026, "AI 보고서 생성 요청 실패"),
     AI_REPORT_RESPONSE_MALFORMED(HttpStatus.INTERNAL_SERVER_ERROR, 6027, "AI 보고서 응답 파싱 또는 필드 누락"),
     AI_COMMUNICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6028, "AI API 요청간 에러 발생"),
-    AI_RESPONSE_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6029, "AI 응답 변환 과정 에러");
+    AI_RESPONSE_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6029, "AI 응답 변환 과정 에러"),
+    AUTO_DEPLOYMENT_SETTING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6029, "자동 배포 설정 실패");
 
     private final HttpStatus status;
     private final int code;
