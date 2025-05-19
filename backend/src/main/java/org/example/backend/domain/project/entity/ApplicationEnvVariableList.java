@@ -11,8 +11,8 @@ public class ApplicationEnvVariableList {
     @Column(name = "application_id")
     private Long applicationId;
 
-    @Column(name = "env_variable_list")
-    private String envVariableList;
+    @Column(name = "env_variable")
+    private String envVariable;
 
     protected ApplicationEnvVariableList() {}
 }
