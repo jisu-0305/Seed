@@ -64,7 +64,7 @@ export default function AppInput() {
   // };
 
   const handleAddApp = async (img: ApplicationWithDefaults) => {
-    const { imageName, defaultPorts, description } = img;
+    const { imageName, defaultPorts, description, imageEnvs } = img;
     const existingIndex = apps.findIndex((a) => a.imageName === imageName);
     if (existingIndex !== -1) {
       setSelectedIndex(existingIndex);
@@ -81,6 +81,7 @@ export default function AppInput() {
       port: initialPort,
       defaultPorts,
       description,
+      imageEnvs: img.imageEnvs ?? [],
     };
 
     const updated = [...apps, newApp];
@@ -225,6 +226,12 @@ export default function AppInput() {
         )}
 
         <TipList>
+          {selectedIndex !== null &&
+            apps[selectedIndex]?.imageEnvs?.length > 0 && (
+              <TipItem
+                text={`도커 이미지에 정의된 환경 변수:\n• ${apps[selectedIndex].imageEnvs.join(', ')}`}
+              />
+            )}
           <TipItem text="포트번호는 반드시 중복되지 않도록 설정해주세요" />
           <TipItem
             text="EC2에서 어플리케이션의 포트를 열어주세요"
@@ -243,6 +250,7 @@ export default function AppInput() {
           isShowing={search.isShowing}
           handleClose={search.toggle}
           onSelect={(img) => {
+            console.log('선택된 이미지:', img);
             handleAddApp(img);
           }}
         />
