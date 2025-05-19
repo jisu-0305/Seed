@@ -31,8 +31,8 @@ public enum ServerStatus {
     JENKINS_REBUILDING,        // 3-3. Jenkins로 재빌드 시작
     REBUILD_SUCCESS,          // 4-1. 재빌드 성공
     REBUILD_FAIL,             // 4-1. 재빌드 실패
-    CREATE_PULL_REQUEST,      // 4-2 GitLab PR날리기
-    CREATING_REPORT,          // 4-3. AI 보고서 생성
+    CREATING_REPORT,          // 4-2. AI 보고서 생성
+    CREATE_PULL_REQUEST,      // 4-3 GitLab PR날리기
     SAVING_REPORT,            // 4-4. AI 보고서 저장
     FINISH_WITH_AI,        // 최종 완료, 배포 성공
     FAIL_WTIH_AI,          // 최종 완료, 배포 실패

@@ -114,11 +114,15 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             // 4-1. Jenkins 빌드 결과 상태 확인
             ReportStatus reportStatus  = getBuildStatus(newBuildNumber, projectId);
 
-            // 4-2. 빌드 성공 시 GitLab MR 생성
+            // 4-2. AI 요약 보고서 생성 요청 및 수신
+            project.updateAutoDeploymentStatus(ServerStatus.CREATING_REPORT);
+            Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps, projectId);
+
+            // 4-3. 빌드 성공 시 GitLab MR 생성
             String mergeRequestUrl = "";
             if (reportStatus == ReportStatus.SUCCESS) {
                 project.updateAutoDeploymentStatus(ServerStatus.CREATE_PULL_REQUEST);
-                mergeRequestUrl = createMergeRequest(project, accessToken, newBranch);
+                mergeRequestUrl = createMergeRequest(project, accessToken, newBranch, reportResponses);
 
                 // 빌드 성공 알림 보내기
                 notificationService.notifyProjectStatusForUsers(
@@ -126,10 +130,6 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                         NotificationMessageTemplate.CICD_BUILD_COMPLETED
                 );
             }
-
-            // 4-3. AI 요약 보고서 생성 요청 및 수신
-            project.updateAutoDeploymentStatus(ServerStatus.CREATING_REPORT);
-            Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps, projectId);
 
             // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
             project.updateAutoDeploymentStatus(ServerStatus.SAVING_REPORT);
@@ -388,18 +388,6 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         return jenkinsService.waitUntilBuildFinishes(newBuildNumber, projectId);
     }
 
-    // 4-2. 빌드 성공 시 GitLab에 Merge Request 생성
-    private String createMergeRequest(Project project, String accessToken, String branchName) {
-        return gitlabService.createMergeRequest(
-                accessToken,
-                project.getGitlabProjectId(),
-                branchName,
-                project.getGitlabTargetBranchName(),
-                "[AI 수정 제안] 빌드 자동 복구",
-                "AI가 수정한 코드를 기반으로 빌드가 성공했습니다. 검토 후 병합해주세요."
-        ).getWebUrl();
-    }
-
     // 4-3. AI리포트 요청 및 응답 결과 매핑
     private Map<String, AIReportResponse> createAIReports(List<ResolveErrorResponse> resolveResults, List<String> suspectedApps, Long projectId) {
         Map<String, AIReportResponse> reports = new HashMap<>();
@@ -430,6 +418,36 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         return reports;
     }
 
+    // 4-2. 빌드 성공 시 GitLab에 Merge Request 생성
+    private String createMergeRequest(Project project, String accessToken, String branchName, Map<String, AIReportResponse> reportResponses) {
+        String apps = String.join(", ",
+                reportResponses.keySet()
+                        .stream()
+                        .sorted() // 알파벳 정렬 optional
+                        .toList()
+        );
+
+        // 제목 구성
+        String title = String.format("[%s] aifix: %s 어플리케이션 수정", branchName, apps);
+
+        StringBuilder description = new StringBuilder("## 🧠 AI 수정 요약\n\n");
+
+        reportResponses.forEach((app, report) -> {
+            description.append("### 🔧 앱: ").append(app).append("\n");
+            description.append("- 요약: ").append(report.getSummary()).append("\n");
+            description.append("- 원인: ").append(report.getAdditionalNotes()).append("\n\n");
+        });
+
+        return gitlabService.createMergeRequest(
+                accessToken,
+                project.getGitlabProjectId(),
+                branchName,
+                project.getGitlabTargetBranchName(),
+                title,
+                description.toString()
+        ).getWebUrl();
+    }
+
     // 4-4. 리포트 DB 저장
     private void saveAIReports(Long projectId, Map<String, AIReportResponse> reportResponses, ReportStatus status, String commitUrl, String mergeRequestUrl, int newBuildNumber) {
         for (Map.Entry<String, AIReportResponse> entry : reportResponses.entrySet()) {
@@ -441,7 +459,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             DeploymentReportSavedRequest request = new DeploymentReportSavedRequest();
             request.setProjectId(projectId);
             request.setBuildNumber(newBuildNumber);
-            request.setTitle("[AI 수정] " + appName + " 앱 자동 리포트");
+            request.setTitle("[AI +"+ (newBuildNumber-1) +"번 빌드 수정: ] " + appName + " 앱 자동 리포트");
             request.setSummary(response.getSummary());
             request.setAdditionalNotes(response.getAdditionalNotes());
             request.setCommitUrl(commitUrl);
