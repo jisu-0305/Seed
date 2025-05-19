@@ -8,10 +8,14 @@ import org.example.backend.domain.docker.dto.ContainerDto;
 import org.example.backend.domain.docker.dto.DockerImage;
 import org.example.backend.domain.docker.dto.DockerTag;
 import org.example.backend.domain.docker.enums.ContainerActionType;
+import org.example.backend.domain.project.entity.Application;
+import org.example.backend.domain.project.repository.ApplicationEnvVariableListRepository;
+import org.example.backend.domain.project.repository.ApplicationRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,6 +25,8 @@ import java.util.stream.Collectors;
 public class DockerServiceImpl implements DockerService {
 
     private final DockerApiClient dockerApiClient;
+    private final ApplicationRepository applicationRepository;
+    private final ApplicationEnvVariableListRepository applicationEnvVariableListRepository;
 
     @Override
     public ImageResponse getDockerImages(String image) {
@@ -175,18 +181,32 @@ public class DockerServiceImpl implements DockerService {
     }
 
     @Override
-    public List<ImageDefaultPortResponse> getDockerImageDefaultPorts(String imageAndTag) {
-
+    public ImageDefaultPortResponse getDockerImageDefaultPorts(String imageAndTag) {
         String namespace = "library";
 
-        String[] splitImageAndTag = imageAndTag.split(":", 2);
-        String imageName = splitImageAndTag[0];
-        String tag = (splitImageAndTag.length == 2 && !splitImageAndTag[1].isBlank()) ? splitImageAndTag[1] : "latest";
+        String[] parts = imageAndTag.split(":", 2);
+        String imageName = parts[0];
+        String tag = (parts.length == 2 && !parts[1].isBlank()) ? parts[1] : "latest";
+        String fullName   = imageName + ":" + tag;
 
-        List<String> ports = dockerApiClient.getImageDefaultPorts(namespace, imageName, tag);
+        List<String> defaultPorts = dockerApiClient.getImageDefaultPorts(namespace, imageName, tag);
 
-        return List.of(new ImageDefaultPortResponse(imageName + ":" + tag, ports));
+        List<Application> apps = applicationRepository.findByImageName(imageName);
 
+        List<String> imageEnvs = List.of();
+        if (!apps.isEmpty()) {
+            Long appId = apps.get(0).getId();
+            List<String> rawLists = applicationEnvVariableListRepository
+                    .findEnvVariableListByApplicationId(appId);
+
+            imageEnvs = rawLists.stream()
+                    .flatMap(raw -> Arrays.stream(raw.split(",")))
+                    .map(String::trim)
+                    .filter(s -> !s.isEmpty())
+                    .toList();
+        }
+
+        return new ImageDefaultPortResponse(fullName, defaultPorts, imageEnvs);
     }
 
     /* 공통 로직 */

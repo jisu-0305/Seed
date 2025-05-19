@@ -7,8 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
-    Optional<Application> findByImageName(String imageName);
     Optional<Application> findFirstByImageNameOrderByIdAsc(String imageName);
     List<Application> findByImageNameContainingIgnoreCase(String keyword);
     boolean existsByImageNameAndDefaultPort(String imageName, int defaultPort);
+    List<Application> findByImageName(String imageName);
 }
