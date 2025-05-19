@@ -36,10 +36,10 @@ public class ProjectController {
             @RequestPart("projectRequest") ProjectCreateRequest request,
             @RequestPart("clientEnvFile") MultipartFile clientEnvFile,
             @RequestPart("serverEnvFile") MultipartFile serverEnvFile,
-            @RequestPart("pemFile") MultipartFile pemFile,
+            //@RequestPart("pemFile") MultipartFile pemFile,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken
     ) {
-        ProjectResponse response = projectService.createProject(request, clientEnvFile, serverEnvFile, pemFile, accessToken);
+        ProjectResponse response = projectService.createProject(request, clientEnvFile, serverEnvFile, accessToken);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
