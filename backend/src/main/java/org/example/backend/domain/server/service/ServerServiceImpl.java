@@ -744,7 +744,7 @@ public class ServerServiceImpl implements ServerService {
             case "Vue.js":
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t vue .\n" +
+                                "                        docker build --no-cache -f Dockerfile -t vue .\n" +
                                 "                        docker stop vue || true\n" +
                                 "                        docker rm vue || true\n" +
                                 "                        docker run -d --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
@@ -753,7 +753,7 @@ public class ServerServiceImpl implements ServerService {
             case "React":
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t react .\n" +
+                                "                        docker build --no-cache -f Dockerfile -t react .\n" +
                                 "                        docker stop react || true\n" +
                                 "                        docker rm react || true\n" +
                                 "                        docker run -d --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
@@ -763,7 +763,7 @@ public class ServerServiceImpl implements ServerService {
             default:
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build -f Dockerfile -t next .\n" +
+                                "                        docker build --no-cache -f Dockerfile -t next .\n" +
                                 "                        docker stop next || true\n" +
                                 "                        docker rm next || true\n" +
                                 "                        docker run -d --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
@@ -1096,7 +1096,7 @@ public class ServerServiceImpl implements ServerService {
                         "                }\n" +
                         "                dir('backend') {\n" +
                         "                    sh '''\n" +
-                        "                        docker build -t spring .\n" +
+                        "                        docker build --no-cache -t spring .\n" +
                         "                        docker stop spring || true\n" +
                         "                        docker rm spring || true\n" +
                         "                        docker run -d -p 8080:8080 --env-file .env --name spring spring\n" +
