@@ -8,7 +8,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface ProjectService {
-    ProjectResponse createProject(ProjectCreateRequest request, MultipartFile clientEnvFile, MultipartFile serverEnvFile, MultipartFile pemFile, String accessToken);
+    ProjectResponse createProject(ProjectCreateRequest request, MultipartFile clientEnvFile, MultipartFile serverEnvFile, String accessToken);
     ProjectResponse updateProject(Long projectId, ProjectUpdateRequest request, MultipartFile clientEnvFile, MultipartFile serverEnvFile, String accessToken);
     ProjectDetailResponse getProjectDetail(Long projectId, String accessToken);
     List<ProjectResponse> getAllProjects(String accessToken);

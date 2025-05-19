@@ -58,7 +58,7 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     @Transactional
     public ProjectResponse createProject(ProjectCreateRequest request, MultipartFile frontEnvFile,
-                                         MultipartFile backendEnvFile, MultipartFile pemFile, String accessToken) {
+                                         MultipartFile backendEnvFile, String accessToken) {
 
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
