@@ -15,6 +15,9 @@ import lombok.NoArgsConstructor;
 public class ApplicationEnvVariables {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
     @Column(name = "application_id")
     private Long applicationId;
 
