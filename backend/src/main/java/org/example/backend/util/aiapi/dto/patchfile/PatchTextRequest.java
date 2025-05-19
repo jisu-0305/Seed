@@ -10,4 +10,5 @@ import lombok.Setter;
 public class PatchTextRequest {
     private String originalCode;
     private String instruction;
+    private Long projectId;
 }

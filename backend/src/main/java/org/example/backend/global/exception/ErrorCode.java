@@ -6,7 +6,7 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum ErrorCode {
 
-    // 1xxx: 파라미터 관련 오류
+    // 1xxx: 파라미터 관련 오류 
     INVALID_PARAMETER(HttpStatus.BAD_REQUEST, 1001, "잘못된 파라미터입니다."),
     INVALID_AUTHORIZATION_HEADER(HttpStatus.BAD_REQUEST, 1102, "Authorization 헤더 형식이 잘못되었습니다."),
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, 1103, "지원하지 않는 요청입니다."),

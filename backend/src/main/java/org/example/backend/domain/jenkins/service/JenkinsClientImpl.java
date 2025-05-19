@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.util.JenkinsUriBuilder;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
+import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -74,7 +75,7 @@ public class JenkinsClientImpl implements JenkinsClient {
 
             if (!crumbResponse.trim().startsWith("{")) {
                 log.error("❌ Crumb 응답 오류: {}", crumbResponse);
-                throw new BusinessException(ErrorCode.JENKINS_CRUMB_REQUEST_FAILED);
+                throw new BusinessException(ErrorCode.JENKINS_CRUMB_REQUEST_FAILED, info.getProjectId(),ServerStatus.BUILD_FAIL_WITH_AI);
             }
 
             JsonNode crumbJson = mapper.readTree(crumbResponse);
@@ -97,14 +98,14 @@ public class JenkinsClientImpl implements JenkinsClient {
 
             if (buildResponse.contains("403")) {
                 log.error("❌ Jenkins trigger 실패 응답: {}", buildResponse);
-                throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED);
+                throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED, info.getProjectId(),ServerStatus.BUILD_FAIL_WITH_AI);
             }
 
             log.info("✅ Jenkins 빌드 트리거 성공: 브랜치={}", branchName);
 
         } catch (Exception e) {
             log.error("❌ Jenkins trigger exception: {}", e.getMessage(), e);
-            throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED);
+            throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED, info.getProjectId(),ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 
@@ -188,7 +189,7 @@ public class JenkinsClientImpl implements JenkinsClient {
                     .block();
         } catch (Exception e) {
             log.error("Jenkins 요청 예외 발생: {}", e.getMessage());
-            throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED);
+            throw new BusinessException(ErrorCode.JENKINS_REQUEST_FAILED, info.getProjectId(), ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 

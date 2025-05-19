@@ -13,6 +13,9 @@ import java.util.List;
 @AllArgsConstructor
 public class InferAppRequest {
 
+    @JsonProperty("projectId")
+    private Long projectId;
+
     @JsonProperty("gitDiff")
     private List<GitlabCompareDiff> gitDiff;
 
