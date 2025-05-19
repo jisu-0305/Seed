@@ -49,7 +49,7 @@ export default function InfoCheck() {
           <Label>IP</Label>
           <Value>{status.server.ip || '-'}</Value>
         </Row>
-        <Row>
+        {/* <Row>
           <Label>.pem</Label>
           <Icon
             src={
@@ -59,7 +59,7 @@ export default function InfoCheck() {
             }
             alt="checked"
           />
-        </Row>
+        </Row> */}
       </Section>
 
       <Divider />

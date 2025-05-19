@@ -16,7 +16,8 @@ export default function Projects() {
   const { projects, loading, error, loadProjects } = useProjectStore();
 
   useEffect(() => {
-    loadProjects();
+    console.log('프로젝트 목록 불러오기');
+    loadProjects(true);
   }, [loadProjects]);
 
   if (loading) return <LoadingSpinner />;

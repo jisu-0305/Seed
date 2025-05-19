@@ -2,7 +2,7 @@ import 'swiper/css';
 
 import styled from '@emotion/styled';
 import dynamic from 'next/dynamic';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
 import { useProjectCards, useProjectExecutions } from '@/apis/project';
@@ -22,18 +22,22 @@ export default function HomePage() {
   const verticalDragRef = useVerticalDragScroll<HTMLDivElement>();
   const [selectedDate, setSelectedDate] = useState(new Date());
 
-  const { data: projectCards = [], isLoading: loadingProjects } =
-    useProjectCards();
-  const { data: executionsByDate = [], isLoading: loadingExec } =
-    useProjectExecutions();
+  const {
+    data: projectCards = [],
+    isLoading: loadingProjects,
+    refetch: refetchProjects,
+  } = useProjectCards();
 
-  // useEffect(() => {
-  //   console.log('📦 projectCards:', projectCards);
-  // }, [projectCards]);
+  const {
+    data: executionsByDate = [],
+    isLoading: loadingExec,
+    refetch: refetchExecutions,
+  } = useProjectExecutions();
 
-  // useEffect(() => {
-  //   console.log('🔄 executionsByDate:', executionsByDate);
-  // }, [executionsByDate]);
+  useEffect(() => {
+    refetchProjects();
+    refetchExecutions();
+  }, []);
 
   // 1) 캘린더에 찍을 날짜 배열
   const activityDates: Date[] = useMemo(
