@@ -1327,7 +1327,7 @@ public class ServerServiceImpl implements ServerService {
                                 "RUN gradle bootJar --no-daemon\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/build/libs/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
@@ -1345,7 +1345,7 @@ public class ServerServiceImpl implements ServerService {
                                 "RUN mvn clean package -DskipTests\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion() + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion() + "-jdk\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/target/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
