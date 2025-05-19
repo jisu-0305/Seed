@@ -13,16 +13,10 @@ import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
-import org.example.backend.domain.project.entity.Application;
-import org.example.backend.domain.project.entity.Project;
-import org.example.backend.domain.project.entity.ProjectApplication;
-import org.example.backend.domain.project.entity.ProjectFile;
+import org.example.backend.domain.project.entity.*;
 import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.domain.project.enums.FileType;
-import org.example.backend.domain.project.repository.ApplicationRepository;
-import org.example.backend.domain.project.repository.ProjectApplicationRepository;
-import org.example.backend.domain.project.repository.ProjectFileRepository;
-import org.example.backend.domain.project.repository.ProjectRepository;
+import org.example.backend.domain.project.repository.*;
 import org.example.backend.domain.server.entity.HttpsLog;
 import org.example.backend.domain.server.repository.HttpsLogRepository;
 import org.example.backend.domain.user.entity.User;
@@ -58,6 +52,7 @@ public class ServerServiceImpl implements ServerService {
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
     private final ProjectApplicationRepository projectApplicationRepository;
     private final ProjectFileRepository projectFileRepository;
+    private final ApplicationEnvVariableListRepository applicationEnvVariableListRepository;
 
     @Override
     @Transactional
@@ -244,7 +239,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 서버 배포 프로세스
-    private List<String> serverInitializeCommands(User user, Project project, byte[] frontEnvFile, byte[] backEnvFile, String gitlabTargetBranchName) {
+    public List<String> serverInitializeCommands(User user, Project project, byte[] frontEnvFile, byte[] backEnvFile, String gitlabTargetBranchName) {
         String url = project.getRepositoryUrl();
         String repositoryUrl = url.substring(0, url.length() - 4);
 
@@ -277,7 +272,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // [optional] 방화벽 설정
-    private List<String> setFirewall() {
+    public List<String> setFirewall() {
         return List.of(
                 "sudo ufw enable",
                 "sudo ufw allow 22",
@@ -292,7 +287,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 1. 스왑 메모리 설정
-    private List<String> setSwapMemory(Project project) {
+    public List<String> setSwapMemory(Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.SET_SWAP_MEMORY);
 
         return List.of(
@@ -312,7 +307,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 2. 패키지 업데이트
-    private List<String> updatePackageManager(Project project) {
+    public List<String> updatePackageManager(Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.UPDATE_PACKAGE);
 
         return List.of(
@@ -323,7 +318,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 3. JDK 설치
-    private List<String> setJDK(Project project) {
+    public List<String> setJDK(Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.INSTALL_JDK);
 
         return List.of(
@@ -334,7 +329,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // Node.js, npm 설치 (docker로 빌드하므로 필요없어짐)
-    private List<String> setNodejs() {
+    public List<String> setNodejs() {
         return List.of(
                 "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
                 "sudo apt-get install -y nodejs",
@@ -344,7 +339,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 4. Docker 설치 (Docker-Compose 추가 가능)
-    private List<String> setDocker(Project project) {
+    public List<String> setDocker(Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.INSTALL_DOCKER);
 
         return List.of(
@@ -384,7 +379,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 5. 어플리케이션 목록 도커로 실행
-    private List<String> runApplicationList(Project project, List<ProjectApplication> projectApplicationList, byte[] backendEnvFile) {
+    public List<String> runApplicationList(Project project, List<ProjectApplication> projectApplicationList, byte[] backendEnvFile) {
         project.updateAutoDeploymentStatus(ServerStatus.RUN_APPLICATION);
 
         try {
@@ -418,7 +413,7 @@ public class ServerServiceImpl implements ServerService {
                                 .append("--name ").append(image).append(" ")
                                 .append("-p ").append(port).append(":").append(port).append(" ");
 
-                        List<String> applicationEnvList = application.getEnvVariableList();
+                        List<String> applicationEnvList = applicationEnvVariableListRepository.findEnvVariablesByApplicationId(app.getApplicationId());
 
                         if (applicationEnvList != null && !applicationEnvList.isEmpty()) {
                             for (String key : applicationEnvList) {
@@ -450,7 +445,7 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    private Map<String, String> parseEnvFile(byte[] envFileBytes) throws IOException {
+    public Map<String, String> parseEnvFile(byte[] envFileBytes) throws IOException {
         Map<String, String> envMap = new HashMap<>();
         String content = new String(envFileBytes, StandardCharsets.UTF_8);
 
@@ -469,7 +464,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 6. Nginx 설치 및 설정
-    private List<String> setNginx(Project project, String serverIp) {
+    public List<String> setNginx(Project project, String serverIp) {
         project.updateAutoDeploymentStatus(ServerStatus.INSTALL_NGINX);
 
         String nginxConf = String.format("""
@@ -547,7 +542,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 8. Jenkins 설치
-    private List<String> setJenkins(Project project) {
+    public List<String> setJenkins(Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.INSTALL_JENKINS);
 
         return List.of(
@@ -562,7 +557,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> setJenkinsConfigure(Project project) {
+    public List<String> setJenkinsConfigure(Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.INSTALL_JENKINS_PLUGINS);
         return List.of(
                 // 기본 폴더 초기화
@@ -623,7 +618,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins credentials 생성
-    private List<String> setJenkinsConfiguration(Project project, String gitlabUsername, String gitlabToken, byte[] frontEnvFile, byte[] backEnvFile) {
+    public List<String> setJenkinsConfiguration(Project project, String gitlabUsername, String gitlabToken, byte[] frontEnvFile, byte[] backEnvFile) {
         project.updateAutoDeploymentStatus(ServerStatus.SET_JENKINS_INFO);
 
         String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile);
@@ -670,7 +665,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeJenkinsJob(Project project, String jobName, String gitRepoUrl, String credentialsId, String gitlabTargetBranchName) {
+    public List<String> makeJenkinsJob(Project project, String jobName, String gitRepoUrl, String credentialsId, String gitlabTargetBranchName) {
         project.updateAutoDeploymentStatus(ServerStatus.CREATE_JENKINS_JOB);
 
         String jobConfigXml = String.join("\n",
@@ -740,7 +735,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
 
-    private List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) {
+    public List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.CREATE_JENKINSFILE);
 
         log.info(repositoryUrl);
@@ -751,7 +746,7 @@ public class ServerServiceImpl implements ServerService {
             case "Vue.js":
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build --no-cache -f Dockerfile -t vue .\n" +
+                                "                        docker build -f Dockerfile -t vue .\n" +
                                 "                        docker stop vue || true\n" +
                                 "                        docker rm vue || true\n" +
                                 "                        docker run -d --network mynet  --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
@@ -760,7 +755,7 @@ public class ServerServiceImpl implements ServerService {
             case "React":
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build --no-cache -f Dockerfile -t react .\n" +
+                                "                        docker build -f Dockerfile -t react .\n" +
                                 "                        docker stop react || true\n" +
                                 "                        docker rm react || true\n" +
                                 "                        docker run -d --network mynet --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
@@ -770,7 +765,7 @@ public class ServerServiceImpl implements ServerService {
             default:
                 frontendDockerScript =
                         "                        set -e\n" +
-                                "                        docker build --no-cache -f Dockerfile -t next .\n" +
+                                "                        docker build -f Dockerfile -t next .\n" +
                                 "                        docker stop next || true\n" +
                                 "                        docker rm next || true\n" +
                                 "                        docker run -d --network mynet --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
@@ -1104,7 +1099,7 @@ public class ServerServiceImpl implements ServerService {
                         "                }\n" +
                         "                dir('backend') {\n" +
                         "                    sh '''\n" +
-                        "                        docker build --no-cache -t spring .\n" +
+                        "                        docker build -t spring .\n" +
                         "                        docker stop spring || true\n" +
                         "                        docker rm spring || true\n" +
                         "                        docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
@@ -1312,7 +1307,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeDockerfileForBackend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
+    public List<String> makeDockerfileForBackend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.CREATE_BACKEND_DOCKERFILE);
 
         log.info(repositoryUrl);
@@ -1366,7 +1361,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeDockerfileForFrontend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
+    public List<String> makeDockerfileForFrontend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
         project.updateAutoDeploymentStatus(ServerStatus.CREATE_FRONTEND_DOCKERFILE);
 
         log.info(repositoryUrl);
@@ -1429,7 +1424,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> makeGitlabWebhook(Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
+    public List<String> makeGitlabWebhook(Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
         project.updateAutoDeploymentStatus(ServerStatus.CREATE_WEBHOOK);
 
         String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
@@ -1442,7 +1437,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
 
-    private void issueAndSaveToken(Long projectId, String serverIp, Session session) {
+    public void issueAndSaveToken(Long projectId, String serverIp, Session session) {
         try {
             String jenkinsUrl = "http://" + serverIp + ":9090";
             String jenkinsJobName = "auto-created-deployment-job";
@@ -1476,7 +1471,7 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    private String generateTokenViaFile(Session session) {
+    public String generateTokenViaFile(Session session) {
         try {
             String cmd = "sudo cat /tmp/jenkins_token";
             log.info("📤 실행 명령어: {}", cmd);
@@ -1568,7 +1563,7 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    private List<Map.Entry<String, String>> convertHttpToHttpsCommands(HttpsConvertRequest request) {
+    public List<Map.Entry<String, String>> convertHttpToHttpsCommands(HttpsConvertRequest request) {
         return Stream.of(
                         Map.entry("Install Certbot", installCertbot()),
                         Map.entry("Overwrite Default Nginx Conf", overwriteDomainDefaultNginxConf(request.getDomain())),
@@ -1581,7 +1576,7 @@ public class ServerServiceImpl implements ServerService {
                 .toList();
     }
 
-    private List<String> installCertbot() {
+    public List<String> installCertbot() {
         return List.of(
                 "sudo apt update",
                 waitForAptLock(),
@@ -1590,13 +1585,13 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> issueSslCertificate(String domain, String email) {
+    public List<String> issueSslCertificate(String domain, String email) {
         return List.of(
                 String.format("sudo certbot --nginx -d %s --email %s --agree-tos --redirect --non-interactive", domain, email)
         );
     }
 
-    private List<String> overwriteNginxConf(String domain) {
+    public List<String> overwriteNginxConf(String domain) {
         String conf = generateNginxConf(domain).replace("'", "'\"'\"'");
         String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
 
@@ -1605,7 +1600,7 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> overwriteDomainDefaultNginxConf(String domain) {
+    public List<String> overwriteDomainDefaultNginxConf(String domain) {
         String conf = generateDomainDefaultNginxConf(domain).replace("'", "'\"'\"'");
         String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
 
@@ -1614,13 +1609,13 @@ public class ServerServiceImpl implements ServerService {
         );
     }
 
-    private List<String> reloadNginx() {
+    public List<String> reloadNginx() {
         return List.of(
                 "sudo systemctl reload nginx"
         );
     }
 
-    private String generateDomainDefaultNginxConf(String domain) {
+    public String generateDomainDefaultNginxConf(String domain) {
         return String.format("""
             server {
                 listen 80;
@@ -1672,7 +1667,7 @@ public class ServerServiceImpl implements ServerService {
             """, domain);
     }
 
-    private String generateNginxConf(String domain) {
+    public String generateNginxConf(String domain) {
         return String.format("""
             server {
                 listen 80;
@@ -1735,7 +1730,7 @@ public class ServerServiceImpl implements ServerService {
         """, domain, domain, domain, domain);
     }
 
-    private void saveLog(Long projectId, String stepName, String logContent, String status) {
+    public void saveLog(Long projectId, String stepName, String logContent, String status) {
         httpsLogRepository.save(HttpsLog.builder()
                 .projectId(projectId)
                 .stepName(stepName)
@@ -1745,7 +1740,7 @@ public class ServerServiceImpl implements ServerService {
                 .build());
     }
 
-    private Session createSessionWithPem(byte[] pemFile, String host) throws JSchException, IOException {
+    public Session createSessionWithPem(byte[] pemFile, String host) throws JSchException, IOException {
         JSch jsch = new JSch();
         jsch.addIdentity("ec2-key", pemFile, null, null);
 
@@ -1759,7 +1754,7 @@ public class ServerServiceImpl implements ServerService {
         return session;
     }
 
-    private String execCommand(Session session, String command) throws JSchException, IOException {
+    public String execCommand(Session session, String command) throws JSchException, IOException {
         ChannelExec channel = null;
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -1810,7 +1805,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 안전한 패키지 설치를 위한 apt lock 대기
-    private static String waitForAptLock() {
+    public static String waitForAptLock() {
         return String.join("\n",
                 "count=0",
                 "while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do",

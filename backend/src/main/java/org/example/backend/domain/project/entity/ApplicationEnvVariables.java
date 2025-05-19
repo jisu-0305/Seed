@@ -6,25 +6,21 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Entity
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "applications")
-public class Application {
+@Table(name = "application_env_variables")
+public class ApplicationEnvVariables {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String imageName;
+    @Column(name = "application_id")
+    private Long applicationId;
 
-    private int defaultPort;
-
-    private String defaultTag;
-
-    private String description;
+    @Column(name = "env_variable")
+    private String envVariable;
 }
