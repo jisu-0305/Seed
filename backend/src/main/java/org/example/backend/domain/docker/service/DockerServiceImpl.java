@@ -197,7 +197,7 @@ public class DockerServiceImpl implements DockerService {
         if (!apps.isEmpty()) {
             Long appId = apps.get(0).getId();
             List<String> rawLists = applicationEnvVariableListRepository
-                    .findEnvVariableListByApplicationId(appId);
+                    .findEnvVariablesByApplicationId(appId);
 
             imageEnvs = rawLists.stream()
                     .flatMap(raw -> Arrays.stream(raw.split(",")))

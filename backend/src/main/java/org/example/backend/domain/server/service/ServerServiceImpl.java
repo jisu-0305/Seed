@@ -413,7 +413,7 @@ public class ServerServiceImpl implements ServerService {
                                 .append("--name ").append(image).append(" ")
                                 .append("-p ").append(port).append(":").append(port).append(" ");
 
-                        List<String> applicationEnvList = applicationEnvVariableListRepository.findEnvVariableListByApplicationId(app.getApplicationId());
+                        List<String> applicationEnvList = applicationEnvVariableListRepository.findEnvVariablesByApplicationId(app.getApplicationId());
 
                         if (applicationEnvList != null && !applicationEnvList.isEmpty()) {
                             for (String key : applicationEnvList) {
