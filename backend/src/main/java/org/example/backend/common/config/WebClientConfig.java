@@ -23,9 +23,15 @@ public class WebClientConfig {
     @Value("${docker.auth.api.base-url}")
     private String dockerAuthApiBaseUrl;
 
+    private final ExchangeStrategies largeBufferExchangeStrategies = ExchangeStrategies.builder()
+            .codecs(c -> c.defaultCodecs().maxInMemorySize(10 * 1024 * 1024)) // 10MB
+            .build();
+
     @Bean("webClient")
     public WebClient webClient() {
-        return WebClient.builder().build();
+        return WebClient.builder()
+                .exchangeStrategies(largeBufferExchangeStrategies)
+                .build();
     }
 
     @Bean("gitlabWebClient")
@@ -33,24 +39,23 @@ public class WebClientConfig {
         return WebClient.builder()
                 .baseUrl(gitlabApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .exchangeStrategies(largeBufferExchangeStrategies)
                 .build();
     }
 
     @Bean("dockerWebClientBuilder")
     public WebClient.Builder dockerWebClientBuilder() {
         return WebClient.builder()
-                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE);
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .exchangeStrategies(largeBufferExchangeStrategies);
     }
 
     @Bean("dockerHubWebClient")
     public WebClient dockerHubWebClient() {
-        ExchangeStrategies strategies = ExchangeStrategies.builder()
-                .codecs(c -> c.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
-                .build();
-
         return WebClient.builder()
                 .baseUrl(dockerHubApiBaseUrl)
-                .exchangeStrategies(strategies)
+                .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .exchangeStrategies(largeBufferExchangeStrategies)
                 .build();
     }
 
@@ -59,6 +64,7 @@ public class WebClientConfig {
         return WebClient.builder()
                 .baseUrl(dockerRegistryApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .exchangeStrategies(largeBufferExchangeStrategies)
                 .build();
     }
 
@@ -67,6 +73,7 @@ public class WebClientConfig {
         return WebClient.builder()
                 .baseUrl(dockerAuthApiBaseUrl)
                 .defaultHeader(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
+                .exchangeStrategies(largeBufferExchangeStrategies)
                 .build();
     }
 
