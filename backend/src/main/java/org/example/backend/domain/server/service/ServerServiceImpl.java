@@ -1,6 +1,7 @@
 package org.example.backend.domain.server.service;
 
 import com.jcraft.jsch.*;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.session.RedisSessionManager;
@@ -30,7 +31,8 @@ import org.example.backend.domain.userproject.repository.UserProjectRepository;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -59,7 +61,7 @@ public class ServerServiceImpl implements ServerService {
 
     @Override
     @Transactional
-    public void registerDeployment(Long projectId, String accessToken) {
+    public void registerDeployment(Long projectId, MultipartFile pemFile, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
@@ -68,8 +70,6 @@ public class ServerServiceImpl implements ServerService {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
-        ProjectFile pemFileEntity = projectFileRepository.findByProjectIdAndFileType(projectId, FileType.PEM)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PEM_NOT_FOUND));
         byte[] frontEnv = projectFileRepository.findByProjectIdAndFileType(projectId, FileType.FRONTEND_ENV)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FRONT_ENV_NOT_FOUND)).getData();
         byte[] backEnv = projectFileRepository.findByProjectIdAndFileType(projectId, FileType.BACKEND_ENV)
@@ -81,7 +81,7 @@ public class ServerServiceImpl implements ServerService {
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
-            sshSession = createSessionWithPem(pemFileEntity.getData(), host);
+            sshSession = createSessionWithPem(pemFile.getBytes(), host);
             log.info("SSH 연결 성공: {}", host);
 
             // 2) 인프라 설정 명령 실행
@@ -1490,7 +1490,8 @@ public class ServerServiceImpl implements ServerService {
 
 
     @Override
-    public void convertHttpToHttps(HttpsConvertRequest request, String accessToken) {
+    @Transactional
+    public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
@@ -1498,9 +1499,6 @@ public class ServerServiceImpl implements ServerService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         Project project = projectRepository.findById(request.getProjectId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
-
-        ProjectFile pemFileEntity = projectFileRepository.findByProjectIdAndFileType(project.getId(), FileType.PEM)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
         if (!userProjectRepository.existsByProjectIdAndUserId(project.getId(), user.getId())) {
@@ -1513,7 +1511,7 @@ public class ServerServiceImpl implements ServerService {
         try {
             // 1) 원격 서버 세션 등록
             log.info("세션 생성 시작");
-            sshSession = createSessionWithPem(pemFileEntity.getData(), host);
+            sshSession = createSessionWithPem(pemFile.getBytes(), host);
             log.info("세션 생성 성공");
 
             // 2) 명령어 실행
