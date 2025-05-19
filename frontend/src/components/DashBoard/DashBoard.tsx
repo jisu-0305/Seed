@@ -1,12 +1,13 @@
 import 'swiper/css';
 
 import styled from '@emotion/styled';
-import dynamic from 'next/dynamic';
+// import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 
 import { useProjectCards, useProjectExecutions } from '@/apis/project';
 import { useVerticalDragScroll } from '@/hooks/Common/useVerticalDragScroll';
+import { useUserStore } from '@/stores/userStore';
 import { Execution } from '@/types/execution';
 
 import { LoadingSpinner } from '../Common/LoadingSpinner';
@@ -14,9 +15,9 @@ import { ActivityCard } from './ActivityCard';
 import { Calender } from './Calender';
 import { ProjectCard } from './ProjectCard';
 
-const FCMButton = dynamic(() => import('@/components/Common/FCMButton'), {
-  ssr: false,
-});
+// const FCMButton = dynamic(() => import('@/components/Common/FCMButton'), {
+//   ssr: false,
+// });
 
 export default function HomePage() {
   const verticalDragRef = useVerticalDragScroll<HTMLDivElement>();
@@ -85,10 +86,48 @@ export default function HomePage() {
     return 'success';
   };
 
+  // FCM
+  const user = useUserStore((s) => s.user);
+
+  useEffect(() => {
+    // 클라이언트 환경인지 + FCM 지원 브라우저인지 확인 후 로직 실행
+    const setupFcm = async () => {
+      if (typeof window === 'undefined') return;
+
+      const { isSupported } = await import('firebase/messaging');
+      const supported = await isSupported();
+      if (!supported) {
+        console.warn('이 브라우저는 FCM을 지원하지 않습니다.');
+        return;
+      }
+
+      // 서비스 워커 등록
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+        console.log('✅ SW 등록 완료');
+      } catch (err) {
+        console.error('❌ SW 등록 실패:', err);
+      }
+
+      // FCM 수신 리스너
+      const { initFcmForegroundListener } = await import('@/libs/fcmListener');
+      initFcmForegroundListener();
+
+      // 토큰 요청
+      if (user?.userId) {
+        const { requestFcmPermission } = await import(
+          '@/libs/requestFcmPermission'
+        );
+        await requestFcmPermission(user.userId);
+      }
+    };
+
+    setupFcm();
+  }, []);
+
   return (
     <PageWrapper>
       <WorkspaceSection>
-        <FCMButton />
         <SectionTitle>Workspace</SectionTitle>
         {loadingProjects ? (
           <p>로딩 중...</p>
