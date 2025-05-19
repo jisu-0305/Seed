@@ -24,6 +24,8 @@ public class Application {
 
     private int defaultPort;
 
+    private String defaultTag;
+
     private String description;
 
     @Transient

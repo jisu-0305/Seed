@@ -395,9 +395,16 @@ public class ServerServiceImpl implements ServerService {
 
             return projectApplicationList.stream()
                     .flatMap(app -> {
+
+                        Application application = applicationRepository.findById(app.getApplicationId())
+                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
                         String image = app.getImageName();
-                        int port  = app.getPort();
-                        String tag   = app.getTag();
+                        int port = app.getPort();
+                        String tag = app.getTag();
+                        String defaultTag = application.getDefaultTag() != null
+                                ? application.getDefaultTag()
+                                : tag;
 
                         // stop, rm 명령
                         String stop = "sudo docker stop " + image + " || true";
@@ -410,12 +417,6 @@ public class ServerServiceImpl implements ServerService {
                                 .append("--network mynet ")
                                 .append("--name ").append(image).append(" ")
                                 .append("-p ").append(port).append(":").append(port).append(" ");
-
-                        // 환경변수 Map 순회
-                        // key값은 db에서 꺼내와야함
-                        // value는 .env에서 꺼내와야함
-                        Application application = applicationRepository.findById(app.getApplicationId())
-                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
                         List<String> applicationEnvList = application.getEnvVariableList();
 
@@ -436,7 +437,7 @@ public class ServerServiceImpl implements ServerService {
                         }
 
                         // 마지막에 이미지:태그
-                        runSb.append(image).append(":").append(tag);
+                        runSb.append(image).append(":").append(defaultTag);
 
                         String run = runSb.toString();
 
