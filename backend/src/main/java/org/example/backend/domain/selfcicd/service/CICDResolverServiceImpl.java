@@ -35,6 +35,7 @@ import org.example.backend.util.aiapi.dto.suspectapp.InferAppRequest;
 import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
 import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.*;
@@ -56,6 +57,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final NotificationService notificationService;
 
     @Override
+    @Transactional
     public void handleSelfHealingCI(Long projectId, String accessToken, String failType) {
 
         try {
@@ -388,7 +390,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         return jenkinsService.waitUntilBuildFinishes(newBuildNumber, projectId);
     }
 
-    // 4-3. AI리포트 요청 및 응답 결과 매핑
+    // 4-2. AI리포트 요청 및 응답 결과 매핑
     private Map<String, AIReportResponse> createAIReports(List<ResolveErrorResponse> resolveResults, List<String> suspectedApps, Long projectId) {
         Map<String, AIReportResponse> reports = new HashMap<>();
 
@@ -418,7 +420,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         return reports;
     }
 
-    // 4-2. 빌드 성공 시 GitLab에 Merge Request 생성
+    // 4-3. 빌드 성공 시 GitLab에 Merge Request 생성
     private String createMergeRequest(Project project, String accessToken, String branchName, Map<String, AIReportResponse> reportResponses) {
         String apps = String.join(", ",
                 reportResponses.keySet()
@@ -459,7 +461,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             DeploymentReportSavedRequest request = new DeploymentReportSavedRequest();
             request.setProjectId(projectId);
             request.setBuildNumber(newBuildNumber);
-            request.setTitle("[AI +"+ (newBuildNumber-1) +"번 빌드 수정: ] " + appName + " 앱 자동 리포트");
+            request.setTitle("[AI "+ (newBuildNumber-1) +"번 빌드 수정: ] " + appName + " 앱 자동 리포트");
             request.setSummary(response.getSummary());
             request.setAdditionalNotes(response.getAdditionalNotes());
             request.setCommitUrl(commitUrl);
