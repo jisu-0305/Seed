@@ -94,6 +94,7 @@ public class ServerServiceImpl implements ServerService {
 
             // 3) 프로젝트 자동 배포 활성화
             project.enableAutoDeployment();
+            project.updateAutoDeploymentStatus(ServerStatus.FINISH);
 
             // 4) Jenkins API 토큰 발급 및 스크립트 정리
             log.info("Jenkins API 토큰 발급 시작");
@@ -107,13 +108,15 @@ public class ServerServiceImpl implements ServerService {
                     projectId,
                     NotificationMessageTemplate.EC2_SETUP_COMPLETED_SUCCESS
             );
-        } catch (JSchException | IOException e) {
+        } catch (Exception e) {
             log.error("배포 중 오류 발생: {}", e.getMessage(), e);
+            project.updateAutoDeploymentStatus(ServerStatus.FAIL);
+
             notificationService.notifyProjectStatusForUsers(
                     projectId,
                     NotificationMessageTemplate.EC2_SETUP_FAILED
             );
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
+            throw new BusinessException(ErrorCode.AUTO_DEPLOYMENT_SETTING_FAILED);
         } finally {
             if (sshSession != null && sshSession.isConnected()) {
                 sshSession.disconnect();
