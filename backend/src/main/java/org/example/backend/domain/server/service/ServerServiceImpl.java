@@ -378,7 +378,8 @@ public class ServerServiceImpl implements ServerService {
                 // 5-7. Docker 서비스 재시작
                 "sudo systemctl daemon-reload",
                 "sudo systemctl enable docker",
-                "sudo systemctl restart docker"
+                "sudo systemctl restart docker",
+                "sudo docker network create mynet || true"
         );
     }
 
@@ -406,6 +407,7 @@ public class ServerServiceImpl implements ServerService {
                         StringBuilder runSb = new StringBuilder();
                         runSb.append("sudo docker run -d ")
                                 .append("--restart unless-stopped ")
+                                .append("--network mynet ")
                                 .append("--name ").append(image).append(" ")
                                 .append("-p ").append(port).append(":").append(port).append(" ");
 
@@ -751,7 +753,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker build --no-cache -f Dockerfile -t vue .\n" +
                                 "                        docker stop vue || true\n" +
                                 "                        docker rm vue || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
+                                "                        docker run -d --network mynet  --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
                 break;
 
             case "React":
@@ -760,7 +762,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker build --no-cache -f Dockerfile -t react .\n" +
                                 "                        docker stop react || true\n" +
                                 "                        docker rm react || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
+                                "                        docker run -d --network mynet --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
                 break;
 
             case "Next.js":
@@ -770,7 +772,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker build --no-cache -f Dockerfile -t next .\n" +
                                 "                        docker stop next || true\n" +
                                 "                        docker rm next || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
+                                "                        docker run -d --network mynet --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
                 break;
         }
 
@@ -1104,7 +1106,7 @@ public class ServerServiceImpl implements ServerService {
                         "                        docker build --no-cache -t spring .\n" +
                         "                        docker stop spring || true\n" +
                         "                        docker rm spring || true\n" +
-                        "                        docker run -d -p 8080:8080 --env-file .env --name spring spring\n" +
+                        "                        docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
                         "                    '''\n" +
                         "                }\n" +
                         "            }\n" +
