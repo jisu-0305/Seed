@@ -1,6 +1,6 @@
 /* eslint-disable react/no-array-index-key */
 import styled from '@emotion/styled';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { useModal } from '@/hooks/Common';
 import { useProjectInfoStore } from '@/stores/projectStore';
@@ -29,10 +29,21 @@ export default function ServerInput() {
   const ipTip = useModal();
   const inboundTip = useModal();
 
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const handleKeyDown = (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    index: number,
+  ) => {
+    if (e.key === 'Backspace' && !e.currentTarget.value && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
+
   const handleIpChange = (index: number, value: string) => {
     const numeric = value.replace(/\D/g, '');
-
-    if (numeric !== '' && parseInt(numeric, 10) > 255) return;
+    if (numeric.length > 3 || (numeric !== '' && parseInt(numeric, 10) > 255))
+      return;
 
     const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
     ipParts[index] = numeric;
@@ -42,6 +53,10 @@ export default function ServerInput() {
       pem: server.pem,
       pemName: server.pemName,
     });
+
+    if (numeric.length === 3 && index < 3) {
+      inputRefs.current[index + 1]?.focus();
+    }
   };
 
   const handleIpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
@@ -58,6 +73,11 @@ export default function ServerInput() {
       pem: server.pem,
       pemName: server.pemName,
     });
+
+    // 🧠 마지막 칸으로 커서 이동
+    setTimeout(() => {
+      inputRefs.current[3]?.focus();
+    }, 0);
   };
 
   // const handlePemChange = (file: File) => {
@@ -100,9 +120,13 @@ export default function ServerInput() {
             <StBoxWrapper key={idx}>
               <IpBox
                 key={idx}
+                ref={(el) => {
+                  inputRefs.current[idx] = el;
+                }}
                 maxLength={3}
                 value={val}
                 onChange={(e) => handleIpChange(idx, e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, idx)}
                 onPaste={idx === 0 ? handleIpPaste : undefined}
               />
               {idx !== ipParts.length - 1 && '.'}
