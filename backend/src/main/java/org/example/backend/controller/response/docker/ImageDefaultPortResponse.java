@@ -4,5 +4,6 @@ import java.util.List;
 
 public record ImageDefaultPortResponse(
         String imageNameAndTag,
-        List<String> defaultPorts
+        List<String> defaultPorts,
+        List<String> imageEnvs
 ) {}

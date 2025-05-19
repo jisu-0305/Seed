@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -27,6 +26,6 @@ public class Application {
 
     private String description;
 
-    @ElementCollection
-    private List<String> envVariableList = new ArrayList<>();
+    @Transient
+    private List<String> envVariableList;
 }
