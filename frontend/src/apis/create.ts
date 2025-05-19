@@ -4,9 +4,9 @@ import { PostProjectInfo } from '@/types/project';
 import { client } from './axios';
 
 export async function createProject(projectRequest: PostProjectInfo) {
-  const { frontEnvFile, backEnvFile, pemFile } = useProjectFileStore.getState();
+  const { frontEnvFile, backEnvFile } = useProjectFileStore.getState();
 
-  if (!frontEnvFile || !backEnvFile || !pemFile) {
+  if (!frontEnvFile || !backEnvFile) {
     throw new Error('모든 파일이 업로드되어야 합니다.');
   }
 
@@ -17,7 +17,6 @@ export async function createProject(projectRequest: PostProjectInfo) {
   );
   formData.append('clientEnvFile', frontEnvFile);
   formData.append('serverEnvFile', backEnvFile);
-  formData.append('pemFile', pemFile);
 
   const res = await client.post('/projects', formData, {
     headers: {

@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
-import { ChangeEvent, useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { getUserRepos } from '@/apis/gitlab';
+import { getUserReposCursor } from '@/apis/gitlab';
 import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
+
+import CustomDropdown from './CustomDropdown';
 
 interface Repo {
   id: number;
@@ -15,6 +17,10 @@ interface Repo {
 
 export default function GitlabInput() {
   const [repoList, setRepoList] = useState<Repo[]>([]);
+  const [lastRepoId, setLastRepoId] = useState<number | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const loader = useRef<HTMLLIElement | null>(null); // pagination
+  const scrollContainerRef = useRef<HTMLUListElement>(null);
 
   const { stepStatus, setGitlabStatus, setOnNextValidate, resetProjectStatus } =
     useProjectInfoStore();
@@ -53,26 +59,48 @@ export default function GitlabInput() {
       return;
     }
 
-    getUserRepos(userId)
-      .then((data) => {
-        setRepoList(data);
-      })
-      .catch((err) => {
-        console.error('레포 조회 실패', err);
+    // getUserRepos(userId)
+    //   .then((data) => {
+    //     setRepoList(data);
+    //   })
+    //   .catch((err) => {
+    //     console.error('레포 조회 실패', err);
+    //   });
+    try {
+      const newRepos = await getUserReposCursor(
+        userId,
+        lastRepoId || undefined,
+      );
+
+      if (newRepos.length === 0) {
+        setHasMore(false);
+        return;
+      }
+
+      setRepoList((prev) => {
+        const existingIds = new Set(prev.map((r) => r.id));
+        const deduped = newRepos.filter((r: Repo) => !existingIds.has(r.id));
+        return [...prev, ...deduped];
       });
+
+      const last = newRepos[newRepos.length - 1];
+      setLastRepoId(last.id);
+    } catch (err) {
+      console.error('레포 조회 실패', err);
+    }
   };
 
   // input 핸들러
-  const handleRepoChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const url = e.target.value;
 
-    const selected = repoList.find((repo) => repo.http_url_to_repo === url);
+  const handleRepoSelect = (repoName: string) => {
+    const selected = repoList.find((repo) => repo.name === repoName);
+    if (!selected) return;
 
     setGitlabStatus({
       ...gitlab,
-      id: selected ? selected.id : 0,
-      repo: url,
-      defaultBranch: selected ? selected.default_branch : '',
+      id: selected.id,
+      repo: selected.http_url_to_repo,
+      defaultBranch: selected.default_branch,
     });
   };
 
@@ -116,6 +144,33 @@ export default function GitlabInput() {
     setOnNextValidate(isFormValid);
   }, [gitlab]);
 
+  useEffect(() => {
+    const target = loader.current;
+    const root = scrollContainerRef.current;
+
+    if (!target || !hasMore) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        console.log('observer triggered:', entry.isIntersecting, entry);
+        if (entry.isIntersecting) {
+          fetchUserRepos();
+        }
+      },
+      {
+        root,
+        threshold: 0.3,
+      },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      if (target) observer.unobserve(target);
+    };
+  }, [hasMore, repoList]);
+
   if (mode === null) return null;
 
   return (
@@ -128,21 +183,19 @@ export default function GitlabInput() {
       /> */}
 
       <StSelectWrapper>
-        <Select onChange={handleRepoChange} value={gitlab.repo}>
-          <option value="" disabled>
-            레포지토리를 선택하세요
-          </option>
-          {repoList.map((repo) => (
-            <option key={repo.id} value={repo.http_url_to_repo}>
-              {repo.name}
-            </option>
-          ))}
-        </Select>
-        <ArrowIcon
-          src={`/assets/icons/ic_arrow_down_${mode}.svg`}
-          alt="arrow"
+        <CustomDropdown
+          options={repoList.map((repo) => repo.name)}
+          value={
+            repoList.find((r) => r.http_url_to_repo === gitlab.repo)?.name ||
+            '레포지토리를 선택해주세요.'
+          }
+          onChange={handleRepoSelect}
+          width="100%"
+          dropdownScrollRef={scrollContainerRef}
+          loaderRef={loader}
         />
       </StSelectWrapper>
+
       <Title>프로젝트 폴더 구조는 무엇인가요?</Title>
       <OptionWrapper>
         <OptionBox
@@ -236,40 +289,6 @@ const Title = styled.h2`
 const StSelectWrapper = styled.div`
   width: 100%;
   position: relative;
-`;
-
-const Select = styled.select`
-  width: 100%;
-  padding: 1rem 1.5rem;
-
-  ${({ theme }) => theme.fonts.Body3};
-  color: ${({ theme }) => theme.colors.Text};
-
-  background-color: ${({ theme }) => theme.colors.InputBackground};
-  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
-  border-radius: 1rem;
-
-  appearance: none;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-
-  cursor: pointer;
-
-  option {
-    ${({ theme }) => theme.fonts.Body3};
-    color: ${({ theme }) => theme.colors.Text};
-  }
-`;
-
-const ArrowIcon = styled.img`
-  position: absolute;
-  right: 5%;
-  top: 55%;
-  transform: translateY(-50%);
-
-  pointer-events: none;
 `;
 
 const OptionWrapper = styled.div`

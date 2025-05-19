@@ -145,10 +145,10 @@ export async function fetchLastBuild(projectId: number): Promise<BuildSummary> {
   return res.data;
 }
 
-// 재훈이 API
-export async function startBuild(projectId: string) {
-  const res = await client.post('/server/deployment', null, {
-    params: { projectId },
-  });
-  return res.data;
-}
+// // 재훈이 API
+// export async function startBuild(projectId: string) {
+//   const res = await client.post('/server/deployment', null, {
+//     params: { projectId },
+//   });
+//   return res.data;
+// }

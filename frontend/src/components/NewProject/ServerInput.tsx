@@ -3,34 +3,29 @@ import styled from '@emotion/styled';
 import { useEffect } from 'react';
 
 import { useModal } from '@/hooks/Common';
-import {
-  useProjectFileStore,
-  useProjectInfoStore,
-} from '@/stores/projectStore';
+import { useProjectInfoStore } from '@/stores/projectStore';
 
-import FileInput from '../Common/FileInput';
 import ModalWrapper from '../Common/Modal/ModalWrapper';
 import TipItem from '../Common/TipItem';
 import InformInboundModal from './Modal/InformInboundModal';
 import InformIpModal from './Modal/InformIpModal';
-import InformPemKeyModal from './Modal/InformPemKeyModal';
 
 export default function ServerInput() {
   const { stepStatus, setServerStatus, setOnNextValidate, setOnNextSuccess } =
     useProjectInfoStore();
   const { server } = stepStatus;
 
-  const { pemFile, setPemFile } = useProjectFileStore();
+  // const { pemFile, setPemFile } = useProjectFileStore();
 
-  useEffect(() => {
-    setServerStatus({
-      ...server,
-      pem: Boolean(pemFile),
-      pemName: pemFile?.name ?? '',
-    });
-  }, [pemFile]);
+  // useEffect(() => {
+  //   setServerStatus({
+  //     ...server,
+  //     pem: Boolean(pemFile),
+  //     pemName: pemFile?.name ?? '',
+  //   });
+  // }, [pemFile]);
 
-  const pemTip = useModal();
+  // const pemTip = useModal();
   const ipTip = useModal();
   const inboundTip = useModal();
 
@@ -49,12 +44,28 @@ export default function ServerInput() {
     });
   };
 
-  const handlePemChange = (file: File) => {
-    if (file) {
-      setServerStatus({ ip: server.ip, pem: !!file, pemName: file.name });
-      setPemFile(file);
-    }
+  const handleIpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasteData = e.clipboardData.getData('Text');
+    const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+    if (!ipRegex.test(pasteData)) return;
+
+    e.preventDefault();
+
+    const parts = pasteData.split('.');
+    setServerStatus({
+      ip: parts.join('.'),
+      pem: server.pem,
+      pemName: server.pemName,
+    });
   };
+
+  // const handlePemChange = (file: File) => {
+  //   if (file) {
+  //     setServerStatus({ ip: server.ip, pem: !!file, pemName: file.name });
+  //     setPemFile(file);
+  //   }
+  // };
 
   // 유효성 검사
   const isFormValid = () => {
@@ -62,7 +73,8 @@ export default function ServerInput() {
     const isValidIp =
       ipParts.length === 4 && ipParts.every((part) => part !== '');
 
-    return isValidIp && !!server.pem;
+    // return isValidIp && !!server.pem;
+    return isValidIp;
   };
 
   // next 버튼 핸들러
@@ -91,19 +103,20 @@ export default function ServerInput() {
                 maxLength={3}
                 value={val}
                 onChange={(e) => handleIpChange(idx, e.target.value)}
+                onPaste={idx === 0 ? handleIpPaste : undefined}
               />
               {idx !== ipParts.length - 1 && '.'}
             </StBoxWrapper>
           ))}
         </IpInputWrapper>
 
-        <Title>.pem 파일</Title>
+        {/* <Title>.pem 파일</Title>
         <FileInput
           handleFileChange={handlePemChange}
           accept=".pem"
           placeholder="key.pem"
           inputType="pem"
-        />
+        /> */}
 
         <TipList>
           <TipItem
@@ -111,11 +124,11 @@ export default function ServerInput() {
             help
             openModal={ipTip.toggle}
           />
-          <TipItem
+          {/* <TipItem
             text="pem 파일은 AWS EC2에서 생성해주세요"
             help
             openModal={pemTip.toggle}
-          />
+          /> */}
           <TipItem
             text="EC2에서 22, 80, 443 포트를 열어주세요"
             important
@@ -124,14 +137,12 @@ export default function ServerInput() {
           />
         </TipList>
       </Container>
-      <ModalWrapper
-        isShowing={pemTip.isShowing || ipTip.isShowing || inboundTip.isShowing}
-      >
+      <ModalWrapper isShowing={ipTip.isShowing || inboundTip.isShowing}>
         <InformIpModal isShowing={ipTip.isShowing} handleClose={ipTip.toggle} />
-        <InformPemKeyModal
+        {/* <InformPemKeyModal
           isShowing={pemTip.isShowing}
           handleClose={pemTip.toggle}
-        />
+        /> */}
         <InformInboundModal
           isShowing={inboundTip.isShowing}
           handleClose={inboundTip.toggle}
