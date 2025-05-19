@@ -4,16 +4,16 @@ import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
-import { startBuild } from '@/apis/build';
-import { convertServer } from '@/apis/server';
+import { convertServer, startBuildWithPem } from '@/apis/server';
 import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
 import { useModal } from '@/hooks/Common';
 import { useThemeStore } from '@/stores/themeStore';
-import { HttpsConfig } from '@/types/config';
+import { EC2Config, HttpsConfig } from '@/types/config';
 
 import HttpsConfigModal from '../Modal/HttpsConfigModal';
 import ManageMemberModal from '../Modal/ManageMemberModal';
+import PemModal from '../Modal/PemModal';
 import ServerStatusBar from '../ServerStatusBar';
 
 interface ActionButtonsProps {
@@ -38,6 +38,7 @@ export function ActionButtons({
   const { mode } = useThemeStore();
   const team = useModal();
   const https = useModal();
+  const build = useModal();
 
   // https 모달용
   const [isHttpsDisabled, setIsHttpsDisabled] = useState(httpsEnabled);
@@ -56,25 +57,25 @@ export function ActionButtons({
     router.push(`/projects/${projectId}/report`);
   };
 
-  const runBuild = async () => {
-    if (!projectId) return;
+  // const runBuild = async () => {
+  //   if (!projectId) return;
 
-    // 메시지 띄우기
-    setBuildLoading(true);
-    setErrorMessage(null);
+  //   // 메시지 띄우기
+  //   setBuildLoading(true);
+  //   setErrorMessage(null);
 
-    try {
-      const data = await startBuild(projectId);
-      console.log('✔️ EC2 세팅 성공:', data);
-      setIsBuildDisabled(true);
-      onDeployComplete?.();
-    } catch (err) {
-      console.error('❌ EC2 세팅 실패:', err);
-      setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
-    } finally {
-      setBuildLoading(false);
-    }
-  };
+  //   try {
+  //     const data = await startBuild(projectId);
+  //     console.log('✔️ EC2 세팅 성공:', data);
+  //     setIsBuildDisabled(true);
+  //     onDeployComplete?.();
+  //   } catch (err) {
+  //     console.error('❌ EC2 세팅 실패:', err);
+  //     setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
+  //   } finally {
+  //     setBuildLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
     setIsBuildDisabled(deployEnabled);
@@ -101,6 +102,30 @@ export function ActionButtons({
       );
     } finally {
       setHttpsLoading(false);
+      https.toggle();
+    }
+  };
+
+  const handlePemSubmit = async ({ pem }: EC2Config) => {
+    if (!projectId) {
+      console.error('projectId가 없습니다');
+      https.toggle();
+      return;
+    }
+
+    setBuildLoading(true);
+    setErrorMessage(null);
+
+    try {
+      const data = await startBuildWithPem(projectId, pem);
+      console.log('✔️ EC2 세팅 성공:', data);
+      setIsBuildDisabled(true);
+      onDeployComplete?.();
+    } catch (err) {
+      console.error('❌ EC2 세팅 실패:', err);
+      setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
+    } finally {
+      setBuildLoading(false);
       https.toggle();
     }
   };
@@ -141,7 +166,7 @@ export function ActionButtons({
           </Button>
           <Button
             variant="build"
-            onClick={runBuild}
+            onClick={build.toggle}
             disabled={buildLoading || isBuildDisabled}
           >
             {buildLoading ? (
@@ -185,12 +210,17 @@ export function ActionButtons({
           handleClose={team.toggle}
         />
       </ModalWrapper>
-      <ModalWrapper isShowing={https.isShowing}>
+      <ModalWrapper isShowing={https.isShowing || build.isShowing}>
         {HttpsLoading && <LoadingSpinner />}
         <HttpsConfigModal
           isShowing={https.isShowing}
           handleClose={https.toggle}
           onSubmit={handleConfigSubmit}
+        />
+        <PemModal
+          isShowing={build.isShowing}
+          handleClose={build.toggle}
+          onSubmit={handlePemSubmit}
         />
       </ModalWrapper>
     </>

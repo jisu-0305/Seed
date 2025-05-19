@@ -56,7 +56,7 @@ export default function StepSidebar() {
           <Label>IP</Label>
           <Value>{status.server.ip || '-'}</Value>
         </Row>
-        <Row>
+        {/* <Row>
           <Label>.pem</Label>
           <Icon
             src={
@@ -66,7 +66,7 @@ export default function StepSidebar() {
             }
             alt="ic_checked"
           />
-        </Row>
+        </Row> */}
       </Section>
 
       <Divider />
