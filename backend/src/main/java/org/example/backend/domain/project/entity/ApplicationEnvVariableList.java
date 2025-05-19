@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 @Table(name = "application_env_variable_list")
 public class ApplicationEnvVariableList {
 
+
     @Id
     @Column(name = "application_id")
     private Long applicationId;

@@ -13,16 +13,10 @@ import org.example.backend.domain.gitlab.dto.GitlabProject;
 import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.entity.JenkinsInfo;
 import org.example.backend.domain.jenkins.repository.JenkinsInfoRepository;
-import org.example.backend.domain.project.entity.Application;
-import org.example.backend.domain.project.entity.Project;
-import org.example.backend.domain.project.entity.ProjectApplication;
-import org.example.backend.domain.project.entity.ProjectFile;
+import org.example.backend.domain.project.entity.*;
 import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.domain.project.enums.FileType;
-import org.example.backend.domain.project.repository.ApplicationRepository;
-import org.example.backend.domain.project.repository.ProjectApplicationRepository;
-import org.example.backend.domain.project.repository.ProjectFileRepository;
-import org.example.backend.domain.project.repository.ProjectRepository;
+import org.example.backend.domain.project.repository.*;
 import org.example.backend.domain.server.entity.HttpsLog;
 import org.example.backend.domain.server.repository.HttpsLogRepository;
 import org.example.backend.domain.user.entity.User;
@@ -58,6 +52,7 @@ public class ServerServiceImpl implements ServerService {
     private static final String NGINX_CONF_PATH = "/etc/nginx/sites-available/app.conf";
     private final ProjectApplicationRepository projectApplicationRepository;
     private final ProjectFileRepository projectFileRepository;
+    private final ApplicationEnvVariableListRepository applicationEnvVariableListRepository;
 
     @Override
     @Transactional
@@ -418,7 +413,7 @@ public class ServerServiceImpl implements ServerService {
                                 .append("--name ").append(image).append(" ")
                                 .append("-p ").append(port).append(":").append(port).append(" ");
 
-                        List<String> applicationEnvList = application.getEnvVariableList();
+                        List<String> applicationEnvList = applicationEnvVariableListRepository.findEnvVariableListByApplicationId(app.getApplicationId());
 
                         if (applicationEnvList != null && !applicationEnvList.isEmpty()) {
                             for (String key : applicationEnvList) {
