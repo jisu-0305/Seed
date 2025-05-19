@@ -553,7 +553,8 @@ public class ServerServiceImpl implements ServerService {
                 "echo 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/' | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
                 "sudo apt update",
                 waitForAptLock(),
-                "sudo apt install -y --allow-downgrades jenkins=2.504",
+//                "sudo apt install -y --allow-downgrades jenkins=2.504",
+                "sudo apt install -y jenkins",
                 waitForAptLock()
         );
     }
@@ -844,7 +845,8 @@ public class ServerServiceImpl implements ServerService {
 //                        "                    '''\n" +
 //                        "                }\n" +
 //                        "                dir('backend') {\n" +
-//                        "                    sh '''\n" +
+//                        "                    sh '''\n
+//                        " +
 //                        "                        docker build -t spring .\n" +
 //                        "                        docker stop spring || true\n" +
 //                        "                        docker rm spring || true\n" +
@@ -1325,7 +1327,7 @@ public class ServerServiceImpl implements ServerService {
                                 "RUN gradle bootJar --no-daemon\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/build/libs/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
@@ -1343,7 +1345,7 @@ public class ServerServiceImpl implements ServerService {
                                 "RUN mvn clean package -DskipTests\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion() + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion() + "-jdk\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/target/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +

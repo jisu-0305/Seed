@@ -37,7 +37,7 @@ public class ServerController {
 
     @PostMapping(value = "/convert")
     public ResponseEntity<ApiResponse<String>> convertHttps(
-            @RequestPart HttpsConvertRequest request,
+            @RequestPart("request") HttpsConvertRequest request,
             @RequestPart("pemFile") MultipartFile pemFile,
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String accessToken) {
 
