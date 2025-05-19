@@ -30,7 +30,7 @@ export default function ModalTipItem({
           src={
             important
               ? `/assets/icons/ic_help_important.svg`
-              : `/assets/icons/ic_help_${mode}.svg`
+              : `/assets/icons/ic_help_light.svg`
           }
           alt="help_icon"
         />
