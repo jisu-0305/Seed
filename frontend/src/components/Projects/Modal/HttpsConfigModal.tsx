@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import FileInput from '@/components/Common/FileInput';
 import SmallModal from '@/components/Common/Modal/SmallModal';
 import ModalTipItem from '@/components/Common/ModalTipItem';
+import InformPemKeyModal from '@/components/NewProject/Modal/InformPemKeyModal';
+import { useModal } from '@/hooks/Common';
 import { HttpsConfig } from '@/types/config';
 
 interface HttpsModalProps {
@@ -20,6 +22,7 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
   const [domain, setDomain] = useState('');
   const [email, setEmail] = useState('');
   const [pemFile, setPemFile] = useState<File | null>(null);
+  const pemTip = useModal();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +76,16 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
         </Label>
 
         <SubmitButton type="submit">설정하기</SubmitButton>
+
+        <ModalTipItem
+          text="pem 파일은 AWS EC2에서 생성해주세요"
+          help
+          openModal={pemTip.toggle}
+        />
+        <InformPemKeyModal
+          isShowing={pemTip.isShowing}
+          handleClose={pemTip.toggle}
+        />
         <ModalTipItem text="서비스의 DNS 이름과 소유자의 이메일 주소를 입력해주세요" />
       </Form>
     </SmallModal>

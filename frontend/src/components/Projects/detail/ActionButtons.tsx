@@ -109,7 +109,7 @@ export function ActionButtons({
   const handlePemSubmit = async ({ pem }: EC2Config) => {
     if (!projectId) {
       console.error('projectId가 없습니다');
-      https.toggle();
+      build.toggle();
       return;
     }
 
@@ -126,7 +126,7 @@ export function ActionButtons({
       setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
     } finally {
       setBuildLoading(false);
-      https.toggle();
+      build.toggle();
     }
   };
 
