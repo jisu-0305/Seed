@@ -31,7 +31,7 @@ public class FastAITestController {
 
     @PostMapping("/infer")
     public ResponseEntity<List<String>> testInferAppRequest(@RequestBody InferAppRequest request) {
-        List<String> response = fastAIClientImpl.requestInferApplications(request);
+        List<String> response = fastAIClientImpl.requestInferApplications(request, request.getProjectId());
         return ResponseEntity.ok(response);
     }
 
@@ -43,7 +43,7 @@ public class FastAITestController {
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        SuspectFileResponse response = fastAIClientImpl.requestSuspectFiles(filepathRequest);
+        SuspectFileResponse response = fastAIClientImpl.requestSuspectFiles(filepathRequest, filepathRequest.getProjectId());
         return ResponseEntity.ok(response);
     }
 
@@ -51,26 +51,27 @@ public class FastAITestController {
     public ResponseEntity<ResolveErrorResponse> testResolveRequest(@ModelAttribute ResolveRequest resolveRequest) {
         ResolveErrorResponse response = fastAIClientImpl.requestResolveError(
                 resolveRequest.getSuspectFileInnerResponse(),
-                resolveRequest.getFilesRaw()
+                resolveRequest.getFilesRaw(),
+                resolveRequest.getProjectId()
         );
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/patch")
     public ResponseEntity<String> testPatchText(@ModelAttribute PatchTextRequest patchTextRequest) {
-        String instruction = fastAIClientImpl.requestPatchText(patchTextRequest);
+        String instruction = fastAIClientImpl.requestPatchText(patchTextRequest, patchTextRequest.getProjectId());
         return ResponseEntity.ok(instruction);
     }
 
     @PostMapping("/patch/file")
     public ResponseEntity<PatchedFile> testPatchFile(@ModelAttribute PatchFileRequest patchFileRequest) {
-        PatchedFile patchedFile = fastAIClientImpl.requestPatchFile(patchFileRequest);
+        PatchedFile patchedFile = fastAIClientImpl.requestPatchFile(patchFileRequest, patchFileRequest.getProjectId());
         return ResponseEntity.ok(patchedFile);
     }
 
     @PostMapping("/report")
     public ResponseEntity<AIReportResponse> testReport(@RequestBody AIReportRequest reportRequest) {
-        AIReportResponse response = fastAIClientImpl.requestErrorReport(reportRequest);
+        AIReportResponse response = fastAIClientImpl.requestErrorReport(reportRequest, reportRequest.getProjectId());
         return ResponseEntity.ok(response);
     }
 }

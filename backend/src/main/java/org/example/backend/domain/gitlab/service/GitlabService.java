@@ -5,6 +5,7 @@ import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.GitlabProjectListResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
+import org.example.backend.domain.project.entity.Project;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
@@ -31,7 +32,7 @@ public interface GitlabService {
 
     GitlabProjectListResponse getGitlabProjectsByUserIdAndCursor(Long userId, Long lastProjectId);
 
-    Mono<GitlabCompareResponse> fetchLatestMrDiff(String gitlabPersonalAccessToken, Long gitlabProjectId);
+    Mono<GitlabCompareResponse> fetchLatestMrDiff(String gitlabPersonalAccessToken, Project project);
 
     Mono<GitlabCompareResponse> compareCommits(String gitlabPersonalAccessToken, Long gitlabProjectId, String from, String to);
 

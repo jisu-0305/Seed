@@ -11,4 +11,5 @@ import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileInnerResponse;
 public class ResolveRequest {
     private SuspectFileInnerResponse suspectFileInnerResponse;
     private String filesRaw;
+    private Long projectId;
 }

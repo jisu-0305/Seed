@@ -14,15 +14,15 @@ import org.example.backend.util.aiapi.dto.suspectfile.SuspectFileResponse;
 import java.util.List;
 
 public interface AIApiClient {
-    List<String> requestInferApplications(InferAppRequest inferAppRequest);
+    List<String> requestInferApplications(InferAppRequest inferAppRequest, Long projectId);
 
-    SuspectFileResponse requestSuspectFiles(SuspectFileRequest suspectFileRequest);
+    SuspectFileResponse requestSuspectFiles(SuspectFileRequest suspectFileRequest, Long projectId);
 
-    ResolveErrorResponse requestResolveError(SuspectFileInnerResponse suspectFileInnerResponse, String filesRawJson);
+    ResolveErrorResponse requestResolveError(SuspectFileInnerResponse suspectFileInnerResponse, String filesRawJson, Long projectId);
 
-    String requestPatchText(PatchTextRequest patchTextRequest);
+    String requestPatchText(PatchTextRequest patchTextRequest, Long projectId);
 
-    PatchedFile requestPatchFile(PatchFileRequest patchFileRequest);
+    PatchedFile requestPatchFile(PatchFileRequest patchFileRequest, Long projectId);
 
-    AIReportResponse requestErrorReport(AIReportRequest aiReportRequest);
+    AIReportResponse requestErrorReport(AIReportRequest aiReportRequest, Long projectId);
 }

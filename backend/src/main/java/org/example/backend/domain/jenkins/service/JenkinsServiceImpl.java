@@ -15,6 +15,7 @@ import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.entity.ProjectExecution;
 import org.example.backend.domain.project.enums.BuildStatus;
 import org.example.backend.domain.project.enums.ExecutionType;
+import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.domain.project.repository.ProjectExecutionRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -93,20 +94,6 @@ public class JenkinsServiceImpl implements JenkinsService {
                 .time(TIME_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
                 .status(build.path("result").asText())
                 .build().getBuildNumber();
-    }
-
-    @Override
-    public JenkinsBuildListResponse getLastBuildWithOutLogin(Long projectId) {
-        JenkinsInfo info = getJenkinsInfo(projectId);
-        JsonNode build = safelyParseJson(jenkinsClient.fetchBuildInfo(info, "lastBuild/api/json"));
-
-        return JenkinsBuildListResponse.builder()
-                .buildNumber(build.path("number").asInt())
-                .buildName("MR 빌드")
-                .date(DATE_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
-                .time(TIME_FORMATTER.format(Instant.ofEpochMilli(build.path("timestamp").asLong())))
-                .status(build.path("result").asText())
-                .build();
     }
 
     @Override
@@ -598,7 +585,7 @@ public class JenkinsServiceImpl implements JenkinsService {
                 Thread.sleep(intervalMillis);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR);
+                throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
             }
         }
         return ReportStatus.FAIL;

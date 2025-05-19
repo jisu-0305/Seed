@@ -378,7 +378,8 @@ public class ServerServiceImpl implements ServerService {
                 // 5-7. Docker 서비스 재시작
                 "sudo systemctl daemon-reload",
                 "sudo systemctl enable docker",
-                "sudo systemctl restart docker"
+                "sudo systemctl restart docker",
+                "sudo docker network create mynet || true"
         );
     }
 
@@ -394,9 +395,16 @@ public class ServerServiceImpl implements ServerService {
 
             return projectApplicationList.stream()
                     .flatMap(app -> {
+
+                        Application application = applicationRepository.findById(app.getApplicationId())
+                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
                         String image = app.getImageName();
-                        int port  = app.getPort();
-                        String tag   = app.getTag();
+                        int port = app.getPort();
+                        String tag = app.getTag();
+                        String defaultTag = application.getDefaultTag() != null
+                                ? application.getDefaultTag()
+                                : tag;
 
                         // stop, rm 명령
                         String stop = "sudo docker stop " + image + " || true";
@@ -406,14 +414,9 @@ public class ServerServiceImpl implements ServerService {
                         StringBuilder runSb = new StringBuilder();
                         runSb.append("sudo docker run -d ")
                                 .append("--restart unless-stopped ")
+                                .append("--network mynet ")
                                 .append("--name ").append(image).append(" ")
                                 .append("-p ").append(port).append(":").append(port).append(" ");
-
-                        // 환경변수 Map 순회
-                        // key값은 db에서 꺼내와야함
-                        // value는 .env에서 꺼내와야함
-                        Application application = applicationRepository.findById(app.getApplicationId())
-                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
 
                         List<String> applicationEnvList = application.getEnvVariableList();
 
@@ -434,7 +437,7 @@ public class ServerServiceImpl implements ServerService {
                         }
 
                         // 마지막에 이미지:태그
-                        runSb.append(image).append(":").append(tag);
+                        runSb.append(image).append(":").append(defaultTag);
 
                         String run = runSb.toString();
 
@@ -553,7 +556,8 @@ public class ServerServiceImpl implements ServerService {
                 "echo 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/' | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
                 "sudo apt update",
                 waitForAptLock(),
-                "sudo apt install -y --allow-downgrades jenkins=2.504",
+//                "sudo apt install -y --allow-downgrades jenkins=2.504",
+                "sudo apt install -y jenkins",
                 waitForAptLock()
         );
     }
@@ -750,7 +754,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker build --no-cache -f Dockerfile -t vue .\n" +
                                 "                        docker stop vue || true\n" +
                                 "                        docker rm vue || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
+                                "                        docker run -d --network mynet  --env-file .env --restart unless-stopped --name vue -p 3000:3000 vue\n";
                 break;
 
             case "React":
@@ -759,7 +763,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker build --no-cache -f Dockerfile -t react .\n" +
                                 "                        docker stop react || true\n" +
                                 "                        docker rm react || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
+                                "                        docker run -d --network mynet --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n";
                 break;
 
             case "Next.js":
@@ -769,7 +773,7 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker build --no-cache -f Dockerfile -t next .\n" +
                                 "                        docker stop next || true\n" +
                                 "                        docker rm next || true\n" +
-                                "                        docker run -d --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
+                                "                        docker run -d --network mynet --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
                 break;
         }
 
@@ -844,7 +848,8 @@ public class ServerServiceImpl implements ServerService {
 //                        "                    '''\n" +
 //                        "                }\n" +
 //                        "                dir('backend') {\n" +
-//                        "                    sh '''\n" +
+//                        "                    sh '''\n
+//                        " +
 //                        "                        docker build -t spring .\n" +
 //                        "                        docker stop spring || true\n" +
 //                        "                        docker rm spring || true\n" +
@@ -1102,7 +1107,7 @@ public class ServerServiceImpl implements ServerService {
                         "                        docker build --no-cache -t spring .\n" +
                         "                        docker stop spring || true\n" +
                         "                        docker rm spring || true\n" +
-                        "                        docker run -d -p 8080:8080 --env-file .env --name spring spring\n" +
+                        "                        docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
                         "                    '''\n" +
                         "                }\n" +
                         "            }\n" +
@@ -1325,7 +1330,7 @@ public class ServerServiceImpl implements ServerService {
                                 "RUN gradle bootJar --no-daemon\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/build/libs/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
@@ -1343,7 +1348,7 @@ public class ServerServiceImpl implements ServerService {
                                 "RUN mvn clean package -DskipTests\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion() + "-jdk-slim\n" +
+                                "FROM openjdk:" + project.getJdkVersion() + "-jdk\n" +
                                 "WORKDIR /app\n" +
                                 "COPY --from=builder /app/target/*.jar app.jar\n" +
                                 "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
