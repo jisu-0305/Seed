@@ -109,3 +109,33 @@ export async function updateProject(
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 }
+
+export interface ProjectStatusData {
+  serverStatus: string;
+  serverLive: boolean;
+}
+
+export interface ProjectStatusResponse {
+  success: boolean;
+  message: string;
+  data: ProjectStatusData;
+}
+
+export async function getProjectStatus(
+  projectId: string,
+): Promise<ProjectStatusData | null> {
+  try {
+    const res = await client.get<ProjectStatusResponse>(
+      `/projects/${projectId}/server-status`,
+      { validateStatus: () => true }, // 204일 때도 catch로 빠지지 않게 허용
+    );
+
+    if (res.status === 204) return null;
+    if (res.status !== 200) throw new Error('서버 상태 요청 실패');
+
+    return res.data.data;
+  } catch (err) {
+    console.error('getProjectStatus 에러:', err);
+    throw err;
+  }
+}

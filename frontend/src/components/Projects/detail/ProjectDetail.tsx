@@ -11,6 +11,7 @@ import {
 import { fetchProjectDetail } from '@/apis/project';
 import ErrorMessage from '@/components/Common/ErrorMessage';
 import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
+import { useProjectStatusPolling } from '@/hooks/Common/useProjectStatusPolling';
 import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
@@ -29,6 +30,7 @@ export default function ProjectDetail() {
   const rawId = params?.id;
   const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
   const loadProjectInfo = useProjectInfoStore((s) => s.loadProjectInfo);
+  const { restartPolling } = useProjectStatusPolling(projectId);
 
   const router = useRouter();
 
@@ -74,6 +76,8 @@ export default function ProjectDetail() {
     try {
       const data = await fetchProjectDetail(id);
       loadProjectInfo(data);
+      restartPolling(); // 서버 상태 정보 받아오기
+
       const summary = projects.find((p) => p.id === id);
       setDetail({
         ...data,
@@ -212,7 +216,6 @@ export default function ProjectDetail() {
             onDeployComplete={handleDeployComplete}
           />
         </SectionInfo>
-
         <SubTitle>Deploy Status</SubTitle>
         <DeployStatus
           projectId={projectId}

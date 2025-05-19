@@ -14,6 +14,7 @@ import { HttpsConfig } from '@/types/config';
 
 import HttpsConfigModal from '../Modal/HttpsConfigModal';
 import ManageMemberModal from '../Modal/ManageMemberModal';
+import ServerStatusBar from '../ServerStatusBar';
 
 interface ActionButtonsProps {
   projectId: string | null;
@@ -45,7 +46,8 @@ export function ActionButtons({
   // ■ 빌드용 로딩 & 메시지
   const [isBuildDisabled, setIsBuildDisabled] = useState(deployEnabled);
   const [buildLoading, setBuildLoading] = useState(false);
-  const [buildMessage, setBuildMessage] = useState<string | null>(null);
+
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -58,17 +60,17 @@ export function ActionButtons({
     if (!projectId) return;
 
     // 메시지 띄우기
-    setBuildMessage('EC2 세팅 중... 커피 한 잔 하고 올까요? ☕');
     setBuildLoading(true);
+    setErrorMessage(null);
 
     try {
       const data = await startBuild(projectId);
       console.log('✔️ EC2 세팅 성공:', data);
       setIsBuildDisabled(true);
-      setBuildMessage('EC2 세팅이 완료되었습니다!');
       onDeployComplete?.();
     } catch (err) {
       console.error('❌ EC2 세팅 실패:', err);
+      setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
     } finally {
       setBuildLoading(false);
     }
@@ -85,16 +87,18 @@ export function ActionButtons({
       return;
     }
 
+    setHttpsLoading(true);
+    setErrorMessage(null);
     try {
-      setHttpsLoading(true);
       const data = await convertServer(projectId, domain, email);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
       setIsHttpsDisabled(true);
-      setBuildMessage('HTTPS 설정이 완료되었습니다!');
       onHttpsComplete?.();
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);
-      setBuildMessage('HTTPS 설정에 실패했습니다...');
+      setErrorMessage(
+        'HTTPS 설정 중 오류가 발생했어요. 도메인 정보를 확인해주세요.',
+      );
     } finally {
       setHttpsLoading(false);
       https.toggle();
@@ -119,17 +123,17 @@ export function ActionButtons({
   return (
     <>
       <Wrapper>
-        {/* 빌드 메시지 배너 */}
-        {buildMessage && (
+        {errorMessage && (
           <MessageBanner>
-            <BannerMessage>{buildMessage}</BannerMessage>
+            <BannerMessage>{errorMessage}</BannerMessage>
             <IcIcon
               src="/assets/icons/ic_close.svg"
               alt="close icon"
-              onClick={() => setBuildMessage(null)}
+              onClick={() => setErrorMessage(null)}
             />
           </MessageBanner>
         )}
+        <ServerStatusBar projectId={projectId!} />
         <MainActions>
           <Button variant="ai" onClick={goToReport}>
             <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
