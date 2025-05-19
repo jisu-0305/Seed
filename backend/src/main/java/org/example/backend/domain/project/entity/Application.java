@@ -27,7 +27,4 @@ public class Application {
     private String defaultTag;
 
     private String description;
-
-    @Transient
-    private List<String> envVariableList;
 }
