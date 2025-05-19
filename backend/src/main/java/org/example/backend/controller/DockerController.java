@@ -44,11 +44,11 @@ public class DockerController {
 
     @GetMapping("/images/{imageAndTag}/default-ports")
     @Operation(summary = "도커 이미지 기본 포트 조회", description = "이미지의 태그에 해당하는 기본 포트를 반환함.(태그 생략하면 latest로 처리됨)")
-    public ResponseEntity<ApiResponse<List<ImageDefaultPortResponse>>> searchDockerImageDefaultPorts(
+    public ResponseEntity<ApiResponse<ImageDefaultPortResponse>> searchDockerImageDefaultPorts(
             @Parameter(description = "[이미지 이름] 또는 [이름:태그] (태그 생략 시 latest로 처리, 예: nginx, nginx:1.21, nginx:latest)", example = "nginx")
             @PathVariable("imageAndTag") String imageAndTag
     ) {
-        List<ImageDefaultPortResponse> responses = dockerService.getDockerImageDefaultPorts(imageAndTag);
+        ImageDefaultPortResponse responses = dockerService.getDockerImageDefaultPorts(imageAndTag);
         return ResponseEntity.ok(ApiResponse.success(responses));
     }
 
