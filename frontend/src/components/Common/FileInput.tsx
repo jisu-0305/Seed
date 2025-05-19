@@ -69,6 +69,7 @@ const PemInputWrapper = styled.div`
 
   max-width: 25rem;
   padding: 1rem 2rem;
+  margin-top: 0.5rem;
 
   background-color: ${({ theme }) => theme.colors.InputBackground};
   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
