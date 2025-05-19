@@ -7,12 +7,18 @@ interface CustomDropdownProps {
   options: string[];
   value?: string;
   onChange?: (selected: string) => void;
+  width?: string;
+  dropdownScrollRef?: React.Ref<HTMLUListElement>;
+  loaderRef?: React.Ref<HTMLLIElement>;
 }
 
 export default function CustomDropdown({
   options,
   value,
   onChange,
+  width = '15rem',
+  dropdownScrollRef,
+  loaderRef,
 }: CustomDropdownProps) {
   const { mode } = useThemeStore();
   const [open, setOpen] = useState(false);
@@ -39,7 +45,7 @@ export default function CustomDropdown({
 
   return (
     <Wrapper ref={dropdownRef}>
-      <DropdownButton onClick={() => setOpen(!open)}>
+      <DropdownButton onClick={() => setOpen(!open)} $width={width}>
         {value}
         <ArrowIcon
           src={`/assets/icons/ic_arrow_down_${mode}.svg`}
@@ -47,12 +53,17 @@ export default function CustomDropdown({
         />
       </DropdownButton>
       {open && (
-        <DropdownList>
-          {options.map((opt) => (
-            <DropdownItem key={opt} onClick={() => handleSelect(opt)}>
+        <DropdownList $width={width} ref={dropdownScrollRef}>
+          {options.map((opt, idx) => (
+            <DropdownItem
+              // eslint-disable-next-line react/no-array-index-key
+              key={`${opt}-${idx}`}
+              onClick={() => handleSelect(opt)}
+            >
               {opt}
             </DropdownItem>
           ))}
+          {loaderRef && <DropdownItem ref={loaderRef} />}
         </DropdownList>
       )}
     </Wrapper>
@@ -64,14 +75,14 @@ const Wrapper = styled.div`
   width: 100%;
 `;
 
-const DropdownButton = styled.button`
-  width: 15rem;
+const DropdownButton = styled.button<{ $width: string }>`
+  width: ${({ $width }) => $width};
   padding: 1rem;
   padding-right: 4rem;
 
   ${({ theme }) => theme.fonts.Body1};
   color: ${({ theme }) => theme.colors.Text};
-  text-align: center;
+  text-align: start;
 
   background-color: ${({ theme }) => theme.colors.InputBackground};
   border: 1px solid ${({ theme }) => theme.colors.InputStroke};
@@ -95,10 +106,10 @@ const ArrowIcon = styled.img`
   pointer-events: none;
 `;
 
-const DropdownList = styled.ul`
+const DropdownList = styled.ul<{ $width: string }>`
   position: absolute;
 
-  width: 15rem;
+  width: ${({ $width }) => $width};
   max-height: calc(2.4rem * 7);
   margin-top: 0.5rem;
   overflow-y: auto;
