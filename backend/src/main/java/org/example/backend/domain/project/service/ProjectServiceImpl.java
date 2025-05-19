@@ -51,6 +51,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final UserRepository userRepository;
     private final GitlabService gitlabService;
     private final ProjectFileRepository projectFileRepository;
+    private final ApplicationEnvVariableListRepository applicationEnvVariableListRepository;
 
     @Value("${file.base-path}")
     private String basePath;
@@ -468,11 +469,15 @@ public class ProjectServiceImpl implements ProjectService {
                             .map(Application::getDefaultPort)
                             .toList();
 
+                    List<String> imageEnvs = applicationEnvVariableListRepository
+                            .findEnvVariablesByApplicationId(minApp.getId());
+
                     return ProjectApplicationResponse.builder()
                             .applicationId(minApp.getId())
                             .imageName(imageName)
                             .description(minApp.getDescription())
                             .defaultPorts(defaultPorts)
+                            .imageEnvs(imageEnvs)
                             .build();
                 })
                 .toList();
