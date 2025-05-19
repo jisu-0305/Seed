@@ -14,4 +14,5 @@ public class ProjectApplicationResponse {
     private List<Integer> defaultPorts;
     private Long applicationId;
     private String description;
+    List<String> imageEnvs;
 }

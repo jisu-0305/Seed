@@ -58,6 +58,7 @@ export interface Application {
 export interface ApplicationWithDefaults extends Application {
   defaultPorts: number[];
   description: string;
+  imageEnvs: string[];
 }
 
 export interface ProjectDetailData {
