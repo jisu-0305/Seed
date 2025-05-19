@@ -8,6 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class SuspectFileRequest {
+    private Long projectId;
     private String diffRaw;
     private String tree;
     private String log;

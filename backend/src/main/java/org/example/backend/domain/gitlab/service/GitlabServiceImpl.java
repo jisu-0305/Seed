@@ -7,6 +7,8 @@ import org.example.backend.controller.response.gitlab.GitlabCompareResponse;
 import org.example.backend.controller.response.gitlab.GitlabProjectListResponse;
 import org.example.backend.controller.response.gitlab.MergeRequestCreateResponse;
 import org.example.backend.domain.gitlab.dto.*;
+import org.example.backend.domain.project.entity.Project;
+import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.domain.user.entity.User;
 import org.example.backend.domain.user.repository.UserRepository;
 import org.example.backend.global.exception.BusinessException;
@@ -169,23 +171,23 @@ public class GitlabServiceImpl implements GitlabService {
 
     /* Diff 1 ) 최신 MR 기준 diff 조회 */
     @Override
-    public Mono<GitlabCompareResponse> fetchLatestMrDiff(String gitlabPersonalAccessToken, Long gitlabProjectId) {
+    public Mono<GitlabCompareResponse> fetchLatestMrDiff(String gitlabPersonalAccessToken, Project project) {
         String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
         int page = 1;
         int perPage = 1;
 
-        return gitlabApiClient.requestMergedMrs(validGitlabAccessToken, gitlabProjectId, page, perPage)
+        return gitlabApiClient.requestMergedMrs(validGitlabAccessToken, project.getGitlabProjectId(), page, perPage)
                 .flatMap(mrs -> {
                     if (mrs.isEmpty()) {
-                        return Mono.error(new BusinessException(ErrorCode.GITLAB_NO_MERGE_REQUESTS));
+                        return Mono.error(new BusinessException(ErrorCode.GITLAB_NO_MERGE_REQUESTS, project.getId(), ServerStatus.BUILD_FAIL_WITH_AI));
                     }
                     GitlabMergeRequest latest = mrs.get(0);
 
-                    return gitlabApiClient.requestMrDetail(validGitlabAccessToken, gitlabProjectId, latest.getIid())
+                    return gitlabApiClient.requestMrDetail(validGitlabAccessToken, project.getGitlabProjectId(), latest.getIid())
                             .flatMap(detail -> {
                                 String base = detail.getDiffRefs().getBaseSha();
                                 String head = detail.getDiffRefs().getHeadSha();
-                                return gitlabApiClient.requestCommitComparison(validGitlabAccessToken, gitlabProjectId, base, head);
+                                return gitlabApiClient.requestCommitComparison(validGitlabAccessToken, project.getGitlabProjectId(), base, head);
                             });
                 });
     }

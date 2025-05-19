@@ -152,19 +152,19 @@ public class GitlabController {
         return ResponseEntity.ok(ApiResponse.success(projectInfo));
     }
 
-    /* 8. Diff 1 ) 최신 MR 기준 diff 조회 */
-    @GetMapping("/projects/{projectId}/merge-requests/latest/diff")
-    @Operation(summary = "최신 mr 기준 diff 조회",
-            description = "프로젝트 id로 해당 프로젝트의 최신 mr diff 가져오기",
-            security = @SecurityRequirement(name = "PAT"))
-    public Mono<ResponseEntity<ApiResponse<GitlabCompareResponse>>> fetchLatestMrDiff(
-            @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
-            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
-    ) {
-        return gitlabService.fetchLatestMrDiff(gitlabPersonalAccessToken, projectId)
-                .map(ApiResponse::success)
-                .map(ResponseEntity::ok);
-    }
+//    /* 8. Diff 1 ) 최신 MR 기준 diff 조회 */
+//    @GetMapping("/projects/{projectId}/merge-requests/latest/diff")
+//    @Operation(summary = "최신 mr 기준 diff 조회",
+//            description = "프로젝트 id로 해당 프로젝트의 최신 mr diff 가져오기",
+//            security = @SecurityRequirement(name = "PAT"))
+//    public Mono<ResponseEntity<ApiResponse<GitlabCompareResponse>>> fetchLatestMrDiff(
+//            @Parameter(description = "프로젝트 ID", required = true, example = "997245") @PathVariable Long projectId,
+//            @RequestHeader(name = "PAT_Authorization", required = false) String gitlabPersonalAccessToken
+//    ) {
+//        return gitlabService.fetchLatestMrDiff(gitlabPersonalAccessToken, projectId)
+//                .map(ApiResponse::success)
+//                .map(ResponseEntity::ok);
+//    }
 
     /* 9. Diff 2 ) 커밋 간 변경사항 조회 (from-to) */
     @GetMapping("/projects/{projectId}/diff")
