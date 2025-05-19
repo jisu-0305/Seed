@@ -16,4 +16,5 @@ import java.util.List;
 public class AIReportRequest {
     private List<FileFix> fileFixes;
     private ResolutionReport resolutionReport;
+    private Long projectId;
 }

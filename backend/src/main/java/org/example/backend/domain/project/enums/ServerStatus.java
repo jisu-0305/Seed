@@ -16,8 +16,8 @@ public enum ServerStatus {
     CREATE_FRONTEND_DOCKERFILE,
     CREATE_BACKEND_DOCKERFILE,
     CREATE_WEBHOOK,
-    FINISH,
-    FAIL,
+    FINISH,   // 자동 배포 세팅 완료
+    FAIL,     // 중간 과정 실패
     //AI CICDResolver 관련
     JENKINS_BUILD_LOG,        // 1-1. Jenkins 에러 로그 수집
     COLLECTING_APP_INFO,      // 1-2. App 이름, MR Diff, Git 트리 등 수집
@@ -31,9 +31,10 @@ public enum ServerStatus {
     JENKINS_REBUILDING,        // 3-3. Jenkins로 재빌드 시작
     REBUILD_SUCCESS,          // 4-1. 재빌드 성공
     REBUILD_FAIL,             // 4-1. 재빌드 실패
-    CREATE_PULL_REQUEST,      // 4-2 GitLab PR날리기
-    CREATING_REPORT,          // 4-3. AI 보고서 생성
+    CREATING_REPORT,          // 4-2. AI 보고서 생성
+    CREATE_PULL_REQUEST,      // 4-3 GitLab PR날리기
     SAVING_REPORT,            // 4-4. AI 보고서 저장
-    COMPLETED_SUCCESSFULLY,   // 최종 완료
-    COMPLETED_WITH_ERRORS     // 최종 완료
+    FINISH_WITH_AI,        // 최종 완료, 배포 성공
+    FAIL_WTIH_AI,          // 최종 완료, 배포 실패
+    BUILD_FAIL_WITH_AI     // 2번째 기능 중간과정 실패
 }

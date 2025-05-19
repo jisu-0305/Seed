@@ -11,4 +11,5 @@ public class PatchFileRequest {
     private String path;
     private String originalCode;
     private String instruction;
+    private Long projectId;
 }

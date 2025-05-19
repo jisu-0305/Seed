@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.backend.domain.gitlab.dto.PatchedFile;
+import org.example.backend.domain.project.enums.ServerStatus;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.aiapi.dto.aireport.AIReportRequest;
@@ -37,14 +38,14 @@ public class AIApiClientImpl implements AIApiClient {
     private String fastApiBaseUrl;
 
     @Override
-    public List<String> requestInferApplications(InferAppRequest inferAppRequest) {
+    public List<String> requestInferApplications(InferAppRequest inferAppRequest, Long projectId) {
         String json;
 
         try {
             json = objectMapper.writeValueAsString(inferAppRequest);
 //            log.debug("🔍 [InferApp] Request JSON: {}", json);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
+            throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
         String response;
@@ -57,7 +58,7 @@ public class AIApiClientImpl implements AIApiClient {
                     .bodyToMono(String.class)
                     .block();
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_COMMUNICATION_FAILED);
+            throw new BusinessException(ErrorCode.AI_COMMUNICATION_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
 
@@ -65,18 +66,18 @@ public class AIApiClientImpl implements AIApiClient {
         try {
             dto = objectMapper.readValue(response, InferAppResponse.class);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_INFER_RESPONSE_PARSING_FAILED);
+            throw new BusinessException(ErrorCode.AI_INFER_RESPONSE_PARSING_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
         if (dto.getSuspectedApps() == null || dto.getSuspectedApps().isEmpty()) {
-            throw new BusinessException(ErrorCode.AI_INFER_RESPONSE_PARSING_FAILED);
+            throw new BusinessException(ErrorCode.AI_INFER_RESPONSE_PARSING_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
         return dto.getSuspectedApps();
     }
 
     @Override
-    public SuspectFileResponse requestSuspectFiles(SuspectFileRequest suspectFileRequest) {
+    public SuspectFileResponse requestSuspectFiles(SuspectFileRequest suspectFileRequest, Long projectId) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("diff_raw", suspectFileRequest.getDiffRaw());
         formData.add("tree", suspectFileRequest.getTree());
@@ -104,17 +105,17 @@ public class AIApiClientImpl implements AIApiClient {
                     dto.getResponse().getSuspectFiles() == null ||
                     dto.getResponse().getSuspectFiles().isEmpty()) {
 
-                throw new BusinessException(ErrorCode.AI_FILEPATH_RESPONSE_VALIDATION_FAILED);
+                throw new BusinessException(ErrorCode.AI_FILEPATH_RESPONSE_VALIDATION_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
             }
 
             return dto;
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_RESPONSE_SERIALIZATION_FAILED);
+            throw new BusinessException(ErrorCode.AI_RESPONSE_SERIALIZATION_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 
     @Override
-    public ResolveErrorResponse requestResolveError(SuspectFileInnerResponse suspectFileInnerResponse, String filesRawJson) {
+    public ResolveErrorResponse requestResolveError(SuspectFileInnerResponse suspectFileInnerResponse, String filesRawJson, Long projectId) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("errorSummary", suspectFileInnerResponse.getErrorSummary());
         formData.add("cause", suspectFileInnerResponse.getCause());
@@ -132,7 +133,7 @@ public class AIApiClientImpl implements AIApiClient {
                     .bodyToMono(String.class)
                     .block();
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_RESOLVE_REQUEST_FAILED);
+            throw new BusinessException(ErrorCode.AI_RESOLVE_REQUEST_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
         try {
@@ -141,17 +142,17 @@ public class AIApiClientImpl implements AIApiClient {
             if (dto.getResponse() == null ||
                     dto.getResponse().getFileFixes() == null ||
                     dto.getResponse().getFileFixes().isEmpty()) {
-                throw new BusinessException(ErrorCode.AI_RESOLVE_RESPONSE_INVALID);
+                throw new BusinessException(ErrorCode.AI_RESOLVE_RESPONSE_INVALID, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
             }
 
             return dto;
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_RESPONSE_SERIALIZATION_FAILED);
+            throw new BusinessException(ErrorCode.AI_RESPONSE_SERIALIZATION_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 
     @Override
-    public String requestPatchText(PatchTextRequest patchTextRequest) {
+    public String requestPatchText(PatchTextRequest patchTextRequest, Long projectId) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("original_code", patchTextRequest.getOriginalCode());
         formData.add("instruction", patchTextRequest.getInstruction());
@@ -166,12 +167,12 @@ public class AIApiClientImpl implements AIApiClient {
                     .bodyToMono(String.class)
                     .block();
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_PATCH_RESPONSE_PARSING_FAILED);
+            throw new BusinessException(ErrorCode.AI_PATCH_RESPONSE_PARSING_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 
     @Override
-    public PatchedFile requestPatchFile(PatchFileRequest patchFileRequest) {
+    public PatchedFile requestPatchFile(PatchFileRequest patchFileRequest, Long projectId) {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("path", patchFileRequest.getPath());
         formData.add("original_code", patchFileRequest.getOriginalCode());
@@ -193,18 +194,18 @@ public class AIApiClientImpl implements AIApiClient {
 
             return patchedFile;
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_PATCH_RESPONSE_PARSING_FAILED);
+            throw new BusinessException(ErrorCode.AI_PATCH_RESPONSE_PARSING_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 
     @Override
-    public AIReportResponse requestErrorReport(AIReportRequest aiReportRequest) {
+    public AIReportResponse requestErrorReport(AIReportRequest aiReportRequest, Long projectId) {
         String response;
         String json;
         try {
             json = objectMapper.writeValueAsString(aiReportRequest);
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED);
+            throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
 //        log.debug(">>>>>>>> [Fast API]requestErrorReport DTO: {}", aiReportRequest);
@@ -218,7 +219,7 @@ public class AIApiClientImpl implements AIApiClient {
                     .bodyToMono(String.class)
                     .block();
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_REPORT_REQUEST_FAILED);
+            throw new BusinessException(ErrorCode.AI_REPORT_REQUEST_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
         try {
@@ -226,12 +227,12 @@ public class AIApiClientImpl implements AIApiClient {
             AIReportResponse dto = mapper.readValue(response, AIReportResponse.class);
 
             if (dto.getSummary() == null || dto.getAppliedFiles() == null || dto.getAppliedFiles().isEmpty()) {
-                throw new BusinessException(ErrorCode.AI_REPORT_RESPONSE_MALFORMED);
+                throw new BusinessException(ErrorCode.AI_REPORT_RESPONSE_MALFORMED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
             }
 
             return dto;
         } catch (Exception e) {
-            throw new BusinessException(ErrorCode.AI_REPORT_RESPONSE_MALFORMED);
+            throw new BusinessException(ErrorCode.AI_REPORT_RESPONSE_MALFORMED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 }
