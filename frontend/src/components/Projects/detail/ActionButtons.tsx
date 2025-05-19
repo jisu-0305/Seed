@@ -81,7 +81,7 @@ export function ActionButtons({
     setIsBuildDisabled(deployEnabled);
   }, [deployEnabled]);
 
-  const handleConfigSubmit = async ({ domain, email }: HttpsConfig) => {
+  const handleConfigSubmit = async ({ pem, domain, email }: HttpsConfig) => {
     if (projectId == null) {
       console.error('projectId가 없습니다');
       https.toggle();
@@ -91,7 +91,7 @@ export function ActionButtons({
     setHttpsLoading(true);
     setErrorMessage(null);
     try {
-      const data = await convertServer(projectId, domain, email);
+      const data = await convertServer(projectId, domain, email, pem);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
       setIsHttpsDisabled(true);
       onHttpsComplete?.();

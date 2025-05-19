@@ -1,4 +1,5 @@
 export interface HttpsConfig {
+  pem: File;
   domain: string;
   email: string;
 }
