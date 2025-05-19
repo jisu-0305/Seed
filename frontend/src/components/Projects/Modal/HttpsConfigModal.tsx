@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import React, { useState } from 'react';
 
+import FileInput from '@/components/Common/FileInput';
 import SmallModal from '@/components/Common/Modal/SmallModal';
 import ModalTipItem from '@/components/Common/ModalTipItem';
 import { HttpsConfig } from '@/types/config';
@@ -18,10 +19,19 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
 }) => {
   const [domain, setDomain] = useState('');
   const [email, setEmail] = useState('');
+  const [pemFile, setPemFile] = useState<File | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({ domain, email });
+    if (!pemFile) return;
+
+    onSubmit({ domain, email, pem: pemFile });
+  };
+
+  const handlePemChange = (file: File) => {
+    if (file) {
+      setPemFile(file);
+    }
   };
 
   return (
@@ -31,6 +41,15 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
       handleClose={handleClose}
     >
       <Form onSubmit={handleSubmit}>
+        <Label>
+          .pem 파일
+          <FileInput
+            handleFileChange={handlePemChange}
+            accept=".pem"
+            placeholder="key.pem"
+            inputType="pem"
+          />
+        </Label>
         <Label>
           Domain
           <Input
