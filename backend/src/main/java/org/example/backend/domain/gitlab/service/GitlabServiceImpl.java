@@ -130,7 +130,7 @@ public class GitlabServiceImpl implements GitlabService {
 
     @Override
     public GitlabProjectListResponse getProjectsByCursor(String gitlabPersonalAccessToken, Long lastProjectId) {
-        int pageSize = 20;
+        int pageSize = 100;
         String validGitlabAccessToken = tokenValidCheck(gitlabPersonalAccessToken);
 
         List<GitlabProject> list = gitlabApiClient.requestProjectListBeforeCursor(validGitlabAccessToken, lastProjectId, pageSize);
