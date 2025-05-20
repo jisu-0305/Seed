@@ -849,7 +849,7 @@ public class ServerServiceImpl implements ServerService {
                         "                }\n" +
                         "                dir('backend') {\n" +
                         "                    sh '''\n" +
-                        "                        docker build -t spring .\n" +
+                        "                        docker build -q -t spring .\n" +
                         "                        docker stop spring || true\n" +
                         "                        docker rm spring || true\n" +
                         "                        docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
@@ -1157,7 +1157,7 @@ public class ServerServiceImpl implements ServerService {
                                 "FROM maven:3.9.6-eclipse-temurin-" + project.getJdkVersion() + " AS builder\n" +
                                 "WORKDIR /app\n" +
                                 "COPY . .\n" +
-                                "RUN mvn clean package -DskipTests\n" +
+                                "RUN mvn clean package -B -q -DskipTests\n" +
                                 "\n" +
                                 "# 2단계: 실행 스테이지\n" +
                                 "FROM openjdk:" + project.getJdkVersion() + "-jdk\n" +
