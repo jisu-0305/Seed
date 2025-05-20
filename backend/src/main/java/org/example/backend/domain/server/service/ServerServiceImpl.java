@@ -85,7 +85,7 @@ public class ServerServiceImpl implements ServerService {
             autoDeploymentSettingProcess(sshSession, user, project, frontEnv, backEnv);
 
             // 3) 프로젝트 자동 배포 활성화
-            project.updateAutoDeploymentStatus(ServerStatus.FINISH);
+            serverStatusService.updateStatus(project, ServerStatus.FINISH);
 
             // 4) Jenkins API 토큰 발급 및 스크립트 정리
             log.info("Jenkins API 토큰 발급 시작");
