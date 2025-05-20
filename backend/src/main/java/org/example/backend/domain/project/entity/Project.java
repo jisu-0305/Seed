@@ -78,6 +78,10 @@ public class Project {
     }
 
     public void updateAutoDeploymentStatus(ServerStatus status) {
+        if (ServerStatus.FINISH.equals(status)) {
+            this.enableAutoDeployment();
+        }
+
         this.serverStatus = status;
     }
 
