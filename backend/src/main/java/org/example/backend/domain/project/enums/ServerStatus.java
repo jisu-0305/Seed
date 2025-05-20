@@ -11,7 +11,7 @@ public enum ServerStatus {
     INSTALL_JENKINS,
     INSTALL_JENKINS_PLUGINS,
     SET_JENKINS_INFO,
-    CREATE_JENKINS_JOB,
+    CREATE_JENKINS_PIPELINE,
     CREATE_JENKINSFILE,
     CREATE_FRONTEND_DOCKERFILE,
     CREATE_BACKEND_DOCKERFILE,
@@ -36,5 +36,14 @@ public enum ServerStatus {
     SAVING_REPORT,            // 4-4. AI 보고서 저장
     FINISH_WITH_AI,        // 최종 완료, 배포 성공
     FAIL_WTIH_AI,          // 최종 완료, 배포 실패
-    BUILD_FAIL_WITH_AI     // 2번째 기능 중간과정 실패
+    BUILD_FAIL_WITH_AI,    // 2번째 기능 중간과정 실패
+
+    // Https 세팅 관련
+    INSTALL_CERTBOT,
+    CREATE_NGINX_CONFIGURATION_FILE,
+    RELOAD_NGINX,
+    ISSUE_SSL_CERTIFICATE,
+    EDIT_NGINX_CONFIGURATION_FILE,
+    FINISH_CONVERT_HTTPS
+
 }
