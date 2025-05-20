@@ -1246,7 +1246,6 @@ public class ServerServiceImpl implements ServerService {
     }
 
     @Override
-    @Transactional
     public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -1279,8 +1278,6 @@ public class ServerServiceImpl implements ServerService {
                     request.getProjectId(),
                     NotificationMessageTemplate.HTTPS_SETUP_COMPLETED
             );
-
-            project.saveDomainName(request.getDomain());
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -1316,6 +1313,7 @@ public class ServerServiceImpl implements ServerService {
         reloadNginx(sshSession, project);
 
         serverStatusService.updateStatus(project, ServerStatus.FINISH_CONVERT_HTTPS);
+        serverStatusService.saveDomiaName(project, request.getDomain());
     }
 
     public void installCertbot(Session sshSession, Project project) throws JSchException, IOException {
