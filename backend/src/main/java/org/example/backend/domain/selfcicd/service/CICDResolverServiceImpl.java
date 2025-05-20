@@ -19,9 +19,8 @@ import org.example.backend.domain.gitlab.service.GitlabService;
 import org.example.backend.domain.jenkins.service.JenkinsService;
 import org.example.backend.domain.project.entity.Project;
 import org.example.backend.domain.project.enums.ServerStatus;
-import org.example.backend.domain.project.repository.ProjectApplicationRepository;
 import org.example.backend.domain.project.repository.ProjectRepository;
-import org.example.backend.domain.selfcicd.enums.FailType;
+import org.example.backend.domain.server.service.ServerStatusService;
 import org.example.backend.global.exception.BusinessException;
 import org.example.backend.global.exception.ErrorCode;
 import org.example.backend.util.aiapi.AIApiClient;
@@ -51,40 +50,38 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final GitlabService gitlabService;
     private final ProjectRepository projectRepository;
     private final AIDeploymentReportService aiDeploymentReportService;
-//    private final ProjectApplicationRepository projectApplicationRepository;
     private final ObjectMapper objectMapper;
     private final AIApiClient fastAIClient;
     private final NotificationService notificationService;
+    private final ServerStatusService serverStatusService;
 
     @Override
     @Transactional
     public void handleSelfHealingCI(Long projectId, String accessToken, String failType) {
+        Project project = getProject(projectId);
 
         try {
-            // 0. 프로젝트 조회
-            Project project = getProject(projectId);
-
             // 1. sleep 15초 걸기
-            waitBeforeStart(projectId);
+            waitBeforeStart(project);
 
             // 1-1. 마지막 Jenkins 빌드 정보 및 에러 로그 조회
-            project.updateAutoDeploymentStatus(ServerStatus.JENKINS_BUILD_LOG);
+            serverStatusService.updateStatus(project, ServerStatus.JENKINS_BUILD_LOG);
             int buildNumber = getLastBuildInfo(projectId);
             String jenkinsErrorLog = getErrorLog(projectId, buildNumber);
 
             // 1-2. 프로젝트에 포함된 앱 이름 목록 조회
-            project.updateAutoDeploymentStatus(ServerStatus.COLLECTING_APP_INFO);
+            serverStatusService.updateStatus(project, ServerStatus.COLLECTING_APP_INFO);
             List<String> appNames = getProjectAppNames(project);
 
             // 1-3. Gitlab 최신 MR의 diff 정보 조회
             GitlabCompareResponse gitDiff = getGitDiff(project, accessToken);
 
             // 1-4. AI API 호출하여 의심되는 앱 추론
-            project.updateAutoDeploymentStatus(ServerStatus.INFERING_ERROR_SOURCE);
+            serverStatusService.updateStatus(project, ServerStatus.INFERING_ERROR_SOURCE);
             List<String> suspectedApps = inferSuspectedApps(appNames, gitDiff, jenkinsErrorLog, projectId);
 
             // 1-5. 의심 앱들의 GitLab 트리 정보 조회
-            project.updateAutoDeploymentStatus(ServerStatus.COLLECTING_LOGS_AND_TREES);
+            serverStatusService.updateStatus(project, ServerStatus.COLLECTING_LOGS_AND_TREES);
             Map<String, List<GitlabTree>> appTrees = getGitTrees(suspectedApps, project, accessToken);
 
             // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
@@ -102,14 +99,14 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 
             int newBuildNumber = buildNumber + 1;
             // 3-1. GitLab에 새로운 브랜치 생성 (ex. seed/fix/65)
-            project.updateAutoDeploymentStatus(ServerStatus.COMMITTING_FIXES);
+            serverStatusService.updateStatus(project, ServerStatus.COMMITTING_FIXES);
             String newBranch = createFixBranch(project, newBuildNumber, accessToken);
 
             // 3-2. GitLab에 수정된 파일들 커밋
             String commitUrl = commitPatchedFiles(project, accessToken, newBranch, patchedFiles, newBuildNumber);
 
             // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
-            project.updateAutoDeploymentStatus(ServerStatus.JENKINS_REBUILDING);
+            serverStatusService.updateStatus(project, ServerStatus.JENKINS_REBUILDING);
             triggerRebuild(projectId, newBranch, project.getGitlabTargetBranchName());
 
             // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
@@ -117,13 +114,13 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             ReportStatus reportStatus  = getBuildStatus(newBuildNumber, projectId);
 
             // 4-2. AI 요약 보고서 생성 요청 및 수신
-            project.updateAutoDeploymentStatus(ServerStatus.CREATING_REPORT);
+            serverStatusService.updateStatus(project, ServerStatus.CREATING_REPORT);
             Map<String, AIReportResponse> reportResponses = createAIReports(resolveResults, suspectedApps, projectId);
 
             // 4-3. 빌드 성공 시 GitLab MR 생성
             String mergeRequestUrl = "";
             if (reportStatus == ReportStatus.SUCCESS) {
-                project.updateAutoDeploymentStatus(ServerStatus.CREATE_PULL_REQUEST);
+                serverStatusService.updateStatus(project, ServerStatus.CREATE_PULL_REQUEST);
                 mergeRequestUrl = createMergeRequest(project, accessToken, newBranch, reportResponses);
 
                 // 빌드 성공 알림 보내기
@@ -134,15 +131,17 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             }
 
             // 4-4. 생성된 리포트 결과 저장 (DB 저장 등)
-            project.updateAutoDeploymentStatus(ServerStatus.SAVING_REPORT);
+            serverStatusService.updateStatus(project, ServerStatus.SAVING_REPORT);
             saveAIReports(projectId, reportResponses, reportStatus, commitUrl, mergeRequestUrl, newBuildNumber);
 
             if (reportStatus == ReportStatus.SUCCESS) {
-                project.updateAutoDeploymentStatus(ServerStatus.FINISH_WITH_AI);
+                serverStatusService.updateStatus(project, ServerStatus.FINISH_WITH_AI);
             } else {
-                project.updateAutoDeploymentStatus(ServerStatus.FAIL_WTIH_AI);
+                serverStatusService.updateStatus(project, ServerStatus.FAIL_WTIH_AI);
             }
         } catch (Exception e) {
+            serverStatusService.updateStatus(project, ServerStatus.FAIL_WTIH_AI);
+
             throw new BusinessException(
                     ErrorCode.INTERNAL_SERVER_ERROR,
                     projectId,
@@ -152,12 +151,14 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 0. 호출 API Jenkins build 시간에 맞춰 작동
-    private void waitBeforeStart(Long projectId) {
+    private void waitBeforeStart(Project project) {
         try {
             Thread.sleep(15_000);
         } catch (InterruptedException e) {
+            serverStatusService.updateStatus(project, ServerStatus.BUILD_FAIL_WITH_AI);
+
             Thread.currentThread().interrupt();
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, project.getId(), ServerStatus.BUILD_FAIL_WITH_AI);
         }
     }
 
@@ -289,11 +290,13 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             diffJson = objectMapper.writeValueAsString(diffRawPayload);
             treeJson = objectMapper.writeValueAsString(tree);
         } catch (JsonProcessingException e) {
+            serverStatusService.updateStatus(project, ServerStatus.BUILD_FAIL_WITH_AI);
             throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED, project.getId(), ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
         // 2-2. suspect 파일 찾기 요청
-        project.updateAutoDeploymentStatus(ServerStatus.SUSPECT_FILE);
+        serverStatusService.updateStatus(project, ServerStatus.SUSPECT_FILE);
+
         SuspectFileRequest suspectRequest = SuspectFileRequest.builder()
                 .diffRaw(diffJson)
                 .tree(treeJson)
@@ -303,7 +306,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         SuspectFileInnerResponse suspectFilesResponse = fastAIClient.requestSuspectFiles(suspectRequest, project.getId()).getResponse();
 
         // 2-3. suspect 파일들의 원본 코드 GitLab에서 조회
-        project.updateAutoDeploymentStatus(ServerStatus.GET_ORIGINAL_CODE);
+        serverStatusService.updateStatus(project, ServerStatus.GET_ORIGINAL_CODE);
+
         List<Map<String, String>> filesRaw = new ArrayList<>();
         for (var file : suspectFilesResponse.getSuspectFiles()) {
             String path = file.getPath();
@@ -317,11 +321,13 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         }
 
         // 2-4. 해결 요약 요청
-        project.updateAutoDeploymentStatus(ServerStatus.GET_INSTRUCTION);
+        serverStatusService.updateStatus(project, ServerStatus.GET_INSTRUCTION);
+
         String fileRawJson;
         try {
             fileRawJson = objectMapper.writeValueAsString(filesRaw);
         } catch (JsonProcessingException e) {
+            serverStatusService.updateStatus(project, ServerStatus.BUILD_FAIL_WITH_AI);
             throw new BusinessException(ErrorCode.AI_RESOLVE_REQUEST_FAILED, project.getId(), ServerStatus.BUILD_FAIL_WITH_AI);
         }
 
@@ -329,7 +335,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                 .requestResolveError(suspectFilesResponse, fileRawJson, project.getId());
 
         // 2-5. 해결 요약본 기반으로 수정된 코드 요청
-        project.updateAutoDeploymentStatus(ServerStatus.GET_FIXED_CODE);
+        serverStatusService.updateStatus(project, ServerStatus.GET_FIXED_CODE);
+
         for (var fix : resolveDto.getResponse().getFileFixes()) {
             String path = fix.getPath();
             String instruction = fix.getInstruction();

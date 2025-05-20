@@ -55,6 +55,7 @@ export default function ProjectEdit() {
         imageName: app.imageName,
         tag: app.tag,
         port: app.port,
+        imageEnvs: app.imageEnvs ?? {},
       })),
     };
 
