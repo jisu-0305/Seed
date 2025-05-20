@@ -16,6 +16,17 @@ export default function EnvInput() {
   const { setBackEnvFile, setFrontEnvFile } = useProjectFileStore();
   const { frontEnvFile, backEnvFile } = useProjectFileStore();
 
+  const parseEnvFile = async (file: File): Promise<Set<string>> => {
+    const text = await file.text();
+    const lines = text.split('\n');
+    const keys = lines
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#') && line.includes('='))
+      .map((line) => line.split('=')[0].trim());
+
+    return new Set(keys);
+  };
+
   // 실 파일 존재 여부와 스토어 플래그 동기화
   useEffect(() => {
     setEnvStatus({
@@ -47,9 +58,27 @@ export default function EnvInput() {
     setFrontEnvFile(file);
   };
 
-  const handleServerEnvChange = (file: File) => {
+  const handleServerEnvChange = async (file: File) => {
     setEnvStatus({ ...env, backEnv: !!file, backEnvName: file.name });
     setBackEnvFile(file);
+
+    const envKeys = await parseEnvFile(file);
+    const { app } = useProjectInfoStore.getState().stepStatus;
+
+    const missingKeys = new Set<string>();
+    app.forEach((a) => {
+      a.imageEnvs?.forEach((key) => {
+        if (!envKeys.has(key)) {
+          missingKeys.add(key);
+        }
+      });
+    });
+
+    if (missingKeys.size === 0) {
+      alert('✅ 모든 환경변수가 정상적으로 포함되어 있습니다.');
+    } else {
+      alert(`❌ 누락된 환경변수:\n• ${Array.from(missingKeys).join('\n• ')}`);
+    }
   };
 
   // const handleFrontFrameworkChange = (e: ChangeEvent<HTMLInputElement>) => {
