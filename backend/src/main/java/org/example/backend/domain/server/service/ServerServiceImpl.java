@@ -849,7 +849,7 @@ public class ServerServiceImpl implements ServerService {
                         "                }\n" +
                         "                dir('backend') {\n" +
                         "                    sh '''\n" +
-                        "                        docker build -q -t spring .\n" +
+                        "                        docker build -t spring .\n" +
                         "                        docker stop spring || true\n" +
                         "                        docker rm spring || true\n" +
                         "                        docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
