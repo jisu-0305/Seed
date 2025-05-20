@@ -24,9 +24,13 @@ const PemModal: React.FC<PemModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pemFile) return;
+    if (!pemFile) {
+      alert('pem 파일을 업로드해주세요!');
+      return;
+    }
 
     onSubmit({ pem: pemFile });
+    setPemFile(null);
   };
 
   const handlePemChange = (file: File) => {
@@ -52,9 +56,7 @@ const PemModal: React.FC<PemModalProps> = ({
           />
         </Label>
 
-        <SubmitButton type="submit" disabled={!pemFile}>
-          설정하기
-        </SubmitButton>
+        <SubmitButton type="submit">설정하기</SubmitButton>
 
         <InformPemKeyModal
           isShowing={pemTip.isShowing}

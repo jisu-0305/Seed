@@ -12,6 +12,7 @@ export function DeployStatus({
   tasksByTab,
   selectedTab,
   onTabChange,
+  errorMessage,
 }: DeployStatusProps) {
   const tabs = Object.keys(tasksByTab) as DeployTabName[];
   const { mode } = useThemeStore();
@@ -38,7 +39,7 @@ export function DeployStatus({
         {selectedTab === '빌드 기록' ? (
           <BuildHistoryPanel projectId={pid} selectedTab={selectedTab} />
         ) : tasksByTab[selectedTab]?.length === 0 ? (
-          <NoDataText>아직 빌드기록이 없습니다</NoDataText>
+          <NoDataText>{errorMessage}</NoDataText>
         ) : (
           <DeployTable
             projectId={pid}

@@ -26,7 +26,10 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pemFile) return;
+    if (!pemFile) {
+      alert('pem 파일을 업로드해주세요!');
+      return;
+    }
 
     onSubmit({ domain, email, pem: pemFile });
   };

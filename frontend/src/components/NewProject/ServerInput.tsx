@@ -42,11 +42,13 @@ export default function ServerInput() {
 
   const handleIpChange = (index: number, value: string) => {
     const numeric = value.replace(/\D/g, '');
-    if (numeric.length > 3 || (numeric !== '' && parseInt(numeric, 10) > 255))
-      return;
+    if (numeric.length > 3) return;
+
+    const parsed = parseInt(numeric, 10);
+    if (numeric !== '' && (Number.isNaN(parsed) || parsed > 255)) return;
 
     const ipParts = server.ip ? server.ip.split('.') : ['', '', '', ''];
-    ipParts[index] = numeric;
+    ipParts[index] = numeric === '' ? '' : String(parsed); // "000" → "0"
 
     setServerStatus({
       ip: ipParts.map((p) => p || '').join('.'),
@@ -54,8 +56,16 @@ export default function ServerInput() {
       pemName: server.pemName,
     });
 
-    if (numeric.length === 3 && index < 3) {
-      inputRefs.current[index + 1]?.focus();
+    if (
+      numeric !== '' &&
+      !Number.isNaN(parsed) &&
+      parsed <= 255 &&
+      index < 3 &&
+      (parsed >= 100 || parsed >= 26 || parsed === 0)
+    ) {
+      setTimeout(() => {
+        inputRefs.current[index + 1]?.focus();
+      }, 0);
     }
   };
 

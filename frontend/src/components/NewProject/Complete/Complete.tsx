@@ -15,6 +15,7 @@ export default function Complete() {
   const { mode } = useThemeStore();
 
   const { stepStatus, resetProjectStatus } = useProjectInfoStore();
+  // const { loadProjects } = useProjectStore();
 
   function stepStatusToProjectRequest(): PostProjectInfo {
     const { gitlab, server, app, env } = stepStatus;
@@ -59,6 +60,13 @@ export default function Complete() {
       resetProjectStatus();
 
       const res = await createProject(projectInfo);
+      // console.log('📦 프로젝트 생성 응답:', res.data);
+      // const newProjectId = res.data.id;
+
+      // if (typeof newProjectId !== 'number') {
+      //   throw new Error('프로젝트 ID를 가져오지 못했습니다.');
+      // }
+      // router.push(`/projects/${newProjectId}`);
 
       if (res.success) {
         alert('프로젝트가 성공적으로 생성되었습니다!');

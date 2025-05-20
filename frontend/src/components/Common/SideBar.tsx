@@ -1,6 +1,5 @@
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 import { useProjectStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
@@ -18,12 +17,13 @@ export default function SideBar() {
   const { projects, loadProjects } = useProjectStore();
 
   const handleMovePage = (url: string) => {
+    if (url.startsWith('/projects')) {
+      loadProjects(true).then(() => router.push(url));
+      return;
+    }
+
     router.push(url);
   };
-
-  useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
 
   if (mode === null) return null;
 
