@@ -16,7 +16,6 @@ export default function EnvInput() {
   const { setBackEnvFile, setFrontEnvFile } = useProjectFileStore();
   const { frontEnvFile, backEnvFile } = useProjectFileStore();
 
-  // 백엔드 .env 파싱 유틸
   const parseEnvFile = async (file: File): Promise<Set<string>> => {
     const text = await file.text();
     const lines = text.split('\n');
@@ -26,33 +25,6 @@ export default function EnvInput() {
       .map((line) => line.split('=')[0].trim());
 
     return new Set(keys);
-  };
-
-  // 검증 버튼 핸들러
-  const handleBackendEnvValidation = async () => {
-    if (!backEnvFile) {
-      alert('❌ 백엔드 .env 파일이 업로드되지 않았습니다.');
-      return;
-    }
-
-    const envKeys = await parseEnvFile(backEnvFile);
-    const { app } = useProjectInfoStore.getState().stepStatus;
-
-    const missingKeys = new Set<string>();
-
-    app.forEach((a) => {
-      a.imageEnvs?.forEach((key) => {
-        if (!envKeys.has(key)) {
-          missingKeys.add(key);
-        }
-      });
-    });
-
-    if (missingKeys.size === 0) {
-      alert('✅ 모든 환경변수가 정상적으로 포함되어 있습니다.');
-    } else {
-      alert(`❌ 누락된 환경변수:\n• ${Array.from(missingKeys).join('\n• ')}`);
-    }
   };
 
   // 실 파일 존재 여부와 스토어 플래그 동기화
@@ -86,9 +58,27 @@ export default function EnvInput() {
     setFrontEnvFile(file);
   };
 
-  const handleServerEnvChange = (file: File) => {
+  const handleServerEnvChange = async (file: File) => {
     setEnvStatus({ ...env, backEnv: !!file, backEnvName: file.name });
     setBackEnvFile(file);
+
+    const envKeys = await parseEnvFile(file);
+    const { app } = useProjectInfoStore.getState().stepStatus;
+
+    const missingKeys = new Set<string>();
+    app.forEach((a) => {
+      a.imageEnvs?.forEach((key) => {
+        if (!envKeys.has(key)) {
+          missingKeys.add(key);
+        }
+      });
+    });
+
+    if (missingKeys.size === 0) {
+      alert('✅ 모든 환경변수가 정상적으로 포함되어 있습니다.');
+    } else {
+      alert(`❌ 누락된 환경변수:\n• ${Array.from(missingKeys).join('\n• ')}`);
+    }
   };
 
   // const handleFrontFrameworkChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -217,9 +207,6 @@ export default function EnvInput() {
             placeholder="backend.env"
             inputType="backEnv"
           />
-          <button onClick={handleBackendEnvValidation}>
-            백엔드 환경변수 검증
-          </button>
         </Row>
         <Row>
           <Label>빌드 도구</Label>
@@ -348,17 +335,4 @@ const TipList = styled.ul`
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-`;
-
-const ValidateButton = styled.button`
-  padding: 0.8rem 2rem;
-  background-color: ${({ theme }) => '#3a5ecc '};
-  color: white;
-  border: none;
-  border-radius: 1rem;
-  cursor: pointer;
-
-  &:hover {
-    background-color: ${({ theme }) => '#3a5ecc'};
-  }
 `;
