@@ -13,6 +13,8 @@ const STOP_STATUSES = [
   'FINISH_CONVERT_HTTPS',
 ];
 
+type PollingType = 'build' | 'https';
+
 interface UsePollingOptions {
   onBuildFinish?: () => void;
   onHttpsFinish?: () => void;
@@ -32,6 +34,7 @@ export function useProjectStatusPolling(
 
   const buildFinishCalledRef = useRef(false);
   const httpsFinishCalledRef = useRef(false);
+  const currentPollingType = useRef<PollingType | null>(null);
 
   const fetchAndUpdate = useCallback(
     async (force = false) => {
@@ -48,7 +51,8 @@ export function useProjectStatusPolling(
           if (
             statusInfo?.category === 'build' &&
             nextStatus === 'FINISH' &&
-            !buildFinishCalledRef.current
+            !buildFinishCalledRef.current &&
+            currentPollingType.current === 'build'
           ) {
             onBuildFinish?.();
             buildFinishCalledRef.current = true;
@@ -58,7 +62,8 @@ export function useProjectStatusPolling(
           if (
             statusInfo?.category === 'https' &&
             nextStatus === 'FINISH_CONVERT_HTTPS' &&
-            !httpsFinishCalledRef.current
+            !httpsFinishCalledRef.current &&
+            currentPollingType.current === 'https'
           ) {
             onHttpsFinish?.();
             httpsFinishCalledRef.current = true;
@@ -101,6 +106,15 @@ export function useProjectStatusPolling(
     }
   }, []);
 
+  const restartPolling = useCallback((type: PollingType) => {
+    if (type === 'build') buildFinishCalledRef.current = false;
+    if (type === 'https') httpsFinishCalledRef.current = false;
+
+    currentPollingType.current = type; // ✅ 어떤 목적의 polling인지 설정
+
+    startPolling(true); // force true
+  }, []);
+
   useEffect(() => {
     startPolling();
     return () => stopPolling();
@@ -123,7 +137,7 @@ export function useProjectStatusPolling(
     status,
     isBuildLoading,
     isHttpsLoading,
-    restartPolling: () => startPolling(true),
+    restartPolling,
     startPolling,
   };
 }
