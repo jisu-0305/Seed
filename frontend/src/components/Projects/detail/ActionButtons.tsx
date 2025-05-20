@@ -8,6 +8,7 @@ import { convertServer, startBuildWithPem } from '@/apis/server';
 import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
 import { useModal } from '@/hooks/Common';
+import { useProjectStatusPolling } from '@/hooks/Common/useProjectStatusPolling';
 import { useThemeStore } from '@/stores/themeStore';
 import { EC2Config, HttpsConfig } from '@/types/config';
 
@@ -17,12 +18,11 @@ import PemModal from '../Modal/PemModal';
 import ServerStatusBar from '../ServerStatusBar';
 
 interface ActionButtonsProps {
-  projectId: string | null;
+  projectId: string;
   gitlab?: string | URL;
   httpsEnabled: boolean;
   deployEnabled: boolean;
 
-  /** 세팅 완료 후 부모에게 알려줄 콜백 */
   onHttpsComplete?: () => void;
   onDeployComplete?: () => void;
 }
@@ -39,14 +39,16 @@ export function ActionButtons({
   const team = useModal();
   const https = useModal();
   const build = useModal();
+  const { pollForSeconds, isBuildLoading, isHttpsLoading } =
+    useProjectStatusPolling(projectId);
 
   // https 모달용
   const [isHttpsDisabled, setIsHttpsDisabled] = useState(httpsEnabled);
-  const [HttpsLoading, setHttpsLoading] = useState(false);
+  const [HttpsLoading, setHttpsLoading] = useState(isHttpsLoading);
 
   // ■ 빌드용 로딩 & 메시지
   const [isBuildDisabled, setIsBuildDisabled] = useState(deployEnabled);
-  const [buildLoading, setBuildLoading] = useState(false);
+  const [buildLoading, setBuildLoading] = useState(isBuildLoading);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -90,6 +92,9 @@ export function ActionButtons({
 
     setHttpsLoading(true);
     setErrorMessage(null);
+    https.toggle();
+
+    pollForSeconds();
     try {
       const data = await convertServer(projectId, domain, email, pem);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
@@ -97,12 +102,9 @@ export function ActionButtons({
       onHttpsComplete?.();
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);
-      setErrorMessage(
-        'HTTPS 설정 중 오류가 발생했어요. 도메인 정보를 확인해주세요.',
-      );
+      setErrorMessage('HTTPS 설정 중 오류가 발생했어요.');
     } finally {
       setHttpsLoading(false);
-      https.toggle();
     }
   };
 
@@ -115,7 +117,9 @@ export function ActionButtons({
 
     setBuildLoading(true);
     setErrorMessage(null);
+    build.toggle();
 
+    pollForSeconds();
     try {
       const data = await startBuildWithPem(projectId, pem);
       console.log('✔️ EC2 세팅 성공:', data);
@@ -123,10 +127,9 @@ export function ActionButtons({
       onDeployComplete?.();
     } catch (err) {
       console.error('❌ EC2 세팅 실패:', err);
-      setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
+      setErrorMessage('EC2 세팅 중 오류가 발생했어요.');
     } finally {
       setBuildLoading(false);
-      build.toggle();
     }
   };
 
@@ -172,7 +175,7 @@ export function ActionButtons({
             {buildLoading ? (
               <LoadingSpinner />
             ) : (
-              <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
+              <Icon src="/assets/icons/ic_build_dark.svg" alt="ec2" />
             )}
             EC2 세팅
           </Button>
@@ -181,7 +184,11 @@ export function ActionButtons({
             onClick={https.toggle}
             disabled={isHttpsDisabled || HttpsLoading}
           >
-            <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
+            {HttpsLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
+            )}
             Https 설정
           </Button>
         </MainActions>
@@ -211,7 +218,7 @@ export function ActionButtons({
         />
       </ModalWrapper>
       <ModalWrapper isShowing={https.isShowing || build.isShowing}>
-        {HttpsLoading && <LoadingSpinner />}
+        {(HttpsLoading || buildLoading) && <LoadingSpinner />}
         <HttpsConfigModal
           isShowing={https.isShowing}
           handleClose={https.toggle}

@@ -1,5 +1,5 @@
 import styled from '@emotion/styled';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { getImageTag } from '@/apis/gitlab';
 import { useModal } from '@/hooks/Common';
@@ -7,6 +7,7 @@ import { useProjectInfoStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 import { ApplicationWithDefaults } from '@/types/project';
 
+import EnvItem from '../Common/EnvItem';
 import ModalWrapper from '../Common/Modal/ModalWrapper';
 import TipItem from '../Common/TipItem';
 import CustomDropdown from './CustomDropdown';
@@ -23,7 +24,7 @@ interface TagResponse {
 export default function AppInput() {
   const { mode } = useThemeStore();
 
-  const { stepStatus, setAppStatus } = useProjectInfoStore();
+  const { stepStatus, setAppStatus, setOnNextValidate } = useProjectInfoStore();
   const { app: apps } = stepStatus;
 
   const inboundTip = useModal();
@@ -64,7 +65,7 @@ export default function AppInput() {
   // };
 
   const handleAddApp = async (img: ApplicationWithDefaults) => {
-    const { imageName, defaultPorts, description, imageEnvs } = img;
+    const { imageName, defaultPorts, description } = img;
     const existingIndex = apps.findIndex((a) => a.imageName === imageName);
     if (existingIndex !== -1) {
       setSelectedIndex(existingIndex);
@@ -158,6 +159,25 @@ export default function AppInput() {
     setAppStatus(updated);
   };
 
+  // 유효성 검사
+  const isFormValid = () => {
+    const ports = apps.map((app) => app.port);
+    const uniquePorts = new Set(ports);
+
+    const hasDuplicatePorts = ports.length !== uniquePorts.size;
+
+    if (hasDuplicatePorts) {
+      alert('중복된 포트가 존재합니다');
+    }
+
+    return !hasDuplicatePorts;
+  };
+
+  // next 버튼 핸들러
+  useEffect(() => {
+    setOnNextValidate(isFormValid);
+  }, [apps]);
+
   if (mode === null) return null;
 
   return (
@@ -206,7 +226,7 @@ export default function AppInput() {
                 />
               </SelectWrapper>
 
-              <div>
+              <SelectWrapper>
                 <Label>포트번호</Label>
                 {/* <PortInput
                   type="number"
@@ -220,18 +240,12 @@ export default function AppInput() {
                   value={String(apps[selectedIndex].port)}
                   onChange={handlePortSelect}
                 />
-              </div>
+              </SelectWrapper>
             </Row>
           </>
         )}
 
         <TipList>
-          {selectedIndex !== null &&
-            apps[selectedIndex]?.imageEnvs?.length > 0 && (
-              <TipItem
-                text={`도커 이미지에 정의된 환경 변수:\n• ${apps[selectedIndex].imageEnvs.join(', ')}`}
-              />
-            )}
           <TipItem text="포트번호는 반드시 중복되지 않도록 설정해주세요" />
           <TipItem
             text="EC2에서 어플리케이션의 포트를 열어주세요"
@@ -239,6 +253,11 @@ export default function AppInput() {
             help
             openModal={inboundTip.toggle}
           />
+          <TipItem text="필수 환경변수를 .env 에 포함해주세요" />
+          {selectedIndex !== null &&
+            apps[selectedIndex]?.imageEnvs?.length > 0 && (
+              <EnvItem envs={apps[selectedIndex].imageEnvs} />
+            )}
         </TipList>
       </Wrapper>
       <ModalWrapper isShowing={inboundTip.isShowing || search.isShowing}>
@@ -250,7 +269,7 @@ export default function AppInput() {
           isShowing={search.isShowing}
           handleClose={search.toggle}
           onSelect={(img) => {
-            console.log('선택된 이미지:', img);
+            // console.log('선택된 이미지:', img);
             handleAddApp(img);
           }}
         />

@@ -22,16 +22,11 @@ export default function GitlabInput() {
   const loader = useRef<HTMLLIElement | null>(null); // pagination
   const scrollContainerRef = useRef<HTMLUListElement>(null);
 
-  const { stepStatus, setGitlabStatus, setOnNextValidate, resetProjectStatus } =
+  const { stepStatus, setGitlabStatus, setOnNextValidate } =
     useProjectInfoStore();
   const { gitlab } = stepStatus;
 
   const { mode } = useThemeStore();
-
-  // 페이지가 마운트될 때 한 번만 초기화
-  useEffect(() => {
-    resetProjectStatus();
-  }, [resetProjectStatus]);
 
   // repo 조회
   useEffect(() => {

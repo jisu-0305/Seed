@@ -36,8 +36,8 @@ const Container = styled.div`
 `;
 
 const Spinner = styled.div`
-  width: 4rem;
-  height: 4rem;
+  width: 3rem;
+  height: 3rem;
   border: 0.5rem solid ${({ theme }) => theme.colors.BorderDefault};
   border-top: 0.5rem solid ${({ theme }) => theme.colors.Main_Carrot};
   border-radius: 50%;

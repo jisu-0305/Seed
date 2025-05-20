@@ -87,7 +87,14 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
           stepStatus: { ...state.stepStatus, env },
         })),
 
-      resetProjectStatus: () => set({ stepStatus: initialStatus }),
+      resetProjectStatus: () => {
+        set({ stepStatus: initialStatus });
+        try {
+          localStorage.removeItem('projectInfo');
+        } catch (e) {
+          console.warn('로컬스토리지 초기화 실패:', e);
+        }
+      },
 
       onNextValidate: () => true,
       // 콜백 등록
@@ -178,7 +185,7 @@ interface ProjectStore {
   projects: ProjectSummary[];
   loading: boolean;
   error: string | null;
-  loadProjects: () => Promise<void>;
+  loadProjects: (force?: boolean) => Promise<void>;
 }
 
 export const useProjectStore = create<ProjectStore>((set, get) => ({
@@ -186,9 +193,9 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   loading: false,
   error: null,
 
-  loadProjects: async () => {
+  loadProjects: async (force = false) => {
     const { projects } = get();
-    if (projects.length > 0) {
+    if (!force && projects.length > 0) {
       return;
     }
 

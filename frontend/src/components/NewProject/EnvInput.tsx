@@ -236,7 +236,7 @@ export default function EnvInput() {
       </Section>
 
       <TipList>
-        <TipItem text="현재 사용하고 있는 key 정보를 담은 .env 파일을 업로드해주세요" />
+        <TipItem text="필수 환경변수 정보를 담은 .env 파일을 업로드해주세요" />
         <TipItem text="버전 정보를 꼭 확인해주세요" important />
       </TipList>
     </Container>

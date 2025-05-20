@@ -36,7 +36,9 @@ export default function StepSidebar() {
           <Value>{status.gitlab.structure}</Value>
         </Row>
         <Row>
-          <Label>디렉토리</Label>
+          <Label>
+            {status.gitlab.structure === '모노' ? '디렉토리' : '브랜치'}
+          </Label>
           <Icon
             src={
               status.gitlab.directory.client && status.gitlab.directory.server
@@ -97,9 +99,12 @@ export default function StepSidebar() {
 
         {isExpanded &&
           status.app.map((app) => (
-            <Row key={app.imageName}>
-              <AppTag>{app.imageName}</AppTag>
-            </Row>
+            <AppRow key={app.imageName}>
+              <AppInfo>
+                <strong>{app.imageName}</strong>
+              </AppInfo>
+              <PortInfo>: {app.port}</PortInfo>
+            </AppRow>
           ))}
       </Section>
 
@@ -181,3 +186,24 @@ const Divider = styled.hr`
 `;
 
 const Icon = styled.img``;
+
+const AppRow = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2rem;
+
+  margin-bottom: 1rem;
+`;
+
+const AppInfo = styled.div`
+  ${({ theme }) => theme.fonts.Body3};
+
+  strong {
+    ${({ theme }) => theme.fonts.Title6};
+  }
+`;
+
+const PortInfo = styled.div`
+  ${({ theme }) => theme.fonts.Body3};
+`;

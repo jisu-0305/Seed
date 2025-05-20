@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 import SmallButton from '@/components/Common/button/SmallButton';
 import Header from '@/components/Common/Header';
@@ -24,11 +25,21 @@ export default function ProjectCreateLayout({
   const { mode } = useThemeStore();
 
   const { onNextValidate } = useProjectInfoStore();
+  const { stepStatus: status, resetProjectStatus } = useProjectInfoStore();
+
+  useEffect(() => {
+    resetProjectStatus();
+  }, []);
 
   const handleNext = () => {
     if (onNextValidate()) {
+      if (status.gitlab.structure === '멀티') {
+        alert('아직 멀티 구조는 지원하지 않습니다.');
+        return;
+      }
       router.push(`${getUrlFromId(currentStep + 1)}`);
     } else {
+      if (pathName.startsWith('/create/app')) return;
       alert('모든 항목을 입력해주세요.');
     }
   };

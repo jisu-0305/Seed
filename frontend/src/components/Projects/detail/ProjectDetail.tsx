@@ -42,6 +42,8 @@ export default function ProjectDetail() {
     null,
   );
 
+  const [errorMessage, setErrorMessage] = useState('아직 빌드기록이 없습니다');
+
   const [detail, setDetail] = useState<
     ProjectDetailData &
       Pick<
@@ -148,7 +150,11 @@ export default function ProjectDetail() {
           setTasksByTab((prev) => ({ ...prev, [selectedTab]: tasks }));
         })
         .catch((err) => {
-          console.error('최근 빌드 로딩 실패', err);
+          if (err.response && err.response.status === 500) {
+            setErrorMessage(`${err.response.data.message}`);
+          } else {
+            console.error('요청 중 에러 발생:', err);
+          }
           setTasksByTab((prev) => ({ ...prev, [selectedTab]: [] }));
         });
     }
@@ -223,6 +229,7 @@ export default function ProjectDetail() {
           tasksByTab={tasksByTab}
           selectedTab={selectedTab}
           onTabChange={setSelectedTab}
+          errorMessage={errorMessage}
         />
       </Section>
     </SectionWrapper>

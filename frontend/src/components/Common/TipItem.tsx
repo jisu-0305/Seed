@@ -51,7 +51,7 @@ const StWrapper = styled.li<{ important?: boolean }>`
   ${({ theme }) => theme.fonts.Body3}
 
   color: ${({ important, theme }) =>
-    important ? theme.colors.Red1 : theme.colors.Text};
+    important ? theme.colors.RedBtnHover : theme.colors.Text};
 `;
 
 const TipLabel = styled.span<{ important?: boolean }>`
@@ -61,7 +61,7 @@ const TipLabel = styled.span<{ important?: boolean }>`
   ${({ theme }) => theme.fonts.Title6}
 
   background-color: ${({ important, theme }) =>
-    important ? theme.colors.Red1 : theme.colors.Text};
+    important ? theme.colors.RedBtnHover : theme.colors.Text};
   border-radius: 1.5rem;
 `;
 
