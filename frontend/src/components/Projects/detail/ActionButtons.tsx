@@ -105,7 +105,7 @@ export function ActionButtons({
     setErrorMessage(null);
     https.toggle();
 
-    restartPolling();
+    restartPolling('https');
     try {
       const data = await convertServer(projectId, domain, email, pem);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
@@ -130,7 +130,7 @@ export function ActionButtons({
     setErrorMessage(null);
     build.toggle();
 
-    restartPolling();
+    restartPolling('build');
     try {
       const data = await startBuildWithPem(projectId, pem);
       console.log('✔️ EC2 세팅 성공:', data);

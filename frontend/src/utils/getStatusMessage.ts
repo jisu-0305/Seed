@@ -162,6 +162,7 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
     category: 'ai',
   },
 
+  // HTTPS
   INSTALL_CERTBOT: {
     message: 'Certbot 설치 중',
     progress: 5,
@@ -190,6 +191,11 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
   FINISH_CONVERT_HTTPS: {
     message: 'HTTPS 세팅 완료!',
     progress: 100,
+    category: 'https',
+  },
+  FAIL_HTTPS: {
+    message: 'HTTPS 설정 실패 😢',
+    progress: 0,
     category: 'https',
   },
 };

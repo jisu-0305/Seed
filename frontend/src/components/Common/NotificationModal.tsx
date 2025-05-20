@@ -88,6 +88,19 @@ const Modal = styled.div`
   padding: 1.5rem 2rem;
   box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 11;
+
+  &::-webkit-scrollbar {
+    width: 0.5rem;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: ${({ theme }) => theme.colors.BorderDefault};
+    border-radius: 0.25rem;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 `;
 
 const Header = styled.div`
