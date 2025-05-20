@@ -61,7 +61,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
         Project project = getProject(projectId);
 
         try {
-            // 1. sleep 15초 걸기
+            // 1. sleep 5초 걸기
             waitBeforeStart(project);
 
             // 1-1. 마지막 Jenkins 빌드 정보 및 에러 로그 조회
@@ -153,7 +153,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     // 0. 호출 API Jenkins build 시간에 맞춰 작동
     private void waitBeforeStart(Project project) {
         try {
-            Thread.sleep(15_000);
+            Thread.sleep(5_000);
         } catch (InterruptedException e) {
             serverStatusService.updateStatus(project, ServerStatus.BUILD_FAIL_WITH_AI);
 
@@ -474,7 +474,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             DeploymentReportSavedRequest request = new DeploymentReportSavedRequest();
             request.setProjectId(projectId);
             request.setBuildNumber(newBuildNumber);
-            request.setTitle("[AI "+ (newBuildNumber-1) +"번 빌드 수정: ] " + appName + " 앱 자동 리포트");
+            request.setTitle("["+(newBuildNumber-1) +"번 빌드 수정] " + appName + " 수정 보고서");
             request.setSummary(response.getSummary());
             request.setAdditionalNotes(response.getAdditionalNotes());
             request.setCommitUrl(commitUrl);
