@@ -1279,21 +1279,16 @@ public class ServerServiceImpl implements ServerService {
                     NotificationMessageTemplate.HTTPS_SETUP_COMPLETED
             );
 
-        } catch (JSchException e) {
+        } catch (Exception e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
-            notificationService.notifyProjectStatusForUsers(
-                    request.getProjectId(),
-                    NotificationMessageTemplate.HTTPS_SETUP_FAILED
-            );
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
-        } catch (IOException e) {
-            log.error("PEM 파일 로드 실패: {}", e.getMessage());
-            notificationService.notifyProjectStatusForUsers(
-                    request.getProjectId(),
-                    NotificationMessageTemplate.HTTPS_SETUP_FAILED
-            );
-            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
 
+            serverStatusService.updateStatus(project, ServerStatus.FAIL_HTTPS);
+
+            notificationService.notifyProjectStatusForUsers(
+                    request.getProjectId(),
+                    NotificationMessageTemplate.HTTPS_SETUP_FAILED
+            );
+            throw new BusinessException(ErrorCode.BUSINESS_ERROR);
         } finally {
             if (sshSession != null && !sshSession.isConnected()) {
                 sshSession.disconnect();
