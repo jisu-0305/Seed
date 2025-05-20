@@ -6,7 +6,7 @@ const nextPWA = withPWA({
   dest: 'public',
   register: true,
   // disable: process.env.NODE_ENV === 'development',
-  swSrc: '/firebase-messaging-sw.mjs',
+  swSrc: 'firebase-messaging-sw.mjs',
   scope: '/',
   sw: 'sw.js',
 });
