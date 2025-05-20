@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.checkerframework.checker.index.qual.PolyUpperBound;
 import org.example.backend.controller.request.DeploymentReportSavedRequest;
 import org.example.backend.controller.request.docker.DockerContainerLogRequest;
 import org.example.backend.controller.response.docker.DockerContainerLogResponse;
@@ -56,12 +57,11 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     private final ServerStatusService serverStatusService;
 
     @Override
-    @Transactional
     public void handleSelfHealingCI(Long projectId, String accessToken, String failType) {
         Project project = getProject(projectId);
 
         try {
-            // 1. sleep 15초 걸기
+            // 1. sleep 5초 걸기
             waitBeforeStart(project);
 
             // 1-1. 마지막 Jenkins 빌드 정보 및 에러 로그 조회
@@ -153,7 +153,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     // 0. 호출 API Jenkins build 시간에 맞춰 작동
     private void waitBeforeStart(Project project) {
         try {
-            Thread.sleep(15_000);
+            Thread.sleep(5_000);
         } catch (InterruptedException e) {
             serverStatusService.updateStatus(project, ServerStatus.BUILD_FAIL_WITH_AI);
 
@@ -361,7 +361,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     //3-1. GitLab에 새로운 브랜치 생성, 브렌치이름 date에 시간 분까지 나오면 좋을듯?
-    private String createFixBranch(Project project, int newBuildNumber, String accessToken) {
+    @Transactional
+    public String createFixBranch(Project project, int newBuildNumber, String accessToken) {
         String branchName = "seed/fix/" + newBuildNumber;
         gitlabService.deleteBranch(accessToken, project.getGitlabProjectId(), branchName);
         gitlabService.createBranch(
@@ -374,7 +375,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 3-2. GitLab에 AI를 통해 수정된 파일들 커밋
-    private String commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles, int newBuildNumber) {
+    @Transactional
+    public String commitPatchedFiles(Project project, String accessToken, String branchName, List<PatchedFile> patchedFiles, int newBuildNumber) {
         if (patchedFiles == null || patchedFiles.isEmpty()) throw new BusinessException(ErrorCode.GITLAB_BAD_CREATE_COMMIT);
         String commitMessage = "refactor: jenkins "+newBuildNumber+"번 빌드 AI가 CICDresolver 기능을 통해 수정 완료";
 
@@ -388,7 +390,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 3-3. Jenkins에 해당 브렌치로 재빌드 요청
-    private void triggerRebuild(Long projectId, String branchName, String originalBranchName) {
+    @Transactional
+    public void triggerRebuild(Long projectId, String branchName, String originalBranchName) {
         jenkinsService.triggerBuildWithOutLogin(projectId, branchName, originalBranchName);
     }
 
@@ -398,7 +401,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 4-2. AI리포트 요청 및 응답 결과 매핑
-    private Map<String, AIReportResponse> createAIReports(List<ResolveErrorResponse> resolveResults, List<String> suspectedApps, Long projectId) {
+    @Transactional
+    public Map<String, AIReportResponse> createAIReports(List<ResolveErrorResponse> resolveResults, List<String> suspectedApps, Long projectId) {
         Map<String, AIReportResponse> reports = new HashMap<>();
 
         for (int i = 0; i < resolveResults.size(); i++) {
@@ -428,7 +432,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 4-3. 빌드 성공 시 GitLab에 Merge Request 생성
-    private String createMergeRequest(Project project, String accessToken, String branchName, Map<String, AIReportResponse> reportResponses) {
+    @Transactional
+    public String createMergeRequest(Project project, String accessToken, String branchName, Map<String, AIReportResponse> reportResponses) {
         String apps = String.join(", ",
                 reportResponses.keySet()
                         .stream()
@@ -458,7 +463,8 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     }
 
     // 4-4. 리포트 DB 저장
-    private void saveAIReports(Long projectId, Map<String, AIReportResponse> reportResponses, ReportStatus status, String commitUrl, String mergeRequestUrl, int newBuildNumber) {
+    @Transactional
+    public void saveAIReports(Long projectId, Map<String, AIReportResponse> reportResponses, ReportStatus status, String commitUrl, String mergeRequestUrl, int newBuildNumber) {
         for (Map.Entry<String, AIReportResponse> entry : reportResponses.entrySet()) {
             String appName = entry.getKey();
             AIReportResponse response = entry.getValue();
@@ -468,7 +474,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             DeploymentReportSavedRequest request = new DeploymentReportSavedRequest();
             request.setProjectId(projectId);
             request.setBuildNumber(newBuildNumber);
-            request.setTitle("[AI "+ (newBuildNumber-1) +"번 빌드 수정: ] " + appName + " 앱 자동 리포트");
+            request.setTitle("["+(newBuildNumber-1) +"번 빌드 수정] " + appName + " 수정 보고서");
             request.setSummary(response.getSummary());
             request.setAdditionalNotes(response.getAdditionalNotes());
             request.setCommitUrl(commitUrl);
