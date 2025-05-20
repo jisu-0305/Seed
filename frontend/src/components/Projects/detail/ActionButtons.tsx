@@ -181,7 +181,12 @@ export function ActionButtons({
           <Button
             variant="build"
             onClick={build.toggle}
-            disabled={buildLoading || isBuildDisabled || isBuildFinished}
+            disabled={
+              buildLoading ||
+              isBuildDisabled ||
+              isBuildFinished ||
+              isHttpsFinished
+            }
           >
             {buildLoading ? (
               <LoadingSpinner />
