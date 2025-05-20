@@ -79,6 +79,7 @@ export interface ProjectDetailData {
   jdkVersion: string;
   jdkBuildTool: string;
   backendEnvFilePath: string;
+  domainName: string;
   applicationList: Application[];
   pemFilePath: string;
 }

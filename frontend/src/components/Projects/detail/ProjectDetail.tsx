@@ -13,6 +13,7 @@ import ErrorMessage from '@/components/Common/ErrorMessage';
 import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import { useProjectStatusPolling } from '@/hooks/Common/useProjectStatusPolling';
 import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
+import { useThemeStore } from '@/stores/themeStore';
 import type { DeployTabName } from '@/types/deploy';
 import { DeployTabNames } from '@/types/deploy';
 import { ProjectDetailData, ProjectSummary } from '@/types/project';
@@ -27,6 +28,7 @@ import { ProjectInfo } from './ProjectInfo';
 
 export default function ProjectDetail() {
   const params = useParams();
+  const { mode } = useThemeStore();
   const rawId = params?.id;
   const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
   const loadProjectInfo = useProjectInfoStore((s) => s.loadProjectInfo);
@@ -172,6 +174,7 @@ export default function ProjectDetail() {
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage>{error}</ErrorMessage>;
   if (!detail) return null;
+  if (mode === null) return null;
 
   let emoji: 'default' | 'success' | 'fail';
   if (detail.buildStatus === 'SUCCESS') {
@@ -191,6 +194,29 @@ export default function ProjectDetail() {
           <Icon src="/assets/icons/ic_gitlab.svg" alt="gitlab" />
           <Title>{detail.projectName}</Title>
           <AvatarList users={detail.memberList} maxVisible={2} />
+          <ButtonContainer>
+            <LinkButton
+              href={`http://${detail.serverIP}:9090`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src="/assets/jenkins.png" alt="jenkins" />
+              젠킨스
+            </LinkButton>
+
+            <LinkButton
+              href={`${
+                detail.domainName
+                  ? `https://${detail.domainName}`
+                  : `http://${detail.serverIP}`
+              }`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <img src={`/assets/icons/ic_project_${mode}.svg`} alt="project" />
+              배포 사이트
+            </LinkButton>
+          </ButtonContainer>
         </SectionTitle>
         <SectionInfo>
           <ProjectHeader
@@ -290,4 +316,32 @@ const SubTitle = styled.h1`
 const Icon = styled.img`
   width: 3rem;
   height: 3rem;
+`;
+
+const ButtonContainer = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-left: auto;
+`;
+
+const LinkButton = styled.a`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  border: 0.2rem solid ${({ theme }) => theme.colors.BorderDefault};
+  border-radius: 1rem;
+  color: ${({ theme }) => theme.colors.Text};
+  text-decoration: none;
+  ${({ theme }) => theme.fonts.Title5};
+
+  img {
+    width: 3rem;
+    height: 3rem;
+  }
+
+  &:hover {
+    background-color: ${({ theme }) => theme.colors.InputStroke};
+  }
 `;
