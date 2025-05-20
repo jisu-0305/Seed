@@ -90,6 +90,8 @@ export function ActionButtons({
 
     setHttpsLoading(true);
     setErrorMessage(null);
+    https.toggle();
+
     try {
       const data = await convertServer(projectId, domain, email, pem);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
@@ -97,12 +99,9 @@ export function ActionButtons({
       onHttpsComplete?.();
     } catch (err) {
       console.error('❌ HTTPS 변환 요청 실패', err);
-      setErrorMessage(
-        'HTTPS 설정 중 오류가 발생했어요. 도메인 정보를 확인해주세요.',
-      );
+      setErrorMessage('HTTPS 설정 중 오류가 발생했어요.');
     } finally {
       setHttpsLoading(false);
-      https.toggle();
     }
   };
 
@@ -124,7 +123,7 @@ export function ActionButtons({
       onDeployComplete?.();
     } catch (err) {
       console.error('❌ EC2 세팅 실패:', err);
-      setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
+      setErrorMessage('EC2 세팅 중 오류가 발생했어요.');
     } finally {
       setBuildLoading(false);
     }
@@ -172,7 +171,7 @@ export function ActionButtons({
             {buildLoading ? (
               <LoadingSpinner />
             ) : (
-              <Icon src="/assets/icons/ic_build_dark.svg" alt="build_now" />
+              <Icon src="/assets/icons/ic_build_dark.svg" alt="ec2" />
             )}
             EC2 세팅
           </Button>
@@ -181,7 +180,11 @@ export function ActionButtons({
             onClick={https.toggle}
             disabled={isHttpsDisabled || HttpsLoading}
           >
-            <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
+            {HttpsLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <Icon src="/assets/icons/ic_https_true_light.svg" alt="https" />
+            )}
             Https 설정
           </Button>
         </MainActions>
@@ -211,7 +214,7 @@ export function ActionButtons({
         />
       </ModalWrapper>
       <ModalWrapper isShowing={https.isShowing || build.isShowing}>
-        {HttpsLoading && <LoadingSpinner />}
+        {(HttpsLoading || buildLoading) && <LoadingSpinner />}
         <HttpsConfigModal
           isShowing={https.isShowing}
           handleClose={https.toggle}
