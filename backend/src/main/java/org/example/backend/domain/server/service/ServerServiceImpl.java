@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 @Slf4j
 public class ServerServiceImpl implements ServerService {
 
+    private final ServerStatusService serverStatusService;
     private final UserRepository userRepository;
     private final UserProjectRepository userProjectRepository;
     private final ProjectRepository projectRepository;
@@ -55,18 +56,19 @@ public class ServerServiceImpl implements ServerService {
     private final ApplicationEnvVariableListRepository applicationEnvVariableListRepository;
 
     @Override
-    @Transactional
     public void registerDeployment(Long projectId, MultipartFile pemFile, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
 
         byte[] frontEnv = projectFileRepository.findByProjectIdAndFileType(projectId, FileType.FRONTEND_ENV)
                 .orElseThrow(() -> new BusinessException(ErrorCode.FRONT_ENV_NOT_FOUND)).getData();
+
         byte[] backEnv = projectFileRepository.findByProjectIdAndFileType(projectId, FileType.BACKEND_ENV)
                 .orElseThrow(() -> new BusinessException(ErrorCode.BACK_ENV_NOT_FOUND)).getData();
 
@@ -79,13 +81,8 @@ public class ServerServiceImpl implements ServerService {
             sshSession = createSessionWithPem(pemFile.getBytes(), host);
             log.info("SSH 연결 성공: {}", host);
 
-            // 2) 인프라 설정 명령 실행
-            log.info("인프라 설정 명령 실행 시작");
-            for (String cmd : serverInitializeCommands(user, project, frontEnv, backEnv, project.getGitlabTargetBranchName())) {
-                log.info("명령 수행:\n{}", cmd);
-                String output = execCommandWithLiveOutput(sshSession, cmd, 15 * 60 * 1000);
-                log.info("명령 결과:\n{}", output);
-            }
+            // 2) 스크립트 실행
+            autoDeploymentSettingProcess(sshSession, user, project, frontEnv, backEnv);
 
             // 3) 프로젝트 자동 배포 활성화
             project.enableAutoDeployment();
@@ -98,11 +95,12 @@ public class ServerServiceImpl implements ServerService {
             execCommand(sshSession, "sudo rm -f /tmp/jenkins_token");
             log.info("Jenkins 토큰 발급 및 스크립트 정리 완료");
 
-            // ec2 세팅 성공 메시지 전송
+            // 5) 세팅 성공 메시지 전송
             notificationService.notifyProjectStatusForUsers(
                     projectId,
                     NotificationMessageTemplate.EC2_SETUP_COMPLETED_SUCCESS
             );
+
         } catch (Exception e) {
             log.error("배포 중 오류 발생: {}", e.getMessage(), e);
             project.updateAutoDeploymentStatus(ServerStatus.FAIL);
@@ -111,12 +109,37 @@ public class ServerServiceImpl implements ServerService {
                     projectId,
                     NotificationMessageTemplate.EC2_SETUP_FAILED
             );
+
             throw new BusinessException(ErrorCode.AUTO_DEPLOYMENT_SETTING_FAILED);
         } finally {
             if (sshSession != null && sshSession.isConnected()) {
                 sshSession.disconnect();
             }
         }
+    }
+
+    public void autoDeploymentSettingProcess(Session sshSession, User user, Project project, byte[] frontEnvFile, byte[] backEnvFile) throws JSchException, IOException {
+        String url = project.getRepositoryUrl();
+        String repositoryUrl = url.substring(0, url.length() - 4);
+
+        GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), repositoryUrl);
+        String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
+        String gitlabProjectUrlWithToken = "https://" + user.getUserIdentifyId() + ":" + user.getGitlabPersonalAccessToken() + "@lab.ssafy.com/" + gitlabProject.getPathWithNamespace() + ".git";
+
+        setSwapMemory(sshSession, project);
+        updatePackageManager(sshSession, project);
+        installJDK(sshSession, project);
+        installDocker(sshSession, project);
+        runApplicationList(sshSession, project, backEnvFile);
+        installNginx(sshSession, project, project.getServerIP());
+        setJenkins(sshSession, project);
+        setJenkinsConfigure(sshSession, project);
+        createJenkinsPipeline(sshSession, project, "auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", project.getGitlabTargetBranchName());
+        createJenkinsFile(sshSession, gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), project.getGitlabTargetBranchName(), gitlabProject.getPathWithNamespace(), project);
+        createDockerfileForFrontend(sshSession, projectPath, project.getGitlabTargetBranchName() ,project);
+        createDockerfileForBackend(sshSession, projectPath, project.getGitlabTargetBranchName(), project);
+        setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
+        createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
     }
 
     /**
@@ -238,39 +261,6 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    // 서버 배포 프로세스
-    public List<String> serverInitializeCommands(User user, Project project, byte[] frontEnvFile, byte[] backEnvFile, String gitlabTargetBranchName) {
-        String url = project.getRepositoryUrl();
-        String repositoryUrl = url.substring(0, url.length() - 4);
-
-        GitlabProject gitlabProject = gitlabService.getProjectByUrl(user.getGitlabPersonalAccessToken(), repositoryUrl);
-
-        String projectPath = "/var/lib/jenkins/jobs/auto-created-deployment-job/" + gitlabProject.getName();
-        String gitlabProjectUrlWithToken = "https://" + user.getUserIdentifyId() + ":" + user.getGitlabPersonalAccessToken() + "@lab.ssafy.com/" + gitlabProject.getPathWithNamespace() + ".git";
-
-        log.info(gitlabProject.toString());
-
-        // 어플리케이션 목록
-        List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
-
-        return Stream.of(
-                setSwapMemory(project),
-                updatePackageManager(project),
-                setJDK(project),
-                setDocker(project),
-                runApplicationList(project, projectApplicationList, backEnvFile),
-                setNginx(project, project.getServerIP()),
-                setJenkins(project),
-                setJenkinsConfigure(project),
-                makeJenkinsJob(project, "auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", gitlabTargetBranchName),
-                makeJenkinsFile(gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), gitlabTargetBranchName, gitlabProject.getPathWithNamespace(), project),
-                makeDockerfileForBackend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                makeDockerfileForFrontend(gitlabProjectUrlWithToken, projectPath, gitlabTargetBranchName, project),
-                setJenkinsConfiguration(project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile),
-                makeGitlabWebhook(project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), gitlabTargetBranchName)
-        ).flatMap(Collection::stream).toList();
-    }
-
     // [optional] 방화벽 설정
     public List<String> setFirewall() {
         return List.of(
@@ -287,10 +277,10 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 1. 스왑 메모리 설정
-    public List<String> setSwapMemory(Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.SET_SWAP_MEMORY);
+    public void setSwapMemory(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.SET_SWAP_MEMORY);
 
-        return List.of(
+        List<String> cmds = List.of(
                 // 기존 파일 제거
                 "if [ -f /swapfile ]; then sudo swapoff /swapfile; fi",
                 "sudo sed -i '/\\/swapfile/d' /etc/fstab",
@@ -304,46 +294,44 @@ public class ServerServiceImpl implements ServerService {
                 "sudo swapon /swapfile",
                 "echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab"
         );
+
+        log.info("1. 메모리 스왑 스크립트 실행");
+        execCommands(sshSession, cmds);
     }
 
     // 2. 패키지 업데이트
-    public List<String> updatePackageManager(Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.UPDATE_PACKAGE);
+    public void updatePackageManager(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.UPDATE_PACKAGE);
 
-        return List.of(
+        List<String> cmds = List.of(
                 "sudo apt update && sudo apt upgrade -y",
                 waitForAptLock(),
                 "sudo timedatectl set-timezone Asia/Seoul"
         );
+
+        log.info("2. 메모리 스왑 설정");
+        execCommands(sshSession, cmds);
     }
 
     // 3. JDK 설치
-    public List<String> setJDK(Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.INSTALL_JDK);
+    public void installJDK(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.INSTALL_JDK);
 
-        return List.of(
+        List<String> cmds = List.of(
                 "sudo apt install -y openjdk-17-jdk",
                 waitForAptLock(),
                 "java -version"
         );
+
+        log.info("3. JDK 설치");
+        execCommands(sshSession, cmds);
     }
 
-    // Node.js, npm 설치 (docker로 빌드하므로 필요없어짐)
-    public List<String> setNodejs() {
-        return List.of(
-                "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -",
-                "sudo apt-get install -y nodejs",
-                "node -v",
-                "npm -v"
-        );
-    }
+    // 4. Docker 설치
+    public void installDocker(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.INSTALL_DOCKER);
 
-    // 4. Docker 설치 (Docker-Compose 추가 가능)
-    public List<String> setDocker(Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.INSTALL_DOCKER);
-
-        return List.of(
-
+        List<String> cmds = List.of(
                 // 5-1. 공식 GPG 키 추가
                 "sudo apt install -y ca-certificates curl gnupg",
                 waitForAptLock(),
@@ -376,19 +364,21 @@ public class ServerServiceImpl implements ServerService {
                 "sudo systemctl restart docker",
                 "sudo docker network create mynet || true"
         );
+
+        log.info("4. Docker 설치");
+        execCommands(sshSession, cmds);
     }
 
-    // 5. 어플리케이션 목록 도커로 실행
-    public List<String> runApplicationList(Project project, List<ProjectApplication> projectApplicationList, byte[] backendEnvFile) {
-        project.updateAutoDeploymentStatus(ServerStatus.RUN_APPLICATION);
+    // 5. 사용자 지정 어플리케이션 실행 with Docker
+    public void runApplicationList(Session sshSession, Project project, byte[] backendEnvFile) {
+        serverStatusService.updateStatus(project, ServerStatus.RUN_APPLICATION);
+
+        List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(project.getId());
 
         try {
             Map<String, String> envMap = parseEnvFile(backendEnvFile);
-            for (String key : envMap.keySet()) {
-                System.out.println(key + "=" + envMap.get(key));
-            }
 
-            return projectApplicationList.stream()
+            List<String> cmds = projectApplicationList.stream()
                     .flatMap(app -> {
 
                         Application application = applicationRepository.findById(app.getApplicationId())
@@ -440,7 +430,10 @@ public class ServerServiceImpl implements ServerService {
                     })
                     .toList();
 
-        } catch (IOException e) {
+            log.info("5. 사용자 지정 어플리케이션 실행");
+            execCommands(sshSession, cmds);
+
+        } catch (IOException | JSchException e) {
             throw new RuntimeException(e);
         }
     }
@@ -463,9 +456,9 @@ public class ServerServiceImpl implements ServerService {
         return envMap;
     }
 
-    // 6. Nginx 설치 및 설정
-    public List<String> setNginx(Project project, String serverIp) {
-        project.updateAutoDeploymentStatus(ServerStatus.INSTALL_NGINX);
+    // 6. Nginx 설치
+    public void installNginx(Session sshSession, Project project, String serverIp) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.INSTALL_NGINX);
 
         String nginxConf = String.format("""
             server {
@@ -517,7 +510,7 @@ public class ServerServiceImpl implements ServerService {
             }
             """, serverIp);
 
-        return List.of(
+        List<String> cmds = List.of(
                 // 7-1. Nginx 설치
                 "sudo apt install -y nginx",
                 waitForAptLock(),
@@ -539,13 +532,16 @@ public class ServerServiceImpl implements ServerService {
                 "sudo nginx -t",
                 "sudo systemctl reload nginx"
         );
+
+        log.info("6. Nginx 설치");
+        execCommands(sshSession, cmds);
     }
 
-    // 8. Jenkins 설치
-    public List<String> setJenkins(Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.INSTALL_JENKINS);
+    // 7. Jenkins 설치
+    public void setJenkins(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS);
 
-        return List.of(
+        List<String> cmds = List.of(
                 "sudo mkdir -p /usr/share/keyrings",
                 "curl -fsSL https://pkg.jenkins.io/debian/jenkins.io-2023.key | sudo tee /usr/share/keyrings/jenkins-keyring.asc > /dev/null",
                 "echo 'deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian binary/' | sudo tee /etc/apt/sources.list.d/jenkins.list > /dev/null",
@@ -555,11 +551,15 @@ public class ServerServiceImpl implements ServerService {
                 "sudo apt install -y jenkins",
                 waitForAptLock()
         );
+
+        log.info("7. Jenkins 설치");
+        execCommands(sshSession, cmds);
     }
 
-    public List<String> setJenkinsConfigure(Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.INSTALL_JENKINS_PLUGINS);
-        return List.of(
+    public void setJenkinsConfigure(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS_PLUGINS);
+
+        List<String> cmds = List.of(
                 // 기본 폴더 초기화
                 "sudo rm -rf /var/lib/jenkins/*",
 
@@ -615,18 +615,19 @@ public class ServerServiceImpl implements ServerService {
                 "sudo systemctl daemon-reload",
                 "sudo systemctl restart jenkins"
         );
+
+        log.info("8. Jenkins 설치");
+        execCommands(sshSession, cmds);
     }
 
-    // 9. Jenkins credentials 생성
-    public List<String> setJenkinsConfiguration(Project project, String gitlabUsername, String gitlabToken, byte[] frontEnvFile, byte[] backEnvFile) {
-        project.updateAutoDeploymentStatus(ServerStatus.SET_JENKINS_INFO);
+    // 9. Jenkins Configuration 설정 (PAT 등록, 환경변수 등록)
+    public void setJenkinsConfiguration(Session sshSession, Project project, String gitlabUsername, String gitlabToken, byte[] frontEnvFile, byte[] backEnvFile) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.SET_JENKINS_INFO);
 
         String frontEnvFileStr = Base64.getEncoder().encodeToString(frontEnvFile);
         String backEnvFileStr = Base64.getEncoder().encodeToString(backEnvFile);
 
-        log.info(gitlabToken);
-
-        return List.of(
+        List<String> cmds = List.of(
                 // CLI 다운로드
                 "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
 
@@ -663,10 +664,14 @@ public class ServerServiceImpl implements ServerService {
                         "</org.jenkinsci.plugins.plaincredentials.impl.FileCredentialsImpl>\n" +
                         "EOF"
         );
+
+        log.info("9. Jenkins Configuration 설정 (PAT 등록, 환경변수 등록)");
+        execCommands(sshSession, cmds);
     }
 
-    public List<String> makeJenkinsJob(Project project, String jobName, String gitRepoUrl, String credentialsId, String gitlabTargetBranchName) {
-        project.updateAutoDeploymentStatus(ServerStatus.CREATE_JENKINS_JOB);
+    // 10. Jenkins Pipeline 설정
+    public void createJenkinsPipeline(Session sshSession, Project project, String jobName, String gitRepoUrl, String credentialsId, String gitlabTargetBranchName) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_JENKINS_PIPELINE);
 
         String jobConfigXml = String.join("\n",
                 "sudo tee job-config.xml > /dev/null <<EOF",
@@ -727,18 +732,19 @@ public class ServerServiceImpl implements ServerService {
                 "EOF"
         );
 
-        return List.of(
+        List<String> cmds = List.of(
                 jobConfigXml,
                 "wget http://localhost:9090/jnlpJars/jenkins-cli.jar",
                 "java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-job " + jobName + " < job-config.xml"
         );
+
+        log.info("10. Jenkins Pipeline 생성");
+        execCommands(sshSession, cmds);
     }
 
-
-    public List<String> makeJenkinsFile(String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.CREATE_JENKINSFILE);
-
-        log.info(repositoryUrl);
+    // 11. Jenkinsfile 생성
+    public void createJenkinsFile(Session sshSession, String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_JENKINSFILE);
 
         String frontendDockerScript;
 
@@ -771,261 +777,6 @@ public class ServerServiceImpl implements ServerService {
                                 "                        docker run -d --network mynet --env-file .env --restart unless-stopped --name next -p 3000:3000 next\n";
                 break;
         }
-
-//        String jenkinsfileContent =
-//                "cd " + projectPath + " && sudo tee Jenkinsfile > /dev/null <<'EOF'\n" +
-//                        "pipeline {\n" +
-//                        "    agent any\n" +
-//                        "    parameters {\n" +
-//                        "        string(name: 'ORIGINAL_BRANCH_NAME', defaultValue: '" + project.getGitlabTargetBranchName() + "', description: '브랜치 이름')\n" +
-//                        "        string(name: 'BRANCH_NAME', defaultValue: '" + project.getGitlabTargetBranchName() + "', description: '브랜치 이름')\n" +
-//                        "        string(name: 'PROJECT_ID', defaultValue: '" + project.getId() + "', description: '프로젝트 ID')\n" +
-//                        "    }\n" +
-//                        "    stages {\n" +
-//                        "        stage('Checkout') {\n" +
-//                        "            steps {\n" +
-//                        "                echo '1. 워크스페이스 정리 및 소스 체크아웃'\n" +
-//                        "                deleteDir()\n" +
-//                        "                withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
-//                        "                    git branch: \"${params.BRANCH_NAME}\", url: \"https://${GIT_USER}:${GIT_TOKEN}@lab.ssafy.com/" + namespace + ".git\"\n" +
-//                        "                }\n" +
-//                        "            }\n" +
-//                        "        }\n" +
-//                        "        stage('변경 감지') {\n" +
-//                        "            steps {\n" +
-//                        "                script {\n" +
-//                        "                    // 첫 번째 빌드인지 확인\n" +
-//                        "                    def isFirstBuild = currentBuild.previousBuild == null\n" +
-//                        "                    \n" +
-//                        "                    if (isFirstBuild) {\n" +
-//                        "                        echo \"🔵 첫 번째 빌드 → 전체 빌드 실행\"\n" +
-//                        "                        env.BACKEND_CHANGED = \"true\"\n" +
-//                        "                        env.FRONTEND_CHANGED = \"true\"\n" +
-//                        "                        return\n" +
-//                        "                    }\n" +
-//                        "                    \n" +
-//                        "                    sh \"git fetch origin ${params.BRANCH_NAME} --quiet\"\n" +
-//                        "                    def hasBase = sh(\n" +
-//                        "                        script: \"git merge-base origin/${params.BRANCH_NAME} HEAD > /dev/null 2>&1 && echo yes || echo no\",\n" +
-//                        "                        returnStdout: true\n" +
-//                        "                    ).trim()\n" +
-//                        "                    if (hasBase == \"no\") {\n" +
-//                        "                        echo \"🟡 기준 브랜치와 공통 커밋 없음 → 전체 빌드 실행\"\n" +
-//                        "                        env.BACKEND_CHANGED = \"true\"\n" +
-//                        "                        env.FRONTEND_CHANGED = \"true\"\n" +
-//                        "                        return\n" +
-//                        "                    }\n" +
-//                        "                    def changedFiles = sh(\n" +
-//                        "                        script: \"git diff --name-only origin/${params.BRANCH_NAME}...HEAD\",\n" +
-//                        "                        returnStdout: true\n" +
-//                        "                    ).trim()\n" +
-//                        "                    echo \"🔍 변경된 파일 목록:\\n${changedFiles}\"\n" +
-//                        "                    env.BACKEND_CHANGED  = changedFiles.contains(\"backend/\")  ? \"true\" : \"false\"\n" +
-//                        "                    env.FRONTEND_CHANGED = changedFiles.contains(\"frontend/\") ? \"true\" : \"false\"\n" +
-//                        "                    if (env.BACKEND_CHANGED == \"false\" && env.FRONTEND_CHANGED == \"false\") {\n" +
-//                        "                        echo \"⚠️ 변경된 파일 없음 → 재시도 빌드일 수 있으므로 전체 빌드 강제 실행\"\n" +
-//                        "                        env.BACKEND_CHANGED = \"true\"\n" +
-//                        "                        env.FRONTEND_CHANGED = \"true\"\n" +
-//                        "                    }\n" +
-//                        "                    echo \"🛠️ 백엔드 변경됨: ${env.BACKEND_CHANGED}\"\n" +
-//                        "                    echo \"🎨 프론트엔드 변경됨: ${env.FRONTEND_CHANGED}\"\n" +
-//                        "                }\n" +
-//                        "            }\n" +
-//                        "        }\n" +
-//                        "        stage('Build Backend') {\n" +
-//                        "            when {\n" +
-//                        "                expression { env.BACKEND_CHANGED == \"true\" }\n" +
-//                        "            }\n" +
-//                        "            steps {\n" +
-//                        "                withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
-//                        "                    sh '''\n" +
-//                        "                        cp \"$BACKEND_ENV\" \"$WORKSPACE/backend/.env\"\n" +
-//                        "                    '''\n" +
-//                        "                }\n" +
-//                        "                dir('backend') {\n" +
-//                        "                    sh '''\n
-//                        " +
-//                        "                        docker build -t spring .\n" +
-//                        "                        docker stop spring || true\n" +
-//                        "                        docker rm spring || true\n" +
-//                        "                        docker run -d -p 8080:8080 --env-file .env --name spring spring\n" +
-//                        "                    '''\n" +
-//                        "                }\n" +
-//                        "            }\n" +
-//                        "        }\n" +
-//                        "        stage('Build Frontend') {\n" +
-//                        "            when {\n" +
-//                        "                expression { env.FRONTEND_CHANGED == \"true\" }\n" +
-//                        "            }\n" +
-//                        "            steps {\n" +
-//                        "                withCredentials([file(credentialsId: \"frontend\", variable: 'FRONTEND_ENV')]) {\n" +
-//                        "                    sh '''\n" +
-//                        "                        cp \"$FRONTEND_ENV\" \"$WORKSPACE/frontend/.env\"\n" +
-//                        "                    '''\n" +
-//                        "                }\n" +
-//                        "                dir('frontend') {\n" +
-//                        "                    sh '''\n" +
-//                        "                        " + frontendDockerScript + "\n" +
-//                        "                    '''\n" +
-//                        "                }\n" +
-//                        "            }\n" +
-//                        "        }\n" +
-//                        "        stage('Health Check') {\n" +
-//                        "            steps {\n" +
-//                        "                script {\n" +
-//                        "                    // 헬스 체크 로직 추가\n" +
-//                        "                    echo '⚕️ 서비스 헬스 체크 실행'\n" +
-//                        "                    \n" +
-//                        "                    // Docker API를 통한 컨테이너 상태 확인 URL\n" +
-//                        "                    def dockerApiUrl = 'http://localhost:3789/containers/json?all=true&filters=%7B%22name%22%3A%5B%22spring%22%5D%7D'\n" +
-//                        "                    \n" +
-//                        "                    try {\n" +
-//                        "                        // Docker API 호출\n" +
-//                        "                        def dockerApiResponse = sh(script: \"\"\"\n" +
-//                        "                            curl -s -X GET '${dockerApiUrl}'\n" +
-//                        "                        \"\"\", returnStdout: true).trim()\n" +
-//                        "                        \n" +
-//                        "                        echo \"Docker API 응답: ${dockerApiResponse}\"\n" +
-//                        "                        \n" +
-//                        "                        // JSON 응답 파싱\n" +
-//                        "                        def jsonSlurper = new groovy.json.JsonSlurper()\n" +
-//                        "                        def containers\n" +
-//                        "                        try {\n" +
-//                        "                            containers = jsonSlurper.parseText(dockerApiResponse)\n" +
-//                        "                        } catch (Exception e) {\n" +
-//                        "                            echo \"JSON 파싱 오류: ${e.message}\"\n" +
-//                        "                            env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-//                        "                            return\n" +
-//                        "                        }\n" +
-//                        "                        \n" +
-//                        "                        // 컨테이너 목록 확인\n" +
-//                        "                        if (containers instanceof List) {\n" +
-//                        "                            if (containers.size() == 0) {\n" +
-//                        "                                echo \"❌ 헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
-//                        "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-//                        "                                return\n" +
-//                        "                            }\n" +
-//                        "                            \n" +
-//                        "                            // 컨테이너 상태 확인\n" +
-//                        "                            def springContainer = containers[0]\n" +
-//                        "                            def containerState = springContainer.State\n" +
-//                        "                            def containerStatus = springContainer.Status\n" +
-//                        "                            \n" +
-//                        "                            echo \"컨테이너 상태: ${containerState}, 상태 설명: ${containerStatus}\"\n" +
-//                        "                            \n" +
-//                        "                            // 'running' 상태인지 확인\n" +
-//                        "                            if (containerState == 'running') {\n" +
-//                        "                                echo \"✅ 헬스 체크 성공: spring 컨테이너가 정상 실행 중입니다.\"\n" +
-//                        "                                env.HEALTH_CHECK_STATUS = 'SUCCESS'\n" +
-//                        "                            } else {\n" +
-//                        "                                echo \"❌ 헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
-//                        "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-//                        "                            }\n" +
-//                        "                        } else {\n" +
-//                        "                            echo \"❌ 헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
-//                        "                            env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-//                        "                        }\n" +
-//                        "                    } catch (Exception e) {\n" +
-//                        "                        echo \"❌ 헬스 체크 실행 중 오류 발생: ${e.message}\"\n" +
-//                        "                        env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-//                        "                    }\n" +
-//                        "                }\n" +
-//                        "            }\n" +
-//                        "        }\n" +
-//                        "    }\n" +
-//                        "    post {\n" +
-//                        "        always {\n" +
-//                        "            script {\n" +
-//                        "                // 빌드 결과 상태 가져오기\n" +
-//                        "                def buildStatus = currentBuild.result ?: 'SUCCESS'\n" +
-//                        "                env.SELF_HEALING_APPLIED = 'false'  // 셀프 힐링 적용 여부를 추적하는 변수\n" +
-//                        "                \n" +
-//                        "                // PROJECT_ID 파라미터가 비어있지 않은지 확인\n" +
-//                        "                if (params.PROJECT_ID?.trim()) {\n" +
-//                        "                    withCredentials([usernamePassword(credentialsId: 'gitlab-token', usernameVariable: 'GIT_USER', passwordVariable: 'GIT_TOKEN')]) {\n" +
-//                        "                        // API 기본 URL 설정 (실제 서버 URL로 변경 필요)\n" +
-//                        "                        def apiBaseUrl = 'https://seedinfra.store/api'\n" +
-//                        "                        \n" +
-//                        "                        // 셀프 힐링 API 호출 조건 확인\n" +
-//                        "                        // 빌드는 성공했지만 헬스 체크가 실패한 경우\n" +
-//                        "                        if (buildStatus == 'SUCCESS' && env.HEALTH_CHECK_STATUS == 'FAILED' && params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME) {\n" +
-//                        "                            echo \"🔧 빌드는 성공했지만 헬스 체크 실패 → 셀프 힐링 API 호출\"\n" +
-//                        "                            \n" +
-//                        "                            // 셀프 힐링 API 엔드포인트 구성\n" +
-//                        "                            def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve/test\"\n" +
-//                        "                            \n" +
-//                        "                            // API 요청 파라미터 구성 (토큰은 withCredentials에서 안전하게 제공)\n" +
-//                        "                            def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=RUNTIME\"\n" +
-//                        "                            \n" +
-//                        "                            // 셀프 힐링 API 호출\n" +
-//                        "                            try {\n" +
-//                        "                                def healingResponse = sh(script: \"\"\"\n" +
-//                        "                                    curl -X POST \\\n" +
-//                        "                                    -H 'Content-Type: application/json' \\\n" +
-//                        "                                    -w '\\n%{http_code}' \\\n" +
-//                        "                                    \"${healingApiUrl}?${queryParams}\"\n" +
-//                        "                                \"\"\", returnStdout: true).trim()\n" +
-//                        "                                \n" +
-//                        "                                echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
-//                        "                                env.SELF_HEALING_APPLIED = 'true'\n" +
-//                        "                            } catch (Exception e) {\n" +
-//                        "                                echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
-//                        "                            }\n" +
-//                        "                        } else if (buildStatus != 'SUCCESS' && params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME) {\n" +
-//                        "                            echo \"❌ 빌드 실패 → 셀프 힐링 API 호출\"\n" +
-//                        "                            \n" +
-//                        "                            // 셀프 힐링 API 엔드포인트 구성\n" +
-//                        "                            def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve/test\"\n" +
-//                        "                            \n" +
-//                        "                            // API 요청 파라미터 구성 (토큰은 withCredentials에서 안전하게 제공)\n" +
-//                        "                            def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=BUILD\"\n" +
-//                        "                            \n" +
-//                        "                            // 셀프 힐링 API 호출\n" +
-//                        "                            try {\n" +
-//                        "                                def healingResponse = sh(script: \"\"\"\n" +
-//                        "                                    curl -X POST \\\n" +
-//                        "                                    -H 'Content-Type: application/json' \\\n" +
-//                        "                                    -w '\\n%{http_code}' \\\n" +
-//                        "                                    \"${healingApiUrl}?${queryParams}\"\n" +
-//                        "                                \"\"\", returnStdout: true).trim()\n" +
-//                        "                                \n" +
-//                        "                                echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
-//                        "                                env.SELF_HEALING_APPLIED = 'true'\n" +
-//                        "                            } catch (Exception e) {\n" +
-//                        "                                echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
-//                        "                            }\n" +
-//                        "                        } else {\n" +
-//                        "                            echo \"✅ 빌드 및 헬스 체크 모두 성공 → 셀프 힐링 필요 없음\"\n" +
-//                        "                        }\n" +
-//                        "                        \n" +
-//                        "                        // 모든 작업이 완료된 후 마지막으로 빌드 로그 API 호출\n" +
-//                        "                        echo \"📝 최종 빌드 결과 로깅 API 호출 중: 프로젝트 ID ${params.PROJECT_ID}\"\n" +
-//                        "                        \n" +
-//                        "                        // 빌드 로그 API 엔드포인트 구성\n" +
-//                        "                        def logApiUrl = \"${apiBaseUrl}/jenkins/${params.PROJECT_ID}/log-last-build\"\n" +
-//                        "                        \n" +
-//                        "                        // 빌드 로그 API 호출 (POST 요청, 빈 본문)\n" +
-//                        "                        try {\n" +
-//                        "                            def logResponse = sh(script: \"\"\"\n" +
-//                        "                                curl -X POST \\\n" +
-//                        "                                -H 'Content-Type: application/json' \\\n" +
-//                        "                                -w '\\n%{http_code}' \\\n" +
-//                        "                                ${logApiUrl}\n" +
-//                        "                            \"\"\", returnStdout: true).trim()\n" +
-//                        "                            \n" +
-//                        "                            echo \"빌드 로그 API 호출 결과: ${logResponse}\"\n" +
-//                        "                        } catch (Exception e) {\n" +
-//                        "                            echo \"빌드 로그 API 호출 실패: ${e.message}\"\n" +
-//                        "                        }\n" +
-//                        "                    }\n" +
-//                        "                } else {\n" +
-//                        "                    echo \"PROJECT_ID 파라미터가 비어있어 API를 호출하지 않습니다.\"\n" +
-//                        "                }\n" +
-//                        "            }\n" +
-//                        "        }\n" +
-//                        "    }\n" +
-//                        "}\n" +
-//                        "EOF\n";
 
         String jenkinsfileContent =
                 "cd " + projectPath + " && sudo tee Jenkinsfile > /dev/null <<'EOF'\n" +
@@ -1295,7 +1046,7 @@ public class ServerServiceImpl implements ServerService {
                         "}\n" +
                         "EOF\n";
 
-        return List.of(
+        List<String> cmds = List.of(
                 "cd /var/lib/jenkins/jobs/auto-created-deployment-job &&" +  "sudo git clone " + repositoryUrl + "&& cd " + projectName,
                 "sudo chmod -R 777 /var/lib/jenkins/jobs",
                 jenkinsfileContent,
@@ -1305,66 +1056,14 @@ public class ServerServiceImpl implements ServerService {
                 "cd " + projectPath + "&& sudo git commit --allow-empty -m 'add Jenkinsfile for CI/CD with SEED'",
                 "cd " + projectPath + "&& sudo git push origin " + gitlabTargetBranchName
         );
+
+        log.info("11. Jenkinsfile 생성");
+        execCommands(sshSession, cmds);
     }
 
-    public List<String> makeDockerfileForBackend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.CREATE_BACKEND_DOCKERFILE);
-
-        log.info(repositoryUrl);
-
-        String backendDockerfileContent;
-
-        switch (project.getJdkBuildTool()) {
-            case "Gradle":
-                backendDockerfileContent =
-                        "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
-                                "# 1단계: 빌드 스테이지\n" +
-                                "FROM gradle:8.5-jdk" + project.getJdkVersion() + " AS builder\n" +
-                                "WORKDIR /app\n" +
-                                "COPY . .\n" +
-                                "RUN gradle bootJar --no-daemon\n" +
-                                "\n" +
-                                "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk\n" +
-                                "WORKDIR /app\n" +
-                                "COPY --from=builder /app/build/libs/*.jar app.jar\n" +
-                                "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
-                                "EOF\n";
-                break;
-
-            case "Maven":
-            default:
-                backendDockerfileContent =
-                        "cd " + projectPath+ "/" + project.getBackendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
-                                "# 1단계: 빌드 스테이지\n" +
-                                "FROM maven:3.9.6-eclipse-temurin-" + project.getJdkVersion() + " AS builder\n" +
-                                "WORKDIR /app\n" +
-                                "COPY . .\n" +
-                                "RUN mvn clean package -DskipTests\n" +
-                                "\n" +
-                                "# 2단계: 실행 스테이지\n" +
-                                "FROM openjdk:" + project.getJdkVersion() + "-jdk\n" +
-                                "WORKDIR /app\n" +
-                                "COPY --from=builder /app/target/*.jar app.jar\n" +
-                                "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
-                                "EOF\n";
-        }
-
-        return List.of(
-                "cd " + projectPath + "/" + project.getBackendDirectoryName(),
-                backendDockerfileContent,
-                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git config user.name \"SeedBot\"",
-                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git config user.email \"seedbot@auto.io\"",
-                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git add Dockerfile",
-                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
-                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git push origin " + gitlabTargetBranchName
-        );
-    }
-
-    public List<String> makeDockerfileForFrontend(String repositoryUrl, String projectPath, String gitlabTargetBranchName, Project project) {
-        project.updateAutoDeploymentStatus(ServerStatus.CREATE_FRONTEND_DOCKERFILE);
-
-        log.info(repositoryUrl);
+    // 12. Frontend Dockerfile 생성
+    public void createDockerfileForFrontend(Session sshSession, String projectPath, String gitlabTargetBranchName, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_FRONTEND_DOCKERFILE);
 
         String frontendDockerfileContent;
 
@@ -1413,7 +1112,7 @@ public class ServerServiceImpl implements ServerService {
                 break;
         }
 
-        return List.of(
+        List<String> cmds = List.of(
                 "cd " + projectPath + "/" + project.getFrontendDirectoryName(),
                 frontendDockerfileContent,
                 "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && sudo git config user.name \"SeedBot\"",
@@ -1422,20 +1121,75 @@ public class ServerServiceImpl implements ServerService {
                 "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
                 "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && sudo git push origin " + gitlabTargetBranchName
         );
+
+        log.info("12. Frontend Dockerfile 생성");
+        execCommands(sshSession, cmds);
     }
 
-    public List<String> makeGitlabWebhook(Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
-        project.updateAutoDeploymentStatus(ServerStatus.CREATE_WEBHOOK);
+    // 13. Backend Dockerfile 생성
+    public void createDockerfileForBackend(Session sshSession, String projectPath, String gitlabTargetBranchName, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_BACKEND_DOCKERFILE);
+
+        String backendDockerfileContent;
+
+        switch (project.getJdkBuildTool()) {
+            case "Gradle":
+                backendDockerfileContent =
+                        "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "# 1단계: 빌드 스테이지\n" +
+                                "FROM gradle:8.5-jdk" + project.getJdkVersion() + " AS builder\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN gradle bootJar --no-daemon\n" +
+                                "\n" +
+                                "# 2단계: 실행 스테이지\n" +
+                                "FROM openjdk:" + project.getJdkVersion()  + "-jdk\n" +
+                                "WORKDIR /app\n" +
+                                "COPY --from=builder /app/build/libs/*.jar app.jar\n" +
+                                "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
+                                "EOF\n";
+                break;
+
+            case "Maven":
+            default:
+                backendDockerfileContent =
+                        "cd " + projectPath+ "/" + project.getBackendDirectoryName() + " && cat <<EOF | sudo tee Dockerfile > /dev/null\n" +
+                                "# 1단계: 빌드 스테이지\n" +
+                                "FROM maven:3.9.6-eclipse-temurin-" + project.getJdkVersion() + " AS builder\n" +
+                                "WORKDIR /app\n" +
+                                "COPY . .\n" +
+                                "RUN mvn clean package -DskipTests\n" +
+                                "\n" +
+                                "# 2단계: 실행 스테이지\n" +
+                                "FROM openjdk:" + project.getJdkVersion() + "-jdk\n" +
+                                "WORKDIR /app\n" +
+                                "COPY --from=builder /app/target/*.jar app.jar\n" +
+                                "CMD [\"java\", \"-jar\", \"app.jar\"]\n" +
+                                "EOF\n";
+        }
+
+        List<String> cmds = List.of(
+                "cd " + projectPath + "/" + project.getBackendDirectoryName(),
+                backendDockerfileContent,
+                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git config user.name \"SeedBot\"",
+                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git config user.email \"seedbot@auto.io\"",
+                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git add Dockerfile",
+                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git commit --allow-empty -m 'add Dockerfile for Backend with SEED'",
+                "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git push origin " + gitlabTargetBranchName
+        );
+
+        log.info("13. Backend Dockerfile 생성");
+        execCommands(sshSession, cmds);
+    }
+
+    // 14. Gitlab Webhook 생성
+    public void createGitlabWebhook(Session sshSession, Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_WEBHOOK);
 
         String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
 
         gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
-
-        //최초 실행 로직 한번 필요 그래야 아래 777의미가 있음
-        //return List.of("sudo chmod -R 777 /var/lib/jenkins/workspace");
-        return List.of();
     }
-
 
     public void issueAndSaveToken(Long projectId, String serverIp, Session session) {
         try {
@@ -1491,7 +1245,6 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-
     @Override
     @Transactional
     public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
@@ -1518,21 +1271,7 @@ public class ServerServiceImpl implements ServerService {
             log.info("세션 생성 성공");
 
             // 2) 명령어 실행
-            log.info("초기화 명령 실행 시작");
-            for (Map.Entry<String, String> entry : convertHttpToHttpsCommands(request)) {
-                String stepName = entry.getKey();
-                String command = entry.getValue();
-                try {
-                    log.info("명령 수행:\n{}", command);
-                    String output = execCommand(sshSession, command);
-                    saveLog(project.getId(), stepName, output, "SUCCESS");
-                    log.info("명령 결과:\n{}", output);
-                } catch (Exception e) {
-                    String errorMsg = e.getMessage();
-                    log.error("명령 실패: {}", errorMsg);
-                    saveLog(project.getId(), stepName, errorMsg, "FAIL");
-                }
-            }
+            convertHttpToHttpsProcess(sshSession, request);
 
             // 3) 성공 로그
             log.info("Https 전환을 성공했습니다.");
@@ -1563,56 +1302,78 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    public List<Map.Entry<String, String>> convertHttpToHttpsCommands(HttpsConvertRequest request) {
-        return Stream.of(
-                        Map.entry("Install Certbot", installCertbot()),
-                        Map.entry("Overwrite Default Nginx Conf", overwriteDomainDefaultNginxConf(request.getDomain())),
-                        Map.entry("Reload Nginx (Step 1)", reloadNginx()),
-                        Map.entry("Issue SSL Certificate", issueSslCertificate(request.getDomain(), request.getEmail())),
-                        Map.entry("Overwrite Nginx Conf with SSL", overwriteNginxConf(request.getDomain())),
-                        Map.entry("Reload Nginx (Final)", reloadNginx())
-                ).flatMap(entry -> entry.getValue().stream()
-                        .map(cmd -> Map.entry(entry.getKey(), cmd)))
-                .toList();
+    public void convertHttpToHttpsProcess(Session sshSession, HttpsConvertRequest request) throws JSchException, IOException {
+        Project project = projectRepository.findById(request.getProjectId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROJECT_NOT_FOUND));
+
+        installCertbot(sshSession, project);
+        overwriteDefaultNginxConf(sshSession, request.getDomain(), project);
+        reloadNginx(sshSession, project);
+        issueSslCertificate(sshSession, request.getDomain(), request.getEmail(), project);
+        overwriteNginxConf(sshSession, request.getDomain(), project);
+        reloadNginx(sshSession, project);
+
+        serverStatusService.updateStatus(project, ServerStatus.FINISH_CONVERT_HTTPS);
     }
 
-    public List<String> installCertbot() {
-        return List.of(
+    public void installCertbot(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.INSTALL_CERTBOT);
+
+        List<String> cmds = List.of(
                 "sudo apt update",
                 waitForAptLock(),
                 "sudo apt install -y certbot python3-certbot-nginx",
                 waitForAptLock()
         );
+
+        log.info("1. Certbot 설치");
+        execCommands(sshSession, cmds, "Certbot 설치", project);
     }
 
-    public List<String> issueSslCertificate(String domain, String email) {
-        return List.of(
-                String.format("sudo certbot --nginx -d %s --email %s --agree-tos --redirect --non-interactive", domain, email)
-        );
-    }
+    public void overwriteDefaultNginxConf(Session sshSession, String domain, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_NGINX_CONFIGURATION_FILE);
 
-    public List<String> overwriteNginxConf(String domain) {
-        String conf = generateNginxConf(domain).replace("'", "'\"'\"'");
-        String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
-
-        return List.of(
-                cmd
-        );
-    }
-
-    public List<String> overwriteDomainDefaultNginxConf(String domain) {
         String conf = generateDomainDefaultNginxConf(domain).replace("'", "'\"'\"'");
         String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
 
-        return List.of(
-                cmd
-        );
+        List<String> cmds = List.of(cmd);
+
+        log.info("2. Nginx Configuration File 수정");
+        execCommands(sshSession, cmds, "Nginx Configuration File 수정", project);
     }
 
-    public List<String> reloadNginx() {
-        return List.of(
+    public void reloadNginx(Session sshSession, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.RELOAD_NGINX);
+
+        List<String> cmds = List.of(
                 "sudo systemctl reload nginx"
         );
+
+        log.info("3. Nginx 재시작");
+        execCommands(sshSession, cmds, "Nginx 재시작", project);
+    }
+
+    public void issueSslCertificate(Session sshSession, String domain, String email, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.ISSUE_SSL_CERTIFICATE);
+
+        List<String> cmds = List.of(
+                String.format("sudo certbot --nginx -d %s --email %s --agree-tos --redirect --non-interactive", domain, email)
+        );
+
+        log.info("4. SSL 인증서 발급");
+        execCommands(sshSession, cmds, "SSL 인증서 발급", project);
+    }
+
+    public void overwriteNginxConf(Session sshSession, String domain, Project project) throws JSchException, IOException {
+        serverStatusService.updateStatus(project, ServerStatus.EDIT_NGINX_CONFIGURATION_FILE);
+
+        String conf = generateNginxConf(domain).replace("'", "'\"'\"'");
+        String cmd = String.format("echo '%s' | sudo tee %s > /dev/null", conf, NGINX_CONF_PATH);
+
+        List<String> cmds = List.of(cmd);
+
+        log.info("5. Nginx Configuration File 수정");
+        execCommands(sshSession, cmds, "Nginx Configuration File 수정", project);
     }
 
     public String generateDomainDefaultNginxConf(String domain) {
@@ -1730,6 +1491,7 @@ public class ServerServiceImpl implements ServerService {
         """, domain, domain, domain, domain);
     }
 
+    // Https 로그 저장
     public void saveLog(Long projectId, String stepName, String logContent, String status) {
         httpsLogRepository.save(HttpsLog.builder()
                 .projectId(projectId)
@@ -1740,7 +1502,8 @@ public class ServerServiceImpl implements ServerService {
                 .build());
     }
 
-    public Session createSessionWithPem(byte[] pemFile, String host) throws JSchException, IOException {
+    // SSH 세션 연결
+    private Session createSessionWithPem(byte[] pemFile, String host) throws JSchException, IOException {
         JSch jsch = new JSch();
         jsch.addIdentity("ec2-key", pemFile, null, null);
 
@@ -1754,7 +1517,21 @@ public class ServerServiceImpl implements ServerService {
         return session;
     }
 
-    public String execCommand(Session session, String command) throws JSchException, IOException {
+    // 안전한 패키지 설치를 위한 apt lock 대기
+    private static String waitForAptLock() {
+        return String.join("\n",
+                "count=0",
+                "while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do",
+                "  echo \"Waiting for apt lock (sleep 5s)...\"",
+                "  sleep 5",
+                "  count=$((count+1))",
+                "  [ \"$count\" -gt 12 ] && { echo \"APT lock held too long\"; exit 1; }",
+                "done"
+        );
+    }
+
+    // 스크립트 실행
+    private String execCommand(Session session, String command) throws JSchException, IOException {
         ChannelExec channel = null;
         ByteArrayOutputStream stdout = new ByteArrayOutputStream();
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -1804,16 +1581,35 @@ public class ServerServiceImpl implements ServerService {
         }
     }
 
-    // 안전한 패키지 설치를 위한 apt lock 대기
-    public static String waitForAptLock() {
-        return String.join("\n",
-                "count=0",
-                "while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; do",
-                "  echo \"Waiting for apt lock (sleep 5s)...\"",
-                "  sleep 5",
-                "  count=$((count+1))",
-                "  [ \"$count\" -gt 12 ] && { echo \"APT lock held too long\"; exit 1; }",
-                "done"
-        );
+    private void execCommands(Session sshSession, List<String> cmds) throws JSchException, IOException {
+        for (String cmd : cmds) {
+            log.info("명령 수행:\n{}", cmd);
+            String output = execCommandWithLiveOutput(sshSession, cmd, 15 * 60 * 1000);
+            log.info("명령 결과:\n{}", output);
+        }
+    }
+
+    private void execCommands(Session sshSession, List<String> cmds, String stepName, Project project) throws JSchException, IOException {
+        StringBuilder outputBuilder = new StringBuilder();
+        String status = "SUCCESS";
+
+        try {
+            for (String cmd : cmds) {
+                log.info("명령 수행:\n{}", cmd);
+                String output = execCommandWithLiveOutput(sshSession, cmd, 15 * 60 * 1000);
+                outputBuilder.append(output).append("\n");
+                log.info("명령 결과:\n{}", output);
+            }
+            // 이 단계의 모든 명령어가 성공적으로 완료된 후 성공 로그 저장
+            saveLog(project.getId(), stepName, outputBuilder.toString(), status);
+        } catch (Exception e) {
+            // 실패 로그 저장
+            status = "FAIL";
+            String errorMsg = e.getMessage();
+            log.error("명령 실패: {}", errorMsg);
+            saveLog(project.getId(), stepName, errorMsg, status);
+
+            throw e;
+        }
     }
 }

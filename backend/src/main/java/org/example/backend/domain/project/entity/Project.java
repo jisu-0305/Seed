@@ -26,7 +26,9 @@ public class Project {
     private String serverIP;
     private LocalDateTime createdAt;
     private String repositoryUrl;
+
     @Enumerated(EnumType.STRING)
+    @Column(length = 50)
     private ServerStatus serverStatus;
 
     @Enumerated(EnumType.STRING)
