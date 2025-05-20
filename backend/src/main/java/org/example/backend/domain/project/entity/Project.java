@@ -34,6 +34,8 @@ public class Project {
     @Enumerated(EnumType.STRING)
     private ProjectStructure structure;
 
+    private String domainName;
+
     // mono
     private String gitlabTargetBranchName;
     private String frontendDirectoryName;
@@ -58,6 +60,10 @@ public class Project {
 
     @Enumerated(EnumType.STRING)
     private BuildStatus buildStatus;
+
+    public void saveDomainName(String domainName) {
+        this.domainName = domainName;
+    }
 
     public void enableAutoDeployment() {
         this.autoDeploymentEnabled = true;
