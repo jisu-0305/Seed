@@ -52,6 +52,24 @@ const InformInboundModal = ({ isShowing, handleClose }: Props) => {
                 </Td>
                 <Td>보안 연결을 위한 웹 포트 (https://)</Td>
               </tr>
+              <tr>
+                <Td>
+                  <strong>3789</strong>
+                </Td>
+                <Td>Docker Health 체크를 위한 포트</Td>
+              </tr>
+              <tr>
+                <Td>
+                  <strong>8080</strong>
+                </Td>
+                <Td>Spring Boot 접속을 위한 포트</Td>
+              </tr>
+              <tr>
+                <Td>
+                  <strong>9090</strong>
+                </Td>
+                <Td>Jenkins 접속을 위한 포트</Td>
+              </tr>
             </tbody>
           </Table>
         </StModalWrapper>
@@ -103,31 +121,61 @@ const Table = styled.table`
   width: 90%;
   border-collapse: separate;
   border-spacing: 0;
-
   border: 1px solid ${({ theme }) => theme.colors.Gray3};
   border-radius: 1rem;
-
   overflow: hidden;
+
+  thead {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  tbody {
+    display: block;
+    max-height: 15rem;
+    overflow-y: auto;
+    width: 100%;
+  }
+
+  tr {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
 `;
 
 const Th = styled.th`
   padding: 1.2rem 1.6rem;
-
   text-align: center;
   ${({ theme }) => theme.fonts.Title6};
   color: ${({ theme }) => theme.colors.Black1};
-
   border-bottom: 1px solid ${({ theme }) => theme.colors.Gray3};
+
+  &:first-of-type {
+    width: 25%;
+  }
+
+  &:last-of-type {
+    width: 75%;
+  }
 `;
 
 const Td = styled.td`
   padding: 1.2rem 1.6rem;
-
   text-align: center;
   ${({ theme }) => theme.fonts.Body3};
   color: ${({ theme }) => theme.colors.Black1};
-
   border-bottom: 1px solid ${({ theme }) => theme.colors.Gray3};
+  word-break: keep-all;
+
+  &:first-of-type {
+    width: 25%;
+  }
+
+  &:last-of-type {
+    width: 75%;
+  }
 
   strong {
     ${({ theme }) => theme.fonts.Title6};

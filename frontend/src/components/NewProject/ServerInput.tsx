@@ -164,7 +164,7 @@ export default function ServerInput() {
             openModal={pemTip.toggle}
           /> */}
           <TipItem
-            text="EC2에서 22, 80, 443 포트를 열어주세요"
+            text="EC2에서 22, 80, 443, 3789, 8080, 9090 포트를 열어주세요"
             important
             help
             openModal={inboundTip.toggle}
