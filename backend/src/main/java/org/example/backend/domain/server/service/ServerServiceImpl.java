@@ -985,7 +985,7 @@ public class ServerServiceImpl implements ServerService {
                         "                                } catch (Exception e) {\n" +
                         "                                    echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
                         "                                }\n" +
-                        "                            } else if (buildStatus != 'SUCCESS' && env.HEALTH_CHECK_STATUS != 'FAILED' ) {\n" +
+                        "                            } else if (buildStatus != 'SUCCESS' && env.HEALTH_CHECK_STATUS != 'FAILED') {\n" +
                         "                                // 다른 빌드 실패 → 빌드 이슈로 셀프 힐링\n" +
                         "                                echo \"❌ 빌드 실패 → 셀프 힐링 API 호출 (BUILD)\"\n" +
                         "                                \n" +
