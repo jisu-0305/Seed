@@ -27,7 +27,7 @@ export function useProjectStatusPolling(projectId: string) {
           if (STOP_STATUSES.includes(result.serverStatus)) {
             clearInterval(intervalRef.current!);
             intervalRef.current = null;
-            console.log('✅ 폴링 중단:', result.serverStatus);
+            console.log('상태 중단:', result.serverStatus);
           }
         } else {
           setStatus(null);

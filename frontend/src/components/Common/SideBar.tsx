@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
 
-import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
+import { useProjectStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 export default function SideBar() {
@@ -15,14 +15,13 @@ export default function SideBar() {
   const currentProjectId = match ? Number(match[1]) : null;
 
   const { projects, loadProjects } = useProjectStore();
-  const { resetProjectStatus } = useProjectInfoStore();
 
   const handleMovePage = (url: string) => {
-    if (pathname.startsWith('/create')) {
-      resetProjectStatus();
-    } else if (pathname.startsWith('/projects')) {
-      loadProjects(true);
+    if (url.startsWith('/projects')) {
+      loadProjects(true).then(() => router.push(url));
+      return;
     }
+
     router.push(url);
   };
 

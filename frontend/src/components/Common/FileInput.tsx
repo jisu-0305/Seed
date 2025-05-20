@@ -90,7 +90,10 @@ const UploadIcon = styled.img`
   cursor: pointer;
 `;
 
-const UploadLabel = styled.label``;
+const UploadLabel = styled.label`
+  display: flex;
+  align-items: center;
+`;
 
 const HiddenInput = styled.input`
   display: none;

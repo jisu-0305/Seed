@@ -87,7 +87,14 @@ export const useProjectInfoStore = create<ProjectInfoStore>()(
           stepStatus: { ...state.stepStatus, env },
         })),
 
-      resetProjectStatus: () => set({ stepStatus: initialStatus }),
+      resetProjectStatus: () => {
+        set({ stepStatus: initialStatus });
+        try {
+          localStorage.removeItem('projectInfo');
+        } catch (e) {
+          console.warn('로컬스토리지 초기화 실패:', e);
+        }
+      },
 
       onNextValidate: () => true,
       // 콜백 등록

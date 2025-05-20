@@ -6,8 +6,6 @@ export async function getUserRepos(userId: number) {
 }
 
 export async function getUserReposCursor(userId: number, lastId?: number) {
-  console.log('레포 조회');
-
   const url = lastId
     ? `/gitlab/users/${userId}/projects/cursor?lastId=${lastId}`
     : `/gitlab/users/${userId}/projects/cursor`;

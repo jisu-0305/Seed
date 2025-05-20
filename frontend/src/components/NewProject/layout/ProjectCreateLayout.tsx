@@ -2,6 +2,7 @@
 
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 import SmallButton from '@/components/Common/button/SmallButton';
 import Header from '@/components/Common/Header';
@@ -24,7 +25,11 @@ export default function ProjectCreateLayout({
   const { mode } = useThemeStore();
 
   const { onNextValidate } = useProjectInfoStore();
-  const { stepStatus: status } = useProjectInfoStore();
+  const { stepStatus: status, resetProjectStatus } = useProjectInfoStore();
+
+  useEffect(() => {
+    resetProjectStatus();
+  }, []);
 
   const handleNext = () => {
     if (onNextValidate()) {
