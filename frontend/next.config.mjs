@@ -9,6 +9,7 @@ const nextPWA = withPWA({
   swSrc: 'firebase-messaging-sw.mjs',
   scope: '/',
   sw: 'sw.js',
+  buildExcludes: [/app-build-manifest\.json$/],
 });
 
 const nextConfig = {
