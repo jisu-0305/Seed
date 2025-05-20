@@ -11,6 +11,7 @@ const STOP_STATUSES = [
   'FAIL_WTIH_AI',
   'BUILD_FAIL_WITH_AI',
   'FINISH_CONVERT_HTTPS',
+  'FAIL_HTTPS',
 ];
 
 type PollingType = 'build' | 'https';
@@ -20,7 +21,9 @@ interface UsePollingOptions {
   onHttpsFinish?: () => void;
 }
 
-const BUILD_STATUSES = ['INIT', 'FINISH', 'FAIL', 'FINISH_CONVERT_HTTPS'];
+const BUILD_STATUSES = ['INIT', 'FINISH', 'FAIL'];
+
+const HTTPS_STATUSES = ['FINISH_CONVERT_HTTPS', 'FAIL_HTTPS'];
 
 export function useProjectStatusPolling(
   projectId: string,
@@ -130,7 +133,7 @@ export function useProjectStatusPolling(
 
   const isHttpsLoading = useMemo(() => {
     if (!status || !statusInfo) return false;
-    return statusInfo.category === 'https' && status !== 'FINISH_CONVERT_HTTPS';
+    return statusInfo.category === 'https' && !HTTPS_STATUSES.includes(status);
   }, [status, statusInfo]);
 
   return {
