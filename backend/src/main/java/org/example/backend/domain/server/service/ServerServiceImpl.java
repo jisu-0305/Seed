@@ -1227,7 +1227,7 @@ public class ServerServiceImpl implements ServerService {
                         "                                        curl -X POST \\\n" +
                         "                                        -H 'Content-Type: application/json' \\\n" +
                         "                                        -w '\\n%{http_code}' \\\n" +
-                        "                                        \"${healingApiUrl}?${queryParams}\" > /dev/null 2>&1 & \n" +
+                        "                                        \"${healingApiUrl}?${queryParams}\" \n" +
                         "                                    \"\"\", returnStdout: true).trim()\n" +
                         "                                    \n" +
                         "                                    echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
@@ -1251,7 +1251,7 @@ public class ServerServiceImpl implements ServerService {
                         "                                        curl -X POST \\\n" +
                         "                                        -H 'Content-Type: application/json' \\\n" +
                         "                                        -w '\\n%{http_code}' \\\n" +
-                        "                                        \"${healingApiUrl}?${queryParams}\" > /dev/null 2>&1 & \n" +
+                        "                                        \"${healingApiUrl}?${queryParams}\" \n" +
                         "                                    \"\"\", returnStdout: true).trim()\n" +
                         "                                    \n" +
                         "                                    echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
