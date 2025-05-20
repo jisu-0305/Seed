@@ -2,7 +2,6 @@
 
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
 import { useProjectStore } from '@/stores/projectStore';
 import { formatDateTime } from '@/utils/getFormattedTime';
@@ -13,12 +12,7 @@ import { ProjectCard } from './ProjectCard';
 
 export default function Projects() {
   const router = useRouter();
-  const { projects, loading, error, loadProjects } = useProjectStore();
-
-  useEffect(() => {
-    console.log('프로젝트 목록 불러오기');
-    loadProjects(true);
-  }, [loadProjects]);
+  const { projects, loading, error } = useProjectStore();
 
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorMessage>{error}</ErrorMessage>;

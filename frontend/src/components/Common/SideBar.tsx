@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
-import { useProjectStore } from '@/stores/projectStore';
+import { useProjectInfoStore, useProjectStore } from '@/stores/projectStore';
 import { useThemeStore } from '@/stores/themeStore';
 
 export default function SideBar() {
@@ -16,14 +15,16 @@ export default function SideBar() {
   const currentProjectId = match ? Number(match[1]) : null;
 
   const { projects, loadProjects } = useProjectStore();
+  const { resetProjectStatus } = useProjectInfoStore();
 
   const handleMovePage = (url: string) => {
+    if (pathname.startsWith('/create')) {
+      resetProjectStatus();
+    } else if (pathname.startsWith('/projects')) {
+      loadProjects(true);
+    }
     router.push(url);
   };
-
-  useEffect(() => {
-    loadProjects();
-  }, [loadProjects]);
 
   if (mode === null) return null;
 

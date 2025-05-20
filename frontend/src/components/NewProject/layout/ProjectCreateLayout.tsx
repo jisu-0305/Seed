@@ -24,11 +24,17 @@ export default function ProjectCreateLayout({
   const { mode } = useThemeStore();
 
   const { onNextValidate } = useProjectInfoStore();
+  const { stepStatus: status } = useProjectInfoStore();
 
   const handleNext = () => {
     if (onNextValidate()) {
+      if (status.gitlab.structure === '멀티') {
+        alert('아직 멀티 구조는 지원하지 않습니다.');
+        return;
+      }
       router.push(`${getUrlFromId(currentStep + 1)}`);
     } else {
+      if (pathName.startsWith('/create/app')) return;
       alert('모든 항목을 입력해주세요.');
     }
   };
