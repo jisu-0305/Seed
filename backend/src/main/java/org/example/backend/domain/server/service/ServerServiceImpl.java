@@ -85,8 +85,7 @@ public class ServerServiceImpl implements ServerService {
             autoDeploymentSettingProcess(sshSession, user, project, frontEnv, backEnv);
 
             // 3) 프로젝트 자동 배포 활성화
-            project.enableAutoDeployment();
-            project.updateAutoDeploymentStatus(ServerStatus.FINISH);
+            serverStatusService.updateStatus(project, ServerStatus.FINISH);
 
             // 4) Jenkins API 토큰 발급 및 스크립트 정리
             log.info("Jenkins API 토큰 발급 시작");
@@ -961,7 +960,7 @@ public class ServerServiceImpl implements ServerService {
                         "                        \n" +
                         "                        // 셀프 힐링 API 호출 조건 확인\n" +
                         "                        // 헬스 체크가 실패한 경우와 빌드가 실패한 경우 구분\n" +
-                        "                        if (params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME) {\n" +
+                        "                        if (params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME && currentBuild.number > 1) {\n" +
                         "                            if (env.HEALTH_CHECK_STATUS == 'FAILED') {\n" +
                         "                                // 헬스 체크 실패 → 런타임 이슈로 셀프 힐링\n" +
                         "                                echo \"🔧 헬스 체크 실패 → 셀프 힐링 API 호출 (RUNTIME)\"\n" +
@@ -1191,6 +1190,7 @@ public class ServerServiceImpl implements ServerService {
         gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
     }
 
+    @Transactional
     public void issueAndSaveToken(Long projectId, String serverIp, Session session) {
         try {
             String jenkinsUrl = "http://" + serverIp + ":9090";
@@ -1246,7 +1246,6 @@ public class ServerServiceImpl implements ServerService {
     }
 
     @Override
-    @Transactional
     public void convertHttpToHttps(HttpsConvertRequest request, MultipartFile pemFile, String accessToken) {
         SessionInfoDto session = redisSessionManager.getSession(accessToken);
         Long userId = session.getUserId();
@@ -1279,8 +1278,6 @@ public class ServerServiceImpl implements ServerService {
                     request.getProjectId(),
                     NotificationMessageTemplate.HTTPS_SETUP_COMPLETED
             );
-
-            project.saveDomainName(request.getDomain());
 
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
@@ -1316,6 +1313,7 @@ public class ServerServiceImpl implements ServerService {
         reloadNginx(sshSession, project);
 
         serverStatusService.updateStatus(project, ServerStatus.FINISH_CONVERT_HTTPS);
+        serverStatusService.saveDomiaName(project, request.getDomain());
     }
 
     public void installCertbot(Session sshSession, Project project) throws JSchException, IOException {
