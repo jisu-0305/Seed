@@ -93,6 +93,7 @@ export default function ProjectEditInput({
       ...img,
       tag: initialTag,
       port: initialPort,
+      imageEnvs: img.imageEnvs,
     };
     const updated = [...apps, newApp];
     onChangeApps(updated);
@@ -225,6 +226,16 @@ export default function ProjectEditInput({
                 />
               </SelectWrapper>
             </Row>
+            {apps[selectedIndex].imageEnvs?.length > 0 && (
+              <EnvDisplayRow>
+                <Label>필수 환경변수</Label>
+                <EnvList>
+                  {apps[selectedIndex].imageEnvs.map((envKey) => (
+                    <EnvItem key={envKey}>{envKey}</EnvItem>
+                  ))}
+                </EnvList>
+              </EnvDisplayRow>
+            )}
           </>
         )}
       </Section>
@@ -422,4 +433,28 @@ const SelectWrapper = styled.div`
   display: flex;
   align-items: center;
   gap: 1rem;
+`;
+
+const EnvDisplayRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem;
+  padding-left: 2rem;
+  margin-bottom: 2rem;
+`;
+
+const EnvList = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+`;
+
+const EnvItem = styled.div`
+  padding: 0.5rem 1rem;
+  background-color: ${({ theme }) => theme.colors.InputBackground};
+  border: 1px solid ${({ theme }) => theme.colors.InputStroke};
+  border-radius: 0.8rem;
+
+  ${({ theme }) => theme.fonts.Body3};
+  color: ${({ theme }) => theme.colors.Text};
 `;
