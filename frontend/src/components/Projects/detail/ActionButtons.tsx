@@ -8,6 +8,7 @@ import { convertServer, startBuildWithPem } from '@/apis/server';
 import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
 import ModalWrapper from '@/components/Common/Modal/ModalWrapper';
 import { useModal } from '@/hooks/Common';
+import { useProjectStatusPolling } from '@/hooks/Common/useProjectStatusPolling';
 import { useThemeStore } from '@/stores/themeStore';
 import { EC2Config, HttpsConfig } from '@/types/config';
 
@@ -17,12 +18,11 @@ import PemModal from '../Modal/PemModal';
 import ServerStatusBar from '../ServerStatusBar';
 
 interface ActionButtonsProps {
-  projectId: string | null;
+  projectId: string;
   gitlab?: string | URL;
   httpsEnabled: boolean;
   deployEnabled: boolean;
 
-  /** 세팅 완료 후 부모에게 알려줄 콜백 */
   onHttpsComplete?: () => void;
   onDeployComplete?: () => void;
 }
@@ -39,14 +39,16 @@ export function ActionButtons({
   const team = useModal();
   const https = useModal();
   const build = useModal();
+  const { pollForSeconds, isBuildLoading, isHttpsLoading } =
+    useProjectStatusPolling(projectId);
 
   // https 모달용
   const [isHttpsDisabled, setIsHttpsDisabled] = useState(httpsEnabled);
-  const [HttpsLoading, setHttpsLoading] = useState(false);
+  const [HttpsLoading, setHttpsLoading] = useState(isHttpsLoading);
 
   // ■ 빌드용 로딩 & 메시지
   const [isBuildDisabled, setIsBuildDisabled] = useState(deployEnabled);
-  const [buildLoading, setBuildLoading] = useState(false);
+  const [buildLoading, setBuildLoading] = useState(isBuildLoading);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -92,6 +94,7 @@ export function ActionButtons({
     setErrorMessage(null);
     https.toggle();
 
+    pollForSeconds();
     try {
       const data = await convertServer(projectId, domain, email, pem);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
@@ -116,6 +119,7 @@ export function ActionButtons({
     setErrorMessage(null);
     build.toggle();
 
+    pollForSeconds();
     try {
       const data = await startBuildWithPem(projectId, pem);
       console.log('✔️ EC2 세팅 성공:', data);

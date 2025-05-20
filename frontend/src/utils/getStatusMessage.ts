@@ -1,4 +1,4 @@
-type StatusCategory = 'build' | 'ai';
+type StatusCategory = 'build' | 'ai' | 'https';
 
 interface StatusInfo {
   message: string;
@@ -160,5 +160,36 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
     message: 'AI 자동 수정 중 오류 발생 😢',
     progress: 0,
     category: 'ai',
+  },
+
+  INSTALL_CERTBOT: {
+    message: 'Certbot 설치 중',
+    progress: 5,
+    category: 'https',
+  },
+  CREATE_NGINX_CONFIGURATION_FILE: {
+    message: 'Nginx 설정 파일 생성 중',
+    progress: 20,
+    category: 'https',
+  },
+  RELOAD_NGINX: {
+    message: 'Nginx 재시작 중',
+    progress: 40,
+    category: 'https',
+  },
+  ISSUE_SSL_CERTIFICATE: {
+    message: 'SSL 인증서 발급 중',
+    progress: 60,
+    category: 'https',
+  },
+  EDIT_NGINX_CONFIGURATION_FILE: {
+    message: 'Nginx 설정 파일 수정 중',
+    progress: 80,
+    category: 'https',
+  },
+  FINISH_CONVERT_HTTPS: {
+    message: 'HTTPS 세팅 완료!',
+    progress: 100,
+    category: 'https',
   },
 };
