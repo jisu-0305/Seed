@@ -11,14 +11,19 @@ const STOP_STATUSES = [
   'FAIL_WTIH_AI',
   'BUILD_FAIL_WITH_AI',
   'FINISH_CONVERT_HTTPS',
+  'FAIL_HTTPS',
 ];
+
+type PollingType = 'build' | 'https';
 
 interface UsePollingOptions {
   onBuildFinish?: () => void;
   onHttpsFinish?: () => void;
 }
 
-const BUILD_STATUSES = ['INIT', 'FINISH', 'FAIL', 'FINISH_CONVERT_HTTPS'];
+const BUILD_STATUSES = ['INIT', 'FINISH', 'FAIL'];
+
+const HTTPS_STATUSES = ['FINISH_CONVERT_HTTPS', 'FAIL_HTTPS'];
 
 export function useProjectStatusPolling(
   projectId: string,
@@ -32,6 +37,7 @@ export function useProjectStatusPolling(
 
   const buildFinishCalledRef = useRef(false);
   const httpsFinishCalledRef = useRef(false);
+  const currentPollingType = useRef<PollingType | null>(null);
 
   const fetchAndUpdate = useCallback(
     async (force = false) => {
@@ -48,7 +54,8 @@ export function useProjectStatusPolling(
           if (
             statusInfo?.category === 'build' &&
             nextStatus === 'FINISH' &&
-            !buildFinishCalledRef.current
+            !buildFinishCalledRef.current &&
+            currentPollingType.current === 'build'
           ) {
             onBuildFinish?.();
             buildFinishCalledRef.current = true;
@@ -58,7 +65,8 @@ export function useProjectStatusPolling(
           if (
             statusInfo?.category === 'https' &&
             nextStatus === 'FINISH_CONVERT_HTTPS' &&
-            !httpsFinishCalledRef.current
+            !httpsFinishCalledRef.current &&
+            currentPollingType.current === 'https'
           ) {
             onHttpsFinish?.();
             httpsFinishCalledRef.current = true;
@@ -101,6 +109,15 @@ export function useProjectStatusPolling(
     }
   }, []);
 
+  const restartPolling = useCallback((type: PollingType) => {
+    if (type === 'build') buildFinishCalledRef.current = false;
+    if (type === 'https') httpsFinishCalledRef.current = false;
+
+    currentPollingType.current = type; // ✅ 어떤 목적의 polling인지 설정
+
+    startPolling(true); // force true
+  }, []);
+
   useEffect(() => {
     startPolling();
     return () => stopPolling();
@@ -116,14 +133,14 @@ export function useProjectStatusPolling(
 
   const isHttpsLoading = useMemo(() => {
     if (!status || !statusInfo) return false;
-    return statusInfo.category === 'https' && status !== 'FINISH_CONVERT_HTTPS';
+    return statusInfo.category === 'https' && !HTTPS_STATUSES.includes(status);
   }, [status, statusInfo]);
 
   return {
     status,
     isBuildLoading,
     isHttpsLoading,
-    restartPolling: () => startPolling(true),
+    restartPolling,
     startPolling,
   };
 }
