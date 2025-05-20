@@ -1280,6 +1280,8 @@ public class ServerServiceImpl implements ServerService {
                     NotificationMessageTemplate.HTTPS_SETUP_COMPLETED
             );
 
+            project.saveDomainName(request.getDomain());
+
         } catch (JSchException e) {
             log.error("SSH 연결 실패 (host={}): {}", host, e.getMessage());
             notificationService.notifyProjectStatusForUsers(

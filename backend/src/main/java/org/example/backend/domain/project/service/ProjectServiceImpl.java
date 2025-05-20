@@ -260,6 +260,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .backendDirectoryName(project.getBackendDirectoryName())
                 .nodejsVersion(project.getNodejsVersion())
                 .frontendFramework(project.getFrontendFramework())
+                .domainName(project.getDomainName())
                 .jdkVersion(project.getJdkVersion())
                 .jdkBuildTool(project.getJdkBuildTool())
                 .applicationList(projectApplicationList.stream()
