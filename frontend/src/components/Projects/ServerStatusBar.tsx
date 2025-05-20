@@ -1,15 +1,14 @@
 import styled from '@emotion/styled';
+import { useMemo } from 'react';
 
-import { useProjectStatusPolling } from '@/hooks/Common/useProjectStatusPolling';
 import { SERVER_STATUS_INFO } from '@/utils/getStatusMessage';
 
 interface ServerStatusProps {
-  projectId: string;
+  status: string;
 }
 
-export default function ServerStatusBar({ projectId }: ServerStatusProps) {
-  const { status } = useProjectStatusPolling(projectId);
-  const statusInfo = status ? SERVER_STATUS_INFO[status] : null;
+export default function ServerStatusBar({ status }: ServerStatusProps) {
+  const statusInfo = useMemo(() => SERVER_STATUS_INFO[status ?? ''], [status]);
 
   if (!statusInfo) return null;
 

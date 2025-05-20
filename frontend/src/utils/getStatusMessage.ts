@@ -45,29 +45,29 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
     progress: 60,
     category: 'build',
   },
-  SET_JENKINS_INFO: {
-    message: 'Jenkins 정보 설정 중',
+  CREATE_JENKINS_PIPELINE: {
+    message: 'Jenkins 파이프라인 생성 중',
     progress: 65,
-    category: 'build',
-  },
-  CREATE_JENKINS_JOB: {
-    message: 'Jenkins Job 생성 중',
-    progress: 70,
     category: 'build',
   },
   CREATE_JENKINSFILE: {
     message: 'Jenkinsfile 생성 중',
-    progress: 75,
+    progress: 70,
     category: 'build',
   },
   CREATE_FRONTEND_DOCKERFILE: {
     message: '프론트 Dockerfile 생성 중',
-    progress: 80,
+    progress: 75,
     category: 'build',
   },
   CREATE_BACKEND_DOCKERFILE: {
     message: '백엔드 Dockerfile 생성 중',
-    progress: 85,
+    progress: 80,
+    category: 'build',
+  },
+  SET_JENKINS_INFO: {
+    message: 'Jenkins 정보 설정 중',
+    progress: 90,
     category: 'build',
   },
   CREATE_WEBHOOK: { message: '웹훅 생성 중', progress: 90, category: 'build' },

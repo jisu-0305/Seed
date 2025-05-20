@@ -2,7 +2,7 @@
 
 import styled from '@emotion/styled';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { convertServer, startBuildWithPem } from '@/apis/server';
 import { LoadingSpinner } from '@/components/Common/LoadingSpinner';
@@ -11,6 +11,7 @@ import { useModal } from '@/hooks/Common';
 import { useProjectStatusPolling } from '@/hooks/Common/useProjectStatusPolling';
 import { useThemeStore } from '@/stores/themeStore';
 import { EC2Config, HttpsConfig } from '@/types/config';
+import { SERVER_STATUS_INFO } from '@/utils/getStatusMessage';
 
 import HttpsConfigModal from '../Modal/HttpsConfigModal';
 import ManageMemberModal from '../Modal/ManageMemberModal';
@@ -22,6 +23,8 @@ interface ActionButtonsProps {
   gitlab?: string | URL;
   httpsEnabled: boolean;
   deployEnabled: boolean;
+  isBuildLoading: boolean;
+  isHttpsLoading: boolean;
 
   onHttpsComplete?: () => void;
   onDeployComplete?: () => void;
@@ -32,6 +35,8 @@ export function ActionButtons({
   gitlab,
   httpsEnabled,
   deployEnabled,
+  isBuildLoading,
+  isHttpsLoading,
   onHttpsComplete,
   onDeployComplete,
 }: ActionButtonsProps) {
@@ -39,8 +44,14 @@ export function ActionButtons({
   const team = useModal();
   const https = useModal();
   const build = useModal();
-  const { pollForSeconds, isBuildLoading, isHttpsLoading } =
-    useProjectStatusPolling(projectId);
+
+  const { status, restartPolling } = useProjectStatusPolling(projectId);
+  const statusInfo = useMemo(() => SERVER_STATUS_INFO[status ?? ''], [status]);
+
+  const isBuildFinished =
+    statusInfo?.category === 'build' && status === 'FINISH';
+  const isHttpsFinished =
+    statusInfo?.category === 'https' && status === 'FINISH_CONVERT_HTTPS';
 
   // https 모달용
   const [isHttpsDisabled, setIsHttpsDisabled] = useState(httpsEnabled);
@@ -94,7 +105,7 @@ export function ActionButtons({
     setErrorMessage(null);
     https.toggle();
 
-    pollForSeconds();
+    restartPolling();
     try {
       const data = await convertServer(projectId, domain, email, pem);
       console.log('✔️ HTTPS 변환 요청 성공:', data);
@@ -119,7 +130,7 @@ export function ActionButtons({
     setErrorMessage(null);
     build.toggle();
 
-    pollForSeconds();
+    restartPolling();
     try {
       const data = await startBuildWithPem(projectId, pem);
       console.log('✔️ EC2 세팅 성공:', data);
@@ -161,7 +172,7 @@ export function ActionButtons({
             />
           </MessageBanner>
         )}
-        <ServerStatusBar projectId={projectId!} />
+        <ServerStatusBar status={status!} />
         <MainActions>
           <Button variant="ai" onClick={goToReport}>
             <Icon src="/assets/icons/ic_ai_report_carrot.svg" alt="ai_report" />
@@ -170,7 +181,7 @@ export function ActionButtons({
           <Button
             variant="build"
             onClick={build.toggle}
-            disabled={buildLoading || isBuildDisabled}
+            disabled={buildLoading || isBuildDisabled || isBuildFinished}
           >
             {buildLoading ? (
               <LoadingSpinner />
@@ -182,7 +193,7 @@ export function ActionButtons({
           <Button
             variant="https"
             onClick={https.toggle}
-            disabled={isHttpsDisabled || HttpsLoading}
+            disabled={isHttpsDisabled || HttpsLoading || isHttpsFinished}
           >
             {HttpsLoading ? (
               <LoadingSpinner />
