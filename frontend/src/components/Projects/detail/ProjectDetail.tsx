@@ -30,7 +30,6 @@ export default function ProjectDetail() {
   const rawId = params?.id;
   const projectId = Array.isArray(rawId) ? rawId[0] : rawId;
   const loadProjectInfo = useProjectInfoStore((s) => s.loadProjectInfo);
-  const { restartPolling } = useProjectStatusPolling(projectId);
 
   const router = useRouter();
 
@@ -73,12 +72,29 @@ export default function ProjectDetail() {
     fetchAndSetDetail(id);
   }, [projectId, projects]);
 
+  const handleHttpsComplete = () => {
+    if (!projectId) return;
+    fetchAndSetDetail(Number(projectId));
+    refreshTasks();
+  };
+  const handleDeployComplete = () => {
+    if (!projectId) return;
+    fetchAndSetDetail(Number(projectId));
+    refreshTasks();
+  };
+
+  const { startPolling, isBuildLoading, isHttpsLoading } =
+    useProjectStatusPolling(projectId, {
+      onBuildFinish: handleDeployComplete,
+      onHttpsFinish: handleHttpsComplete,
+    });
+
   const fetchAndSetDetail = async (id: number) => {
     setLoading(true);
     try {
       const data = await fetchProjectDetail(id);
       loadProjectInfo(data);
-      restartPolling(); // 서버 상태 정보 받아오기
+      startPolling();
 
       const summary = projects.find((p) => p.id === id);
       setDetail({
@@ -95,17 +111,6 @@ export default function ProjectDetail() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleHttpsComplete = () => {
-    if (!projectId) return;
-    fetchAndSetDetail(Number(projectId));
-    refreshTasks();
-  };
-  const handleDeployComplete = () => {
-    if (!projectId) return;
-    fetchAndSetDetail(Number(projectId));
-    refreshTasks();
   };
 
   const [tasksByTab, setTasksByTab] = useState<Record<DeployTabName, Task[]>>(
@@ -218,6 +223,8 @@ export default function ProjectDetail() {
             gitlab={detail.repositoryUrl}
             httpsEnabled={detail.httpsEnabled}
             deployEnabled={detail.autoDeploymentEnabled}
+            isBuildLoading={isBuildLoading}
+            isHttpsLoading={isHttpsLoading}
             onHttpsComplete={handleHttpsComplete}
             onDeployComplete={handleDeployComplete}
           />
