@@ -33,6 +33,8 @@ public class ProjectDetailResponse {
     private String jdkBuildTool;
     private String backendEnvFilePath;
 
+    private String domainName;
+
     private List<ApplicationResponse> applicationList;
     private String pemFilePath;
 }
