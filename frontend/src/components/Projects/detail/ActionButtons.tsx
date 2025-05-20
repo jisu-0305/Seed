@@ -115,6 +115,7 @@ export function ActionButtons({
 
     setBuildLoading(true);
     setErrorMessage(null);
+    build.toggle();
 
     try {
       const data = await startBuildWithPem(projectId, pem);
@@ -126,7 +127,6 @@ export function ActionButtons({
       setErrorMessage('EC2 세팅 중 오류가 발생했어요. 다시 시도해주세요.');
     } finally {
       setBuildLoading(false);
-      build.toggle();
     }
   };
 
