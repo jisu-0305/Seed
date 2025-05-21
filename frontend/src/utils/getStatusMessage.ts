@@ -35,6 +35,7 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
     category: 'build',
   },
   INSTALL_NGINX: { message: 'Nginx 설치 중', progress: 40, category: 'build' },
+  CREATE_WEBHOOK: { message: '웹훅 생성 중', progress: 45, category: 'build' },
   INSTALL_JENKINS: {
     message: 'Jenkins 설치 중',
     progress: 50,
@@ -70,7 +71,6 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
     progress: 90,
     category: 'build',
   },
-  CREATE_WEBHOOK: { message: '웹훅 생성 중', progress: 90, category: 'build' },
   FINISH: {
     message: 'EC2 세팅이 완료되었습니다!',
     progress: 100,
