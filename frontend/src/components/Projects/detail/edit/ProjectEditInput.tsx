@@ -146,9 +146,33 @@ export default function ProjectEditInput({
     setFrontEnvFile(file);
   };
 
-  const handleServerEnvChange = (file: File) => {
+  const handleServerEnvChange = async (file: File) => {
     onChangeEnv({ ...env, backEnv: !!file, backEnvName: file.name });
     setBackEnvFile(file);
+
+    const text = await file.text();
+    const envKeys = new Set(
+      text
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line && !line.startsWith('#') && line.includes('='))
+        .map((line) => line.split('=')[0].trim()),
+    );
+
+    const missingKeys = new Set<string>();
+    apps.forEach((app) => {
+      app.imageEnvs?.forEach((key) => {
+        if (!envKeys.has(key)) {
+          missingKeys.add(key);
+        }
+      });
+    });
+
+    if (missingKeys.size === 0) {
+      alert('✅ 모든 환경변수가 정상적으로 포함되어 있습니다.');
+    } else {
+      alert(`❌ 누락된 환경변수:\n• ${Array.from(missingKeys).join('\n• ')}`);
+    }
   };
 
   return (

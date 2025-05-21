@@ -28,6 +28,7 @@ export default function FileInput({
     if (selectedFile) {
       setFile(selectedFile);
       handleFileChange(selectedFile);
+      e.target.value = '';
     }
   };
 
