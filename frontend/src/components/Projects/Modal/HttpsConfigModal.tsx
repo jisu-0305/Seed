@@ -89,16 +89,22 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
 
         <SubmitButton type="submit">HTTPS 시작하기</SubmitButton>
 
-        <ModalTipItem
-          text="pem 파일은 AWS EC2에서 생성해주세요"
-          help
-          openModal={pemTip.toggle}
-        />
+        <TipList>
+          <ModalTipItem
+            text="pem 파일은 AWS EC2에서 생성해주세요"
+            help
+            openModal={pemTip.toggle}
+          />
+          <ModalTipItem text="서비스의 DNS 이름과 소유자의 이메일 주소를 입력해주세요" />
+          <ModalTipItem
+            text="https 도메인에 맞춰 .env를 수정해야해요 (젠킨스 이용)"
+            important
+          />
+        </TipList>
         <InformPemKeyModal
           isShowing={pemTip.isShowing}
           handleClose={pemTip.toggle}
         />
-        <ModalTipItem text="서비스의 DNS 이름과 소유자의 이메일 주소를 입력해주세요" />
       </Form>
     </SmallModal>
   );
@@ -139,4 +145,10 @@ const Input = styled.input`
   color: ${({ theme }) => theme.colors.Black};
   border: 1px solid ${({ theme }) => theme.colors.BorderDefault};
   border-radius: 0.5rem;
+`;
+
+const TipList = styled.ul`
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
 `;
