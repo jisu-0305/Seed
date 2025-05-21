@@ -465,24 +465,34 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     // 4-4. 리포트 DB 저장
     @Transactional
     public void saveAIReports(Long projectId, Map<String, AIReportResponse> reportResponses, ReportStatus status, String commitUrl, String mergeRequestUrl, int newBuildNumber) {
+        StringBuilder summaryBuilder = new StringBuilder();
+        StringBuilder notesBuilder = new StringBuilder();
+        List<String> mergedFiles = new ArrayList<>();
+
         for (Map.Entry<String, AIReportResponse> entry : reportResponses.entrySet()) {
             String appName = entry.getKey();
             AIReportResponse response = entry.getValue();
 
-            List<String> appliedFileNames = response.getAppliedFiles();
+            summaryBuilder.append("[").append(appName).append("]\n")
+                    .append(response.getSummary()).append("\n\n");
 
-            DeploymentReportSavedRequest request = new DeploymentReportSavedRequest();
-            request.setProjectId(projectId);
-            request.setBuildNumber(newBuildNumber);
-            request.setTitle("["+(newBuildNumber-1) +"번 빌드 수정] " + appName + " 수정 보고서");
-            request.setSummary(response.getSummary());
-            request.setAdditionalNotes(response.getAdditionalNotes());
-            request.setCommitUrl(commitUrl);
-            request.setMergeRequestUrl(status == ReportStatus.SUCCESS ? mergeRequestUrl : null);
-            request.setStatus(status);
-            request.setAppliedFileNames(appliedFileNames);
+            notesBuilder.append("[").append(appName).append("]\n")
+                    .append(response.getAdditionalNotes()).append("\n\n");
 
-            aiDeploymentReportService.saveReport(request);
+            mergedFiles.addAll(response.getAppliedFiles());
         }
+
+        DeploymentReportSavedRequest request = new DeploymentReportSavedRequest();
+        request.setProjectId(projectId);
+        request.setBuildNumber(newBuildNumber);
+        request.setTitle("["+(newBuildNumber-1) +"번 빌드 수정] AI 수정 보고서");
+        request.setSummary(summaryBuilder.toString().trim());
+        request.setAdditionalNotes(notesBuilder.toString().trim());
+        request.setCommitUrl(commitUrl);
+        request.setMergeRequestUrl(status == ReportStatus.SUCCESS ? mergeRequestUrl : null);
+        request.setStatus(status);
+        request.setAppliedFileNames(mergedFiles);
+
+        aiDeploymentReportService.saveReport(request);
     }
 }
