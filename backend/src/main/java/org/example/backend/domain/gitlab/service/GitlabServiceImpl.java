@@ -149,7 +149,7 @@ public class GitlabServiceImpl implements GitlabService {
 
     @Override
     public GitlabProjectListResponse getGitlabProjectsByUserIdAndCursor(Long userId, Long lastProjectId) {
-        int pageSize = 20;
+        int pageSize = 100;
         User user = userRepository.findById(userId).orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
         String personalAccessToken = user.getGitlabPersonalAccessToken();
 
