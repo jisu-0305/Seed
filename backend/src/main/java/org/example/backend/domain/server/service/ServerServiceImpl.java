@@ -131,14 +131,14 @@ public class ServerServiceImpl implements ServerService {
         installDocker(sshSession, project);
         runApplicationList(sshSession, project, backEnvFile);
         installNginx(sshSession, project, project.getServerIP());
-        setJenkins(sshSession, project);
-        setJenkinsConfigure(sshSession, project);
+        installJenkins(sshSession, project);
+        installJenkinsPlugins(sshSession, project);
+        setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
         createJenkinsPipeline(sshSession, project, "auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", project.getGitlabTargetBranchName());
         createJenkinsFile(sshSession, gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), project.getGitlabTargetBranchName(), gitlabProject.getPathWithNamespace(), project);
         createDockerfileForFrontend(sshSession, projectPath, project.getGitlabTargetBranchName() ,project);
         createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
         createDockerfileForBackend(sshSession, projectPath, project.getGitlabTargetBranchName(), project);
-        setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
     }
 
     /**
@@ -546,7 +546,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 8. Jenkins 설치
-    public void setJenkins(Session sshSession, Project project) throws JSchException, IOException {
+    public void installJenkins(Session sshSession, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS);
 
         List<String> cmds = List.of(
@@ -565,7 +565,7 @@ public class ServerServiceImpl implements ServerService {
     }
 
     // 9. Jenkins 사용자 등록 / 플러그인 설치
-    public void setJenkinsConfigure(Session sshSession, Project project) throws JSchException, IOException {
+    public void installJenkinsPlugins(Session sshSession, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS_PLUGINS);
 
         List<String> cmds = List.of(
