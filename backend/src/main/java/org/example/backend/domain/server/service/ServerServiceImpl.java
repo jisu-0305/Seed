@@ -1400,30 +1400,30 @@ public class ServerServiceImpl implements ServerService {
                         "            steps {\n" +
                         "                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {\n" +
                         "                    script {\n" +
-                        "                        env.BACKEND_BUILD_STATUS = 'SUCCESS'\n" +
-                        "                        withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
-                        "                            sh '''\n" +
-                        "                                cp \"$BACKEND_ENV\" \"$WORKSPACE/backend/.env\"\n" +
-                        "                            '''\n" +
+                        "                        try {\n" +
+                        "                            env.BACKEND_BUILD_STATUS = 'SUCCESS'\n" +
+                        "                            withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
+                        "                                sh '''\n" +
+                        "                                    cp \"$BACKEND_ENV\" \"$WORKSPACE/backend/.env\"\n" +
+                        "                                '''\n" +
+                        "                            }\n" +
+                        "                            dir('backend') {\n" +
+                        "                                sh '''\n" +
+                        "                                    docker build -t spring .\n" +
+                        "                                    docker stop spring || true\n" +
+                        "                                    docker rm spring || true\n" +
+                        "                                    docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
+                        "                                '''\n" +
+                        "                            }\n" +
+                        "                        } catch (Exception e) {\n" +
+                        "                            env.BACKEND_BUILD_STATUS = 'FAILED'\n" +
+                        "                            echo \"❌ 백엔드 빌드 실패: ${e.message}\"\n" +
+                        "                            throw e\n" +
                         "                        }\n" +
-                        "                        dir('backend') {\n" +
-                        "                            sh '''\n" +
-                        "                                docker build -t spring .\n" +
-                        "                                docker stop spring || true\n" +
-                        "                                docker rm spring || true\n" +
-                        "                                docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
-                        "                            '''\n" +
-                        "                        }\n" +
-                        "                    }\n" +
-                        "                }\n" +
-                        "                script {\n" +
-                        "                    if (currentBuild.currentResult == 'FAILURE') {\n" +
-                        "                        env.BACKEND_BUILD_STATUS = 'FAILED'\n" +
-                        "                        echo \"❌ 백엔드 빌드 실패\"\n" +
                         "                    }\n" +
                         "                }\n" +
                         "            }\n" +
-                        "        }\n" +
+                        "        }   \n" +
                         "        stage('Build Frontend') {\n" +
                         "            when {\n" +
                         "                expression { env.FRONTEND_CHANGED == \"true\" }\n" +
@@ -1431,84 +1431,98 @@ public class ServerServiceImpl implements ServerService {
                         "            steps {\n" +
                         "                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {\n" +
                         "                    script {\n" +
-                        "                        env.FRONTEND_BUILD_STATUS = 'SUCCESS'\n" +
-                        "                        withCredentials([file(credentialsId: \"frontend\", variable: 'FRONTEND_ENV')]) {\n" +
-                        "                            sh '''\n" +
-                        "                                cp \"$FRONTEND_ENV\" \"$WORKSPACE/frontend/.env\"\n" +
-                        "                            '''\n" +
+                        "                        try {\n" +
+                        "                            env.FRONTEND_BUILD_STATUS = 'SUCCESS'\n" +
+                        "                            withCredentials([file(credentialsId: \"frontend\", variable: 'FRONTEND_ENV')]) {\n" +
+                        "                                sh '''\n" +
+                        "                                    cp \"$FRONTEND_ENV\" \"$WORKSPACE/frontend/.env\"\n" +
+                        "                                '''\n" +
+                        "                            }\n" +
+                        "                            dir('frontend') {\n" +
+                        "                                sh '''\n" +
+                        "                                    set -e\n" +
+                        "                                    docker build -f Dockerfile -t react .\n" +
+                        "                                    docker stop react || true\n" +
+                        "                                    docker rm react || true\n" +
+                        "                                    docker run -d --network mynet --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n" +
+                        "                                '''\n" +
+                        "                            }\n" +
+                        "                        } catch (Exception e) {\n" +
+                        "                            env.FRONTEND_BUILD_STATUS = 'FAILED'\n" +
+                        "                            echo \"❌ 프론트엔드 빌드 실패: ${e.message}\"\n" +
+                        "                            throw e\n" +
                         "                        }\n" +
-                        "                        dir('frontend') {\n" +
-                        "                            sh '''\n" +
-                        "                                " + frontendDockerScript + "\n" +
-                        "                            '''\n" +
-                        "                        }\n" +
-                        "                    }\n" +
-                        "                }\n" +
-                        "                script {\n" +
-                        "                    if (currentBuild.currentResult == 'FAILURE') {\n" +
-                        "                        env.FRONTEND_BUILD_STATUS = 'FAILED'\n" +
-                        "                        echo \"❌ 프론트엔드 빌드 실패\"\n" +
                         "                    }\n" +
                         "                }\n" +
                         "            }\n" +
                         "        }\n" +
                         "        stage('Health Check') {\n" +
                         "            steps {\n" +
+                        "                // Health Check 전에 30초 대기\n" +
+                        "                echo '⏳ Health Check 전에 30초 대기'\n" +
+                        "                sleep time: 30, unit: 'SECONDS'\n" +
                         "                catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {\n" +
-                        "                    // Health Check 전에 30초 대기\n" +
-                        "                    echo '⏳ Health Check 전에 30초 대기'\n" +
-                        "                    sleep time: 30, unit: 'SECONDS'\n" +
                         "                    script {\n" +
                         "                        // 헬스 체크 로직 추가\n" +
                         "                        echo '⚕️ 서비스 헬스 체크 실행'\n" +
-                        "                        env.HEALTH_CHECK_STATUS = 'FAILED' // 기본값을 FAILED로 설정\n" +
+                        "                        env.HEALTH_CHECK_STATUS = 'SUCCESS' // 기본값 설정\n" +
                         "                        \n" +
                         "                        // Docker API를 통한 컨테이너 상태 확인 URL\n" +
                         "                        def dockerApiUrl = 'http://localhost:3789/containers/json?all=true&filters=%7B%22name%22%3A%5B%22spring%22%5D%7D'\n" +
                         "                        \n" +
-                        "                        // Docker API 호출\n" +
-                        "                        def dockerApiResponse = sh(script: \"\"\"\n" +
-                        "                            curl -s -X GET '${dockerApiUrl}'\n" +
-                        "                        \"\"\", returnStdout: true).trim()\n" +
-                        "                        \n" +
-                        "                        echo \"Docker API 응답: ${dockerApiResponse}\"\n" +
-                        "                        \n" +
-                        "                        // JSON 응답 파싱\n" +
-                        "                        def jsonSlurper = new groovy.json.JsonSlurper()\n" +
-                        "                        def containers = jsonSlurper.parseText(dockerApiResponse)\n" +
-                        "                        \n" +
-                        "                        // 컨테이너 목록 확인\n" +
-                        "                        if (containers instanceof List) {\n" +
-                        "                            if (containers.size() == 0) {\n" +
-                        "                                echo \"❌ 헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
-                        "                                error \"헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
+                        "                        try {\n" +
+                        "                            // Docker API 호출\n" +
+                        "                            def dockerApiResponse = sh(script: \"\"\"\n" +
+                        "                                curl -s -X GET '${dockerApiUrl}'\n" +
+                        "                            \"\"\", returnStdout: true).trim()\n" +
+                        "                            \n" +
+                        "                            echo \"Docker API 응답: ${dockerApiResponse}\"\n" +
+                        "                            \n" +
+                        "                            // JSON 응답 파싱\n" +
+                        "                            def jsonSlurper = new groovy.json.JsonSlurper()\n" +
+                        "                            def containers\n" +
+                        "                            try {\n" +
+                        "                                containers = jsonSlurper.parseText(dockerApiResponse)\n" +
+                        "                            } catch (Exception e) {\n" +
+                        "                                echo \"JSON 파싱 오류: ${e.message}\"\n" +
+                        "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                error \"헬스 체크 실패: JSON 파싱 오류\"\n" +
                         "                            }\n" +
                         "                            \n" +
-                        "                            // 컨테이너 상태 확인\n" +
-                        "                            def springContainer = containers[0]\n" +
-                        "                            def containerState = springContainer.State\n" +
-                        "                            def containerStatus = springContainer.Status\n" +
-                        "                            \n" +
-                        "                            echo \"컨테이너 상태: ${containerState}, 상태 설명: ${containerStatus}\"\n" +
-                        "                            \n" +
-                        "                            // 'running' 상태인지 확인\n" +
-                        "                            if (containerState == 'running') {\n" +
-                        "                                echo \"✅ 헬스 체크 성공: spring 컨테이너가 정상 실행 중입니다.\"\n" +
-                        "                                env.HEALTH_CHECK_STATUS = 'SUCCESS'\n" +
+                        "                            // 컨테이너 목록 확인\n" +
+                        "                            if (containers instanceof List) {\n" +
+                        "                                if (containers.size() == 0) {\n" +
+                        "                                    echo \"❌ 헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
+                        "                                    env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                    error \"헬스 체크 실패: spring 컨테이너를 찾을 수 없습니다.\"\n" +
+                        "                                }\n" +
+                        "                                \n" +
+                        "                                // 컨테이너 상태 확인\n" +
+                        "                                def springContainer = containers[0]\n" +
+                        "                                def containerState = springContainer.State\n" +
+                        "                                def containerStatus = springContainer.Status\n" +
+                        "                                \n" +
+                        "                                echo \"컨테이너 상태: ${containerState}, 상태 설명: ${containerStatus}\"\n" +
+                        "                                \n" +
+                        "                                // 'running' 상태인지 확인\n" +
+                        "                                if (containerState == 'running') {\n" +
+                        "                                    echo \"✅ 헬스 체크 성공: spring 컨테이너가 정상 실행 중입니다.\"\n" +
+                        "                                    env.HEALTH_CHECK_STATUS = 'SUCCESS'\n" +
+                        "                                } else {\n" +
+                        "                                    echo \"❌ 헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
+                        "                                    env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                    error \"헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
+                        "                                }\n" +
                         "                            } else {\n" +
-                        "                                echo \"❌ 헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
-                        "                                error \"헬스 체크 실패: spring 컨테이너 상태가 '${containerState}'입니다.\"\n" +
+                        "                                echo \"❌ 헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
+                        "                                env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                                error \"헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
                         "                            }\n" +
-                        "                        } else {\n" +
-                        "                            echo \"❌ 헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
-                        "                            error \"헬스 체크 실패: Docker API 응답이 리스트 형식이 아닙니다.\"\n" +
+                        "                        } catch (Exception e) {\n" +
+                        "                            echo \"❌ 헬스 체크 실행 중 오류 발생: ${e.message}\"\n" +
+                        "                            env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
+                        "                            throw e\n" +
                         "                        }\n" +
-                        "                    }\n" +
-                        "                }\n" +
-                        "                script {\n" +
-                        "                    if (currentBuild.currentResult == 'FAILURE' && env.HEALTH_CHECK_STATUS != 'SUCCESS') {\n" +
-                        "                        env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-                        "                        echo \"❌ 헬스 체크 실패\"\n" +
                         "                    }\n" +
                         "                }\n" +
                         "            }\n" +
@@ -1520,12 +1534,6 @@ public class ServerServiceImpl implements ServerService {
                         "                // 빌드 결과 상태 가져오기\n" +
                         "                def buildStatus = currentBuild.result ?: 'SUCCESS'\n" +
                         "                env.SELF_HEALING_APPLIED = 'false'  // 셀프 힐링 적용 여부를 추적하는 변수\n" +
-                        "                \n" +
-                        "                // 각 스테이지 실행 여부 확인\n" +
-                        "                if (env.HEALTH_CHECK_STATUS == 'NOT_EXECUTED') {\n" +
-                        "                    echo \"ℹ️ 헬스 체크 스테이지가 실행되지 않았습니다. 기본값을 FAILED로 설정합니다.\"\n" +
-                        "                    env.HEALTH_CHECK_STATUS = 'FAILED'\n" +
-                        "                }\n" +
                         "                \n" +
                         "                // PROJECT_ID 파라미터가 비어있지 않은지 확인\n" +
                         "                if (params.PROJECT_ID?.trim()) {\n" +
