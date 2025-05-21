@@ -37,4 +37,4 @@ class AppInferenceAgent(BaseAgent):
             - 다른 필드는 허용되지 않습니다.
             - 마크다운이나 코드펜스 없이 순수 JSON만 출력하세요.
             """
-        return await ask_gpt(prompt)
+        return await ask_gpt(prompt, model="gpt-4.1")
