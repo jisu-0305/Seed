@@ -81,7 +81,7 @@ export default function ProjectDetail() {
       fetchAndSetDetail(Number(projectId));
       refreshTasks();
       console.log('https 설정되어서 상세 다시 불러옴');
-    }, 2000);
+    }, 3000);
   };
   const handleDeployComplete = () => {
     if (!projectId) return;
@@ -89,7 +89,7 @@ export default function ProjectDetail() {
       fetchAndSetDetail(Number(projectId));
       refreshTasks();
       console.log('서버 설정되어서 상세 다시 불러옴');
-    }, 2000);
+    }, 3000);
   };
 
   const { startPolling, isBuildLoading, isHttpsLoading } =
