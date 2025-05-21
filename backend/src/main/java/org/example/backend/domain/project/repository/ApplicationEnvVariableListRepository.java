@@ -14,4 +14,6 @@ public interface ApplicationEnvVariableListRepository extends JpaRepository<Appl
 
     @Query("SELECT a.envVariable FROM ApplicationEnvVariables a WHERE a.applicationId = :applicationId")
     List<String> findEnvVariablesByApplicationId(@Param("applicationId") Long applicationId);
+
+    List<ApplicationEnvVariables> findByApplicationIdIn(List<Long> applicationIds);
 }
