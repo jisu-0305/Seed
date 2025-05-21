@@ -132,7 +132,7 @@ export default function AiReport() {
 
               <Section>
                 <SectionRow>
-                  <SectionTitle>적용된 파일</SectionTitle>
+                  <SectionTitle>검토한 파일</SectionTitle>
                   <ConfirmButton
                     onClick={() => {
                       const url =
