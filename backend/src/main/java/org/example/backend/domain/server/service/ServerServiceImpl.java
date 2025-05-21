@@ -32,6 +32,8 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 @Service
@@ -144,99 +146,316 @@ public class ServerServiceImpl implements ServerService {
     /**
      * 실시간 출력을 모니터링하면서 명령을 실행하는 메서드
      */
+//    private String execCommandWithLiveOutput(Session session, String command, long timeoutMs) throws JSchException, IOException {
+//        ChannelExec channel = null;
+//
+//        try {
+//            channel = (ChannelExec) session.openChannel("exec");
+//            channel.setCommand(command);
+//
+//            // 표준 출력 스트림 설정
+//            InputStream stdout = channel.getInputStream();
+//            InputStream stderr = channel.getErrStream();
+//
+//            StringBuilder outputBuilder = new StringBuilder();
+//
+//            channel.connect(30 * 1000);
+//
+//            byte[] buffer = new byte[1024];
+//            long startTime = System.currentTimeMillis();
+//            long lastOutputTime = startTime;
+//
+//            while (true) {
+//                // 타임아웃 체크
+//                if (System.currentTimeMillis() - startTime > timeoutMs) {
+//                    log.error("명령 타임아웃: {}", command);
+//                    throw new IOException("명령 실행 타임아웃: " + command);
+//                }
+//
+//                // 지정된 시간 동안 출력이 없으면 프로세스 확인
+//                if (System.currentTimeMillis() - lastOutputTime > 15 * 60 * 1000) {
+//                    log.warn("명령 실행 중 5분 동안 출력 없음, 프로세스 상태 확인: {}", command);
+//                    // 관련 프로세스 확인
+//                    ChannelExec checkChannel = (ChannelExec) session.openChannel("exec");
+//                    checkChannel.setCommand("ps aux | grep -E 'apt|dpkg|jenkins' | grep -v grep");
+//                    ByteArrayOutputStream checkOutput = new ByteArrayOutputStream();
+//                    checkChannel.setOutputStream(checkOutput);
+//                    checkChannel.connect();
+//
+//                    try {
+//                        while (!checkChannel.isClosed()) {
+//                            try {
+//                                Thread.sleep(100);
+//                            } catch (InterruptedException e) {
+//                                Thread.currentThread().interrupt();
+//                            }
+//                        }
+//                    } finally {
+//                        checkChannel.disconnect();
+//                    }
+//
+//                    log.info("관련 프로세스 상태:\n{}", checkOutput.toString());
+//                    lastOutputTime = System.currentTimeMillis();  // 리셋
+//                }
+//
+//                // 출력 읽기
+//                while (stdout.available() > 0) {
+//                    int i = stdout.read(buffer, 0, buffer.length);
+//                    if (i < 0) break;
+//                    String output = new String(buffer, 0, i, StandardCharsets.UTF_8);
+//                    outputBuilder.append(output);
+//                    log.debug("명령 출력: {}", output);
+//                    lastOutputTime = System.currentTimeMillis();
+//                }
+//
+//                // 오류 출력 읽기
+//                while (stderr.available() > 0) {
+//                    int i = stderr.read(buffer, 0, buffer.length);
+//                    if (i < 0) break;
+//                    String error = new String(buffer, 0, i, StandardCharsets.UTF_8);
+//                    outputBuilder.append("[ERROR] ").append(error);
+//                    log.warn("명령 오류 출력: {}", error);
+//                    lastOutputTime = System.currentTimeMillis();
+//                }
+//
+//                // 명령 완료 확인
+//                if (channel.isClosed()) {
+//                    int exitStatus = channel.getExitStatus();
+//
+//                    // 마지막 출력 확인
+//                    while (stdout.available() > 0) {
+//                        int i = stdout.read(buffer, 0, buffer.length);
+//                        if (i < 0) break;
+//                        String output = new String(buffer, 0, i, StandardCharsets.UTF_8);
+//                        outputBuilder.append(output);
+//                    }
+//
+//                    while (stderr.available() > 0) {
+//                        int i = stderr.read(buffer, 0, buffer.length);
+//                        if (i < 0) break;
+//                        String error = new String(buffer, 0, i, StandardCharsets.UTF_8);
+//                        outputBuilder.append("[ERROR] ").append(error);
+//                    }
+//
+//                    if (exitStatus != 0 && !command.contains("|| true")) {
+//                        String errorMsg = "명령 실패 (exit=" + exitStatus + "): " + command + "\n" + outputBuilder.toString();
+//                        log.error(errorMsg);
+//                        throw new IOException(errorMsg);
+//                    }
+//
+//                    break;
+//                }
+//
+//                try {
+//                    Thread.sleep(500);
+//                } catch (InterruptedException e) {
+//                    Thread.currentThread().interrupt();
+//                    throw new IOException("명령 대기 중 인터럽트", e);
+//                }
+//            }
+//
+//            return outputBuilder.toString();
+//        } finally {
+//            if (channel != null && channel.isConnected()) {
+//                channel.disconnect();
+//            }
+//        }
+//    }
+
     private String execCommandWithLiveOutput(Session session, String command, long timeoutMs) throws JSchException, IOException {
         ChannelExec channel = null;
+        ExecutorService executor = null;
+        AtomicBoolean commandCompleted = new AtomicBoolean(false);
 
         try {
+            // 1. 채널 설정
             channel = (ChannelExec) session.openChannel("exec");
             channel.setCommand(command);
 
-            // 표준 출력 스트림 설정
+            // 2. 표준 출력 스트림 설정
             InputStream stdout = channel.getInputStream();
             InputStream stderr = channel.getErrStream();
-
             StringBuilder outputBuilder = new StringBuilder();
 
-            channel.connect(30 * 1000);
+            // 3. 세션 모니터링을 위한 워치독 스레드 생성
+            executor = Executors.newSingleThreadExecutor(r -> {
+                Thread t = Executors.defaultThreadFactory().newThread(r);
+                t.setDaemon(true);
+                t.setName("SSH-WatchDog-" + command.hashCode());
+                return t;
+            });
 
-            byte[] buffer = new byte[1024];
-            long startTime = System.currentTimeMillis();
-            long lastOutputTime = startTime;
+            final ChannelExec finalChannel = channel;
+            Future<String> watchdog = executor.submit(() -> {
+                log.debug("워치독 스레드 시작: {}", command);
+                long startTime = System.currentTimeMillis();
+                long lastActivityTime = startTime;
+                long lastHeartbeatTime = startTime;
 
-            while (true) {
-                // 타임아웃 체크
-                if (System.currentTimeMillis() - startTime > timeoutMs) {
-                    log.error("명령 타임아웃: {}", command);
-                    throw new IOException("명령 실행 타임아웃: " + command);
-                }
+                try {
+                    while (!commandCompleted.get()) {
+                        long currentTime = System.currentTimeMillis();
 
-                // 지정된 시간 동안 출력이 없으면 프로세스 확인
-                if (System.currentTimeMillis() - lastOutputTime > 15 * 60 * 1000) {
-                    log.warn("명령 실행 중 5분 동안 출력 없음, 프로세스 상태 확인: {}", command);
-                    // 관련 프로세스 확인
-                    ChannelExec checkChannel = (ChannelExec) session.openChannel("exec");
-                    checkChannel.setCommand("ps aux | grep -E 'apt|dpkg|jenkins' | grep -v grep");
-                    ByteArrayOutputStream checkOutput = new ByteArrayOutputStream();
-                    checkChannel.setOutputStream(checkOutput);
-                    checkChannel.connect();
+                        // 3.1. 전체 타임아웃 체크
+                        if (currentTime - startTime > timeoutMs) {
+                            log.error("명령 타임아웃 ({}ms): {}", timeoutMs, command);
+                            finalChannel.disconnect();
+                            return "TIMEOUT";
+                        }
 
-                    try {
-                        while (!checkChannel.isClosed()) {
+                        // 3.2. 세션 상태 주기적 확인 (15초마다)
+                        if (currentTime - lastHeartbeatTime > 15 * 1000) {
                             try {
-                                Thread.sleep(100);
-                            } catch (InterruptedException e) {
-                                Thread.currentThread().interrupt();
+                                if (!session.isConnected()) {
+                                    log.error("SSH 세션이 끊어졌습니다. 명령: {}", command);
+                                    return "SESSION_DISCONNECTED";
+                                }
+
+                                if (finalChannel.isClosed()) {
+                                    int exitStatus = finalChannel.getExitStatus();
+                                    log.debug("채널이 닫혔습니다. 종료 상태: {}", exitStatus);
+                                    return exitStatus == 0 ? "COMPLETED" : "FAILED";
+                                }
+
+                                lastHeartbeatTime = currentTime;
+                            } catch (Exception e) {
+                                log.error("세션 상태 확인 중 오류: {}", e.getMessage());
+                                return "SESSION_ERROR";
                             }
                         }
-                    } finally {
-                        checkChannel.disconnect();
+
+                        // 3.3. 명령 실행 중 무응답 상태 확인
+                        if (currentTime - lastActivityTime > 60 * 1000) { // 1분간 활동 없음
+                            log.debug("1분간 활동 없음 감지, 세션 상태 확인 중: {}", command);
+
+                            // 3.4. 5분 이상 활동 없으면 프로세스 상태 확인
+                            if (currentTime - lastActivityTime > 5 * 60 * 1000) {
+                                log.warn("명령 실행 중 5분 동안 출력 없음, 프로세스 상태 확인: {}", command);
+
+                                try {
+                                    if (session.isConnected()) {
+                                        ChannelExec checkChannel = (ChannelExec) session.openChannel("exec");
+                                        checkChannel.setCommand("ps aux | grep -E 'apt|dpkg|jenkins' | grep -v grep");
+                                        ByteArrayOutputStream checkOutput = new ByteArrayOutputStream();
+                                        checkChannel.setOutputStream(checkOutput);
+                                        checkChannel.connect(10 * 1000); // 10초 연결 타임아웃
+
+                                        long checkStartTime = System.currentTimeMillis();
+                                        while (!checkChannel.isClosed()) {
+                                            if (System.currentTimeMillis() - checkStartTime > 20 * 1000) { // 20초 이상 걸리면 중단
+                                                checkChannel.disconnect();
+                                                log.warn("프로세스 상태 확인 타임아웃");
+                                                break;
+                                            }
+                                            Thread.sleep(100);
+                                        }
+
+                                        checkChannel.disconnect();
+                                        log.info("관련 프로세스 상태:\n{}", checkOutput.toString());
+
+                                        // 프로세스 확인 후에도 여전히 출력이 없으면 상태를 업데이트하지 않음
+                                    } else {
+                                        log.error("세션이 끊어진 상태에서 프로세스 확인 시도");
+                                        return "SESSION_DISCONNECTED";
+                                    }
+                                } catch (Exception e) {
+                                    log.error("프로세스 상태 확인 중 오류: {}", e.getMessage());
+                                }
+
+                                // 3.5. 15분 이상 활동 없으면 타임아웃 처리
+                                if (currentTime - lastActivityTime > 15 * 60 * 1000) {
+                                    log.error("명령어 실행 중 15분 이상 출력 없음 - 무응답 상태로 판단: {}", command);
+                                    return "NO_OUTPUT_TIMEOUT";
+                                }
+                            }
+                        }
+
+                        // 짧은 주기로 확인
+                        Thread.sleep(100);
                     }
 
-                    log.info("관련 프로세스 상태:\n{}", checkOutput.toString());
-                    lastOutputTime = System.currentTimeMillis();  // 리셋
+                    return "COMPLETED_NORMAL";
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.debug("워치독 스레드 인터럽트됨: {}", command);
+                    return "INTERRUPTED";
+                } catch (Exception e) {
+                    log.error("워치독 스레드 오류: {}", e.getMessage());
+                    return "WATCHDOG_ERROR";
+                }
+            });
+
+            // 4. 채널 연결
+            channel.connect(30 * 1000);  // 30초 연결 타임아웃
+
+            byte[] buffer = new byte[1024];
+            long lastActivityTime = System.currentTimeMillis();
+
+            // 5. 출력 모니터링 루프
+            while (true) {
+                // 5.1. 워치독 스레드 상태 확인
+                if (watchdog.isDone()) {
+                    try {
+                        String result = watchdog.get();
+                        if (!"COMPLETED_NORMAL".equals(result) && !"COMPLETED".equals(result)) {
+                            log.warn("워치독 스레드 비정상 종료 감지: {}", result);
+                            throw new IOException("명령 실행 중단: " + result);
+                        }
+                    } catch (InterruptedException | ExecutionException e) {
+                        log.error("워치독 스레드 결과 확인 오류: {}", e.getMessage());
+                        throw new IOException("워치독 스레드 오류", e);
+                    }
                 }
 
-                // 출력 읽기
+                // 5.2. 출력 읽기
+                boolean hasOutput = false;
+
+                // 5.2.1. 표준 출력 읽기
                 while (stdout.available() > 0) {
                     int i = stdout.read(buffer, 0, buffer.length);
                     if (i < 0) break;
                     String output = new String(buffer, 0, i, StandardCharsets.UTF_8);
                     outputBuilder.append(output);
                     log.debug("명령 출력: {}", output);
-                    lastOutputTime = System.currentTimeMillis();
+                    lastActivityTime = System.currentTimeMillis();
+                    hasOutput = true;
                 }
 
-                // 오류 출력 읽기
+                // 5.2.2. 오류 출력 읽기
                 while (stderr.available() > 0) {
                     int i = stderr.read(buffer, 0, buffer.length);
                     if (i < 0) break;
                     String error = new String(buffer, 0, i, StandardCharsets.UTF_8);
                     outputBuilder.append("[ERROR] ").append(error);
                     log.warn("명령 오류 출력: {}", error);
-                    lastOutputTime = System.currentTimeMillis();
+                    lastActivityTime = System.currentTimeMillis();
+                    hasOutput = true;
                 }
 
-                // 명령 완료 확인
+                // 5.3. 채널 종료 확인
                 if (channel.isClosed()) {
                     int exitStatus = channel.getExitStatus();
 
-                    // 마지막 출력 확인
+                    // 마지막 출력 읽기
                     while (stdout.available() > 0) {
                         int i = stdout.read(buffer, 0, buffer.length);
                         if (i < 0) break;
-                        String output = new String(buffer, 0, i, StandardCharsets.UTF_8);
-                        outputBuilder.append(output);
+                        outputBuilder.append(new String(buffer, 0, i, StandardCharsets.UTF_8));
                     }
 
                     while (stderr.available() > 0) {
                         int i = stderr.read(buffer, 0, buffer.length);
                         if (i < 0) break;
-                        String error = new String(buffer, 0, i, StandardCharsets.UTF_8);
-                        outputBuilder.append("[ERROR] ").append(error);
+                        outputBuilder.append("[ERROR] ").append(new String(buffer, 0, i, StandardCharsets.UTF_8));
                     }
 
+                    // 명령 완료 플래그 설정
+                    commandCompleted.set(true);
+
+                    // 종료 상태 확인
                     if (exitStatus != 0 && !command.contains("|| true")) {
-                        String errorMsg = "명령 실패 (exit=" + exitStatus + "): " + command + "\n" + outputBuilder.toString();
+                        String errorMsg = String.format("명령 실패 (exit=%d): %s\n%s",
+                                exitStatus, command, outputBuilder);
                         log.error(errorMsg);
                         throw new IOException(errorMsg);
                     }
@@ -244,16 +463,38 @@ public class ServerServiceImpl implements ServerService {
                     break;
                 }
 
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IOException("명령 대기 중 인터럽트", e);
+                // 5.4. 짧은 대기 (출력이 없는 경우)
+                if (!hasOutput) {
+                    try {
+                        Thread.sleep(200);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        log.warn("명령 대기 중 인터럽트: {}", command);
+                        commandCompleted.set(true);
+                        throw new IOException("명령 대기 중 인터럽트", e);
+                    }
                 }
             }
 
             return outputBuilder.toString();
         } finally {
+            // 6. 자원 정리
+            if (commandCompleted != null) {
+                commandCompleted.set(true);
+            }
+
+            if (executor != null) {
+                try {
+                    executor.shutdownNow();
+                    if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                        log.warn("워치독 스레드가 5초 내에 종료되지 않았습니다.");
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("워치독 스레드 종료 대기 중 인터럽트 발생");
+                }
+            }
+
             if (channel != null && channel.isConnected()) {
                 channel.disconnect();
             }
