@@ -24,6 +24,15 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
   const [pemFile, setPemFile] = useState<File | null>(null);
   const pemTip = useModal();
 
+  const sanitizeDomain = (rawDomain: string) => {
+    return rawDomain
+      .trim()
+      .replace(/^https?:\/\//, '') // http:// 또는 https:// 제거
+      .replace(/\/$/, ''); // 끝에 / 제거
+  };
+
+  const cleanedDomain = sanitizeDomain(domain);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!pemFile) {
@@ -31,7 +40,7 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
       return;
     }
 
-    onSubmit({ domain, email, pem: pemFile });
+    onSubmit({ domain: cleanedDomain, email, pem: pemFile });
   };
 
   const handlePemChange = (file: File) => {
