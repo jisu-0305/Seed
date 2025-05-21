@@ -131,14 +131,14 @@ public class ServerServiceImpl implements ServerService {
         installDocker(sshSession, project);
         runApplicationList(sshSession, project, backEnvFile);
         installNginx(sshSession, project, project.getServerIP());
-        setJenkins(sshSession, project);
-        setJenkinsConfigure(sshSession, project);
+        installJenkins(sshSession, project);
+        installJenkinsPlugins(sshSession, project);
+        setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
         createJenkinsPipeline(sshSession, project, "auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", project.getGitlabTargetBranchName());
         createJenkinsFile(sshSession, gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), project.getGitlabTargetBranchName(), gitlabProject.getPathWithNamespace(), project);
         createDockerfileForFrontend(sshSession, projectPath, project.getGitlabTargetBranchName() ,project);
         createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
         createDockerfileForBackend(sshSession, projectPath, project.getGitlabTargetBranchName(), project);
-        setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
     }
 
     /**
@@ -536,17 +536,8 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
-    // 7. Gitlab Webhook 생성
-    public void createGitlabWebhook(Session sshSession, Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
-        serverStatusService.updateStatus(project, ServerStatus.CREATE_WEBHOOK);
-
-        String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
-
-        gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
-    }
-
     // 8. Jenkins 설치
-    public void setJenkins(Session sshSession, Project project) throws JSchException, IOException {
+    public void installJenkins(Session sshSession, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS);
 
         List<String> cmds = List.of(
@@ -560,12 +551,12 @@ public class ServerServiceImpl implements ServerService {
                 waitForAptLock()
         );
 
-        log.info("7. Jenkins 설치");
+        log.info("8. Jenkins 설치");
         execCommands(sshSession, cmds);
     }
 
     // 9. Jenkins 사용자 등록 / 플러그인 설치
-    public void setJenkinsConfigure(Session sshSession, Project project) throws JSchException, IOException {
+    public void installJenkinsPlugins(Session sshSession, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS_PLUGINS);
 
         List<String> cmds = List.of(
@@ -625,7 +616,7 @@ public class ServerServiceImpl implements ServerService {
                 "sudo systemctl restart jenkins"
         );
 
-        log.info("8. Jenkins 설치");
+        log.info("9. Jenkins 사용자 등록 및 플러그인 설치");
         execCommands(sshSession, cmds);
     }
 
@@ -674,15 +665,8 @@ public class ServerServiceImpl implements ServerService {
                         "EOF"
         );
 
-        log.info("9. Jenkins Configuration 설정 (PAT 등록, 환경변수 등록)");
+        log.info("10. Jenkins Configuration 설정 (PAT 등록, 환경변수 등록)");
         execCommands(sshSession, cmds);
-
-        try {
-            Thread.sleep(5000);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.warn("Credentials 대기 중 인터럽트 발생", e);
-        }
     }
 
     // 11. Jenkins Pipeline 설정
@@ -754,7 +738,7 @@ public class ServerServiceImpl implements ServerService {
                 "java -jar jenkins-cli.jar -s http://localhost:9090/ -auth admin:pwd123 create-job " + jobName + " < job-config.xml"
         );
 
-        log.info("10. Jenkins Pipeline 생성");
+        log.info("11. Jenkins Pipeline 생성");
         execCommands(sshSession, cmds);
     }
 
@@ -1114,7 +1098,7 @@ public class ServerServiceImpl implements ServerService {
                 "cd " + projectPath + "&& sudo git push origin " + gitlabTargetBranchName
         );
 
-        log.info("11. Jenkinsfile 생성");
+        log.info("12. Jenkinsfile 생성");
         execCommands(sshSession, cmds);
     }
 
@@ -1179,8 +1163,19 @@ public class ServerServiceImpl implements ServerService {
                 "cd " + projectPath + "/" + project.getFrontendDirectoryName() + " && sudo git push origin " + gitlabTargetBranchName
         );
 
-        log.info("12. Frontend Dockerfile 생성");
+        log.info("13. Frontend Dockerfile 생성");
         execCommands(sshSession, cmds);
+    }
+
+    // 7. Gitlab Webhook 생성
+    public void createGitlabWebhook(Session sshSession, Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_WEBHOOK);
+
+        String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
+
+        gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
+
+        log.info("7. Gitlab Webhook 생성");
     }
 
     // 14. Backend Dockerfile 생성
@@ -1235,7 +1230,7 @@ public class ServerServiceImpl implements ServerService {
                 "cd " + projectPath + "/" + project.getBackendDirectoryName() + " && sudo git push origin " + gitlabTargetBranchName
         );
 
-        log.info("13. Backend Dockerfile 생성");
+        log.info("14. Backend Dockerfile 생성");
         execCommands(sshSession, cmds);
     }
 
