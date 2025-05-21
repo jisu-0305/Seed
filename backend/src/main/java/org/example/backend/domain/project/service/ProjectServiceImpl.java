@@ -247,6 +247,18 @@ public class ProjectServiceImpl implements ProjectService {
 
         List<ProjectApplication> projectApplicationList = projectApplicationRepository.findAllByProjectId(projectId);
 
+        List<Long> applicationIds = projectApplicationList.stream()
+                .map(ProjectApplication::getApplicationId)
+                .toList();
+
+        List<ApplicationEnvVariables> allEnvVars = applicationEnvVariableListRepository.findByApplicationIdIn(applicationIds);
+
+        Map<Long, List<String>> envMap = allEnvVars.stream()
+                .collect(Collectors.groupingBy(
+                        ApplicationEnvVariables::getApplicationId,
+                        Collectors.mapping(ApplicationEnvVariables::getEnvVariable, Collectors.toList())
+                ));
+
         return ProjectDetailResponse.builder()
                 .id(project.getId())
                 .ownerId(project.getOwnerId())
@@ -264,12 +276,17 @@ public class ProjectServiceImpl implements ProjectService {
                 .jdkVersion(project.getJdkVersion())
                 .jdkBuildTool(project.getJdkBuildTool())
                 .applicationList(projectApplicationList.stream()
-                        .map(app -> ApplicationResponse.builder()
-                                .applicationId(app.getApplicationId())
-                                .imageName(app.getImageName())
-                                .tag(app.getTag())
-                                .port(app.getPort())
-                                .build())
+                        .map(app -> {
+                            List<String> envs = envMap.getOrDefault(app.getApplicationId(), List.of());
+
+                            return ApplicationResponse.builder()
+                                    .applicationId(app.getApplicationId())
+                                    .imageName(app.getImageName())
+                                    .tag(app.getTag())
+                                    .port(app.getPort())
+                                    .imageEnvs(envs)
+                                    .build();
+                        })
                         .toList())
                 .build();
     }
