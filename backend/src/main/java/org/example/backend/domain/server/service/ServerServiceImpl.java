@@ -676,6 +676,13 @@ public class ServerServiceImpl implements ServerService {
 
         log.info("9. Jenkins Configuration 설정 (PAT 등록, 환경변수 등록)");
         execCommands(sshSession, cmds);
+
+        try {
+            Thread.sleep(5000);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Credentials 대기 중 인터럽트 발생", e);
+        }
     }
 
     // 11. Jenkins Pipeline 설정
