@@ -39,4 +39,4 @@ class BuildErrorResolverAgent(BaseAgent):
             }}
 
             """
-        return await ask_gpt(prompt, model="gpt-4.1")
+        return await ask_gpt(prompt)
