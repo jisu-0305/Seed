@@ -87,7 +87,7 @@ const HttpsConfigModal: React.FC<HttpsModalProps> = ({
           />
         </Label>
 
-        <SubmitButton type="submit">설정하기</SubmitButton>
+        <SubmitButton type="submit">HTTPS 시작하기</SubmitButton>
 
         <ModalTipItem
           text="pem 파일은 AWS EC2에서 생성해주세요"

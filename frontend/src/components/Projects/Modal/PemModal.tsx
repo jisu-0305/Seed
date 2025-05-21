@@ -56,7 +56,7 @@ const PemModal: React.FC<PemModalProps> = ({
           />
         </Label>
 
-        <SubmitButton type="submit">설정하기</SubmitButton>
+        <SubmitButton type="submit">EC2 시작하기</SubmitButton>
 
         <InformPemKeyModal
           isShowing={pemTip.isShowing}

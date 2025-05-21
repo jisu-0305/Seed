@@ -94,6 +94,14 @@ export function ActionButtons({
     setIsBuildDisabled(deployEnabled);
   }, [deployEnabled]);
 
+  useEffect(() => {
+    setBuildLoading(false);
+  }, [isBuildFinished]);
+
+  useEffect(() => {
+    setHttpsLoading(false);
+  }, [isHttpsFinished]);
+
   const handleConfigSubmit = async ({ pem, domain, email }: HttpsConfig) => {
     if (projectId == null) {
       console.error('projectId가 없습니다');
