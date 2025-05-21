@@ -131,12 +131,12 @@ public class ServerServiceImpl implements ServerService {
         installDocker(sshSession, project);
         runApplicationList(sshSession, project, backEnvFile);
         installNginx(sshSession, project, project.getServerIP());
-        createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
         setJenkins(sshSession, project);
         setJenkinsConfigure(sshSession, project);
         createJenkinsPipeline(sshSession, project, "auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", project.getGitlabTargetBranchName());
         createJenkinsFile(sshSession, gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), project.getGitlabTargetBranchName(), gitlabProject.getPathWithNamespace(), project);
         createDockerfileForFrontend(sshSession, projectPath, project.getGitlabTargetBranchName() ,project);
+        createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
         createDockerfileForBackend(sshSession, projectPath, project.getGitlabTargetBranchName(), project);
         setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
     }
