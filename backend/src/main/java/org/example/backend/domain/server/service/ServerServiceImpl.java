@@ -131,6 +131,7 @@ public class ServerServiceImpl implements ServerService {
         installDocker(sshSession, project);
         runApplicationList(sshSession, project, backEnvFile);
         installNginx(sshSession, project, project.getServerIP());
+        createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
         setJenkins(sshSession, project);
         setJenkinsConfigure(sshSession, project);
         createJenkinsPipeline(sshSession, project, "auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", project.getGitlabTargetBranchName());
@@ -138,7 +139,6 @@ public class ServerServiceImpl implements ServerService {
         createDockerfileForFrontend(sshSession, projectPath, project.getGitlabTargetBranchName() ,project);
         createDockerfileForBackend(sshSession, projectPath, project.getGitlabTargetBranchName(), project);
         setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
-        createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
     }
 
     /**
@@ -536,7 +536,16 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
-    // 7. Jenkins 설치
+    // 7. Gitlab Webhook 생성
+    public void createGitlabWebhook(Session sshSession, Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
+        serverStatusService.updateStatus(project, ServerStatus.CREATE_WEBHOOK);
+
+        String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
+
+        gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
+    }
+
+    // 8. Jenkins 설치
     public void setJenkins(Session sshSession, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS);
 
@@ -555,6 +564,7 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
+    // 9. Jenkins 사용자 등록 / 플러그인 설치
     public void setJenkinsConfigure(Session sshSession, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.INSTALL_JENKINS_PLUGINS);
 
@@ -619,7 +629,7 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
-    // 9. Jenkins Configuration 설정 (PAT 등록, 환경변수 등록)
+    // 10. Jenkins Configuration 설정 (PAT 등록, 환경변수 등록)
     public void setJenkinsConfiguration(Session sshSession, Project project, String gitlabUsername, String gitlabToken, byte[] frontEnvFile, byte[] backEnvFile) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.SET_JENKINS_INFO);
 
@@ -668,7 +678,7 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
-    // 10. Jenkins Pipeline 설정
+    // 11. Jenkins Pipeline 설정
     public void createJenkinsPipeline(Session sshSession, Project project, String jobName, String gitRepoUrl, String credentialsId, String gitlabTargetBranchName) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.CREATE_JENKINS_PIPELINE);
 
@@ -741,7 +751,7 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
-    // 11. Jenkinsfile 생성
+    // 12. Jenkinsfile 생성
     public void createJenkinsFile(Session sshSession, String repositoryUrl, String projectPath, String projectName, String gitlabTargetBranchName, String namespace, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.CREATE_JENKINSFILE);
 
@@ -1060,7 +1070,7 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
-    // 12. Frontend Dockerfile 생성
+    // 13. Frontend Dockerfile 생성
     public void createDockerfileForFrontend(Session sshSession, String projectPath, String gitlabTargetBranchName, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.CREATE_FRONTEND_DOCKERFILE);
 
@@ -1125,7 +1135,7 @@ public class ServerServiceImpl implements ServerService {
         execCommands(sshSession, cmds);
     }
 
-    // 13. Backend Dockerfile 생성
+    // 14. Backend Dockerfile 생성
     public void createDockerfileForBackend(Session sshSession, String projectPath, String gitlabTargetBranchName, Project project) throws JSchException, IOException {
         serverStatusService.updateStatus(project, ServerStatus.CREATE_BACKEND_DOCKERFILE);
 
@@ -1179,15 +1189,6 @@ public class ServerServiceImpl implements ServerService {
 
         log.info("13. Backend Dockerfile 생성");
         execCommands(sshSession, cmds);
-    }
-
-    // 14. Gitlab Webhook 생성
-    public void createGitlabWebhook(Session sshSession, Project project, String gitlabPersonalAccessToken, Long projectId, String jobName, String serverIp, String gitlabTargetBranchName) {
-        serverStatusService.updateStatus(project, ServerStatus.CREATE_WEBHOOK);
-
-        String hookUrl = "http://" + serverIp + ":9090/project/" + jobName;
-
-        gitlabService.createPushWebhook(gitlabPersonalAccessToken, projectId, hookUrl, gitlabTargetBranchName);
     }
 
     @Transactional
