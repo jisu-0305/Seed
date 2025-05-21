@@ -42,6 +42,11 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
   },
   INSTALL_JENKINS_PLUGINS: {
     message: 'Jenkins 플러그인 설치 중',
+    progress: 55,
+    category: 'build',
+  },
+  SET_JENKINS_INFO: {
+    message: 'Jenkins 정보 설정 중',
     progress: 60,
     category: 'build',
   },
@@ -57,20 +62,15 @@ export const SERVER_STATUS_INFO: Record<string, StatusInfo> = {
   },
   CREATE_FRONTEND_DOCKERFILE: {
     message: '프론트 Dockerfile 생성 중',
-    progress: 75,
-    category: 'build',
-  },
-  CREATE_BACKEND_DOCKERFILE: {
-    message: '백엔드 Dockerfile 생성 중',
     progress: 80,
     category: 'build',
   },
-  SET_JENKINS_INFO: {
-    message: 'Jenkins 정보 설정 중',
+  CREATE_WEBHOOK: { message: '웹훅 생성 중', progress: 85, category: 'build' },
+  CREATE_BACKEND_DOCKERFILE: {
+    message: '백엔드 Dockerfile 생성 중',
     progress: 90,
     category: 'build',
   },
-  CREATE_WEBHOOK: { message: '웹훅 생성 중', progress: 90, category: 'build' },
   FINISH: {
     message: 'EC2 세팅이 완료되었습니다!',
     progress: 100,

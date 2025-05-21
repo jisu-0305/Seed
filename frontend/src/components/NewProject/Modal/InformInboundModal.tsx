@@ -179,5 +179,6 @@ const Td = styled.td`
 
   strong {
     ${({ theme }) => theme.fonts.Title6};
+    color: ${({ theme }) => theme.colors.Black1};
   }
 `;
