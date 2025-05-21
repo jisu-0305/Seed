@@ -104,7 +104,7 @@ public class ServerServiceImpl implements ServerService {
 
         } catch (Exception e) {
             log.error("배포 중 오류 발생: {}", e.getMessage(), e);
-            project.updateAutoDeploymentStatus(ServerStatus.FAIL);
+            serverStatusService.updateStatus(project, ServerStatus.FAIL);
 
             notificationService.notifyProjectStatusForUsers(
                     projectId,
