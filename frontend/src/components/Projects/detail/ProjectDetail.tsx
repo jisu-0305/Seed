@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import styled from '@emotion/styled';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -194,29 +195,34 @@ export default function ProjectDetail() {
           <Icon src="/assets/icons/ic_gitlab.svg" alt="gitlab" />
           <Title>{detail.projectName}</Title>
           <AvatarList users={detail.memberList} maxVisible={2} />
-          <ButtonContainer>
-            <LinkButton
-              href={`http://${detail.serverIP}:9090`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img src="/assets/jenkins.png" alt="jenkins" />
-              젠킨스
-            </LinkButton>
+          {detail.autoDeploymentEnabled && (
+            <ButtonContainer>
+              <LinkButton
+                href={`http://${detail.serverIP}:9090`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img src="/assets/jenkins.png" alt="jenkins" />
+                젠킨스
+              </LinkButton>
 
-            <LinkButton
-              href={`${
-                detail.domainName
-                  ? `https://${detail.domainName}`
-                  : `http://${detail.serverIP}`
-              }`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <img src={`/assets/icons/ic_project_${mode}.svg`} alt="project" />
-              배포 사이트
-            </LinkButton>
-          </ButtonContainer>
+              <LinkButton
+                href={`${
+                  detail.domainName
+                    ? `https://${detail.domainName}`
+                    : `http://${detail.serverIP}`
+                }`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={`/assets/icons/ic_project_${mode}.svg`}
+                  alt="project"
+                />
+                배포 사이트
+              </LinkButton>
+            </ButtonContainer>
+          )}
         </SectionTitle>
         <SectionInfo>
           <ProjectHeader
