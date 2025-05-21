@@ -40,4 +40,4 @@ class FileLocatorAgent(BaseAgent):
             - Only include files that actually participate in the failure.
 
         """
-        return await ask_gpt(prompt)
+        return await ask_gpt(prompt, model="gpt-4.1")
