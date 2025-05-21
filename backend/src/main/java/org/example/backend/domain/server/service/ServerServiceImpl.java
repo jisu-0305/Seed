@@ -1440,11 +1440,7 @@ public class ServerServiceImpl implements ServerService {
                         "                            }\n" +
                         "                            dir('frontend') {\n" +
                         "                                sh '''\n" +
-                        "                                    set -e\n" +
-                        "                                    docker build -f Dockerfile -t react .\n" +
-                        "                                    docker stop react || true\n" +
-                        "                                    docker rm react || true\n" +
-                        "                                    docker run -d --network mynet --env-file .env --restart unless-stopped --name react -p 3000:3000 react\n" +
+                        "                                    " + frontendDockerScript + "\n" +
                         "                                '''\n" +
                         "                            }\n" +
                         "                        } catch (Exception e) {\n" +
