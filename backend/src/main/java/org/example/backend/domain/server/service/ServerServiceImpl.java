@@ -131,12 +131,12 @@ public class ServerServiceImpl implements ServerService {
         installDocker(sshSession, project);
         runApplicationList(sshSession, project, backEnvFile);
         installNginx(sshSession, project, project.getServerIP());
-        createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
         setJenkins(sshSession, project);
         setJenkinsConfigure(sshSession, project);
         createJenkinsPipeline(sshSession, project, "auto-created-deployment-job", project.getRepositoryUrl(), "gitlab-token", project.getGitlabTargetBranchName());
         createJenkinsFile(sshSession, gitlabProjectUrlWithToken, projectPath, gitlabProject.getName(), project.getGitlabTargetBranchName(), gitlabProject.getPathWithNamespace(), project);
         createDockerfileForFrontend(sshSession, projectPath, project.getGitlabTargetBranchName() ,project);
+        createGitlabWebhook(sshSession, project, user.getGitlabPersonalAccessToken(), gitlabProject.getGitlabProjectId(), "auto-created-deployment-job", project.getServerIP(), project.getGitlabTargetBranchName());
         createDockerfileForBackend(sshSession, projectPath, project.getGitlabTargetBranchName(), project);
         setJenkinsConfiguration(sshSession, project, user.getUserIdentifyId(), user.getGitlabPersonalAccessToken(), frontEnvFile, backEnvFile);
     }
@@ -809,6 +809,11 @@ public class ServerServiceImpl implements ServerService {
                         "        stage('변경 감지') {\n" +
                         "            steps {\n" +
                         "                script {\n" +
+                        "                    // 기본 빌드 상태 초기화\n" +
+                        "                    env.BACKEND_BUILD_STATUS = 'NOT_EXECUTED'\n" +
+                        "                    env.FRONTEND_BUILD_STATUS = 'NOT_EXECUTED'\n" +
+                        "                    env.HEALTH_CHECK_STATUS = 'NOT_EXECUTED'\n" +
+                        "                    \n" +
                         "                    // 첫 번째 빌드인지 확인\n" +
                         "                    def isFirstBuild = currentBuild.previousBuild == null\n" +
                         "                    \n" +
@@ -852,18 +857,27 @@ public class ServerServiceImpl implements ServerService {
                         "                expression { env.BACKEND_CHANGED == \"true\" }\n" +
                         "            }\n" +
                         "            steps {\n" +
-                        "                withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
-                        "                    sh '''\n" +
-                        "                        cp \"$BACKEND_ENV\" \"$WORKSPACE/backend/.env\"\n" +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                dir('backend') {\n" +
-                        "                    sh '''\n" +
-                        "                        docker build -t spring .\n" +
-                        "                        docker stop spring || true\n" +
-                        "                        docker rm spring || true\n" +
-                        "                        docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
-                        "                    '''\n" +
+                        "                script {\n" +
+                        "                    env.BACKEND_BUILD_STATUS = 'SUCCESS'\n" +
+                        "                    try {\n" +
+                        "                        withCredentials([file(credentialsId: \"backend\", variable: 'BACKEND_ENV')]) {\n" +
+                        "                            sh '''\n" +
+                        "                                cp \"$BACKEND_ENV\" \"$WORKSPACE/backend/.env\"\n" +
+                        "                            '''\n" +
+                        "                        }\n" +
+                        "                        dir('backend') {\n" +
+                        "                            sh '''\n" +
+                        "                                docker build -t spring .\n" +
+                        "                                docker stop spring || true\n" +
+                        "                                docker rm spring || true\n" +
+                        "                                docker run -d -p 8080:8080 --network mynet --env-file .env --name spring spring\n" +
+                        "                            '''\n" +
+                        "                        }\n" +
+                        "                    } catch (Exception e) {\n" +
+                        "                        env.BACKEND_BUILD_STATUS = 'FAILED'\n" +
+                        "                        echo \"❌ 백엔드 빌드 실패: ${e.message}\"\n" +
+                        "                        throw e\n" +
+                        "                    }\n" +
                         "                }\n" +
                         "            }\n" +
                         "        }\n" +
@@ -872,15 +886,24 @@ public class ServerServiceImpl implements ServerService {
                         "                expression { env.FRONTEND_CHANGED == \"true\" }\n" +
                         "            }\n" +
                         "            steps {\n" +
-                        "                withCredentials([file(credentialsId: \"frontend\", variable: 'FRONTEND_ENV')]) {\n" +
-                        "                    sh '''\n" +
-                        "                        cp \"$FRONTEND_ENV\" \"$WORKSPACE/frontend/.env\"\n" +
-                        "                    '''\n" +
-                        "                }\n" +
-                        "                dir('frontend') {\n" +
-                        "                    sh '''\n" +
-                        "                        " + frontendDockerScript + "\n" +
-                        "                    '''\n" +
+                        "                script {\n" +
+                        "                    env.FRONTEND_BUILD_STATUS = 'SUCCESS'\n" +
+                        "                    try {\n" +
+                        "                        withCredentials([file(credentialsId: \"frontend\", variable: 'FRONTEND_ENV')]) {\n" +
+                        "                            sh '''\n" +
+                        "                                cp \"$FRONTEND_ENV\" \"$WORKSPACE/frontend/.env\"\n" +
+                        "                            '''\n" +
+                        "                        }\n" +
+                        "                        dir('frontend') {\n" +
+                        "                            sh '''\n" +
+                        "                                " + frontendDockerScript + "\n" +
+                        "                            '''\n" +
+                        "                        }\n" +
+                        "                    } catch (Exception e) {\n" +
+                        "                        env.FRONTEND_BUILD_STATUS = 'FAILED'\n" +
+                        "                        echo \"❌ 프론트엔드 빌드 실패: ${e.message}\"\n" +
+                        "                        throw e\n" +
+                        "                    }\n" +
                         "                }\n" +
                         "            }\n" +
                         "        }\n" +
@@ -893,6 +916,7 @@ public class ServerServiceImpl implements ServerService {
                         "                    script {\n" +
                         "                        // 헬스 체크 로직 추가\n" +
                         "                        echo '⚕️ 서비스 헬스 체크 실행'\n" +
+                        "                        env.HEALTH_CHECK_STATUS = 'SUCCESS' // 기본값 설정\n" +
                         "                        \n" +
                         "                        // Docker API를 통한 컨테이너 상태 확인 URL\n" +
                         "                        def dockerApiUrl = 'http://localhost:3789/containers/json?all=true&filters=%7B%22name%22%3A%5B%22spring%22%5D%7D'\n" +
@@ -968,62 +992,79 @@ public class ServerServiceImpl implements ServerService {
                         "                        // API 기본 URL 설정\n" +
                         "                        def apiBaseUrl = 'https://seedinfra.store/api'\n" +
                         "                        \n" +
+                        "                        // 셀프 힐링 API 호출 함수 정의\n" +
+                        "                        def callSelfHealingApi = { failType ->\n" +
+                        "                            def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve\"\n" +
+                        "                            def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=${failType}\"\n" +
+                        "                            \n" +
+                        "                            try {\n" +
+                        "                                def healingResponse = sh(script: \"\"\"\n" +
+                        "                                    curl -X POST \\\n" +
+                        "                                    -H 'Content-Type: application/json' \\\n" +
+                        "                                    -w '\\n%{http_code}' \\\n" +
+                        "                                    \"${healingApiUrl}?${queryParams}\" \n" +
+                        "                                \"\"\", returnStdout: true).trim()\n" +
+                        "                                \n" +
+                        "                                echo \"셀프 힐링 API 호출 결과 (${failType}): ${healingResponse}\"\n" +
+                        "                                env.SELF_HEALING_APPLIED = 'true'\n" +
+                        "                            } catch (Exception e) {\n" +
+                        "                                echo \"셀프 힐링 API 호출 실패 (${failType}): ${e.message}\"\n" +
+                        "                            }\n" +
+                        "                        }\n" +
+                        "                        \n" +
                         "                        // 셀프 힐링 API 호출 조건 확인\n" +
-                        "                        // 헬스 체크가 실패한 경우와 빌드가 실패한 경우 구분\n" +
                         "                        if (params.BRANCH_NAME == params.ORIGINAL_BRANCH_NAME && currentBuild.number > 1) {\n" +
-                        "                            if (env.HEALTH_CHECK_STATUS == 'FAILED') {\n" +
-                        "                                // 헬스 체크 실패 → 런타임 이슈로 셀프 힐링\n" +
-                        "                                echo \"🔧 헬스 체크 실패 → 셀프 힐링 API 호출 (RUNTIME)\"\n" +
-                        "                                \n" +
-                        "                                // 셀프 힐링 API 엔드포인트 구성\n" +
-                        "                                def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve\"\n" +
-                        "                                \n" +
-                        "                                // API 요청 파라미터 구성\n" +
-                        "                                def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=RUNTIME\"\n" +
-                        "                                \n" +
-                        "                                // 셀프 힐링 API 호출\n" +
-                        "                                try {\n" +
-                        "                                    def healingResponse = sh(script: \"\"\"\n" +
-                        "                                        curl -X POST \\\n" +
-                        "                                        -H 'Content-Type: application/json' \\\n" +
-                        "                                        -w '\\n%{http_code}' \\\n" +
-                        "                                        \"${healingApiUrl}?${queryParams}\" \n" +
-                        "                                    \"\"\", returnStdout: true).trim()\n" +
-                        "                                    \n" +
-                        "                                    echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
-                        "                                    env.SELF_HEALING_APPLIED = 'true'\n" +
-                        "                                } catch (Exception e) {\n" +
-                        "                                    echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
+                        "                            // 빌드 상태 변수 확인 (안전하게 처리)\n" +
+                        "                            def frontendFailed = (env.FRONTEND_BUILD_STATUS == 'FAILED')\n" +
+                        "                            def backendFailed = (env.BACKEND_BUILD_STATUS == 'FAILED')\n" +
+                        "                            def healthCheckFailed = (env.HEALTH_CHECK_STATUS == 'FAILED')\n" +
+                        "                            \n" +
+                        "                            // 변경되지 않아 실행되지 않은 경우 처리\n" +
+                        "                            if (env.FRONTEND_CHANGED == 'false') {\n" +
+                        "                                frontendFailed = false\n" +
+                        "                                echo \"ℹ️ 프론트엔드는 변경되지 않아 빌드가 실행되지 않았습니다.\"\n" +
+                        "                            }\n" +
+                        "                            if (env.BACKEND_CHANGED == 'false') {\n" +
+                        "                                backendFailed = false\n" +
+                        "                                echo \"ℹ️ 백엔드는 변경되지 않아 빌드가 실행되지 않았습니다.\"\n" +
+                        "                            }\n" +
+                        "                            \n" +
+                        "                            echo \"📊 빌드 상태 요약:\\n- 프론트엔드: ${frontendFailed ? '❌ 실패' : '✅ 성공'}\\n- 백엔드: ${backendFailed ? '❌ 실패' : '✅ 성공'}\\n- 헬스 체크: ${healthCheckFailed ? '❌ 실패' : '✅ 성공'}\"\n" +
+                        "                            \n" +
+                        "                            // 케이스 1: 프론트엔드 빌드 실패, 백엔드 빌드 성공, 헬스 체크 성공\n" +
+                        "                            if (frontendFailed && !backendFailed && !healthCheckFailed) {\n" +
+                        "                                echo \"🛠️ 케이스 1: 프론트엔드 빌드 실패 → 셀프 힐링 API 호출 (BUILD)\"\n" +
+                        "                                callSelfHealingApi('BUILD')\n" +
+                        "                            }\n" +
+                        "                            // 케이스 2: 프론트엔드 빌드 실패, 백엔드 빌드 성공, 헬스 체크 실패\n" +
+                        "                            else if (frontendFailed && !backendFailed && healthCheckFailed) {\n" +
+                        "                                echo \"🛠️ 케이스 2: 프론트엔드 빌드 실패 및 헬스 체크 실패 → 셀프 힐링 API 호출 (RUNTIME)\"\n" +
+                        "                                callSelfHealingApi('RUNTIME')\n" +
+                        "                            }\n" +
+                        "                            // 케이스 3: 프론트엔드 빌드 성공, 백엔드 빌드 성공, 헬스 체크 성공\n" +
+                        "                            else if (!frontendFailed && !backendFailed && !healthCheckFailed) {\n" +
+                        "                                echo \"✅ 케이스 3: 모든 빌드 및 헬스 체크 성공 → 셀프 힐링 필요 없음\"\n" +
+                        "                            }\n" +
+                        "                            // 케이스 4: 프론트엔드 빌드 성공, 백엔드 빌드 성공, 헬스 체크 실패\n" +
+                        "                            else if (!frontendFailed && !backendFailed && healthCheckFailed) {\n" +
+                        "                                echo \"🛠️ 케이스 4: 헬스 체크 실패 → 셀프 힐링 API 호출 (RUNTIME)\"\n" +
+                        "                                callSelfHealingApi('RUNTIME')\n" +
+                        "                            }\n" +
+                        "                            // 추가 케이스: 백엔드 빌드 실패\n" +
+                        "                            else if (backendFailed) {\n" +
+                        "                                echo \"🛠️ 추가 케이스: 백엔드 빌드 실패 → 셀프 힐링 API 호출 (BUILD)\"\n" +
+                        "                                callSelfHealingApi('BUILD')\n" +
+                        "                            }\n" +
+                        "                            // 예상치 못한 케이스\n" +
+                        "                            else {\n" +
+                        "                                echo \"⚠️ 예상치 못한 상태: 빌드 상태 ${buildStatus}\\n- 정확한 진단을 위해 Jenkins 로그를 확인하세요.\"\n" +
+                        "                                if (buildStatus != 'SUCCESS') {\n" +
+                        "                                    echo \"❌ 빌드 실패 (기타 케이스) → 셀프 힐링 API 호출 (BUILD)\"\n" +
+                        "                                    callSelfHealingApi('BUILD')\n" +
                         "                                }\n" +
-                        "                            } else if (buildStatus != 'SUCCESS' && env.HEALTH_CHECK_STATUS != 'FAILED') {\n" +
-                        "                                // 다른 빌드 실패 → 빌드 이슈로 셀프 힐링\n" +
-                        "                                echo \"❌ 빌드 실패 → 셀프 힐링 API 호출 (BUILD)\"\n" +
-                        "                                \n" +
-                        "                                // 셀프 힐링 API 엔드포인트 구성\n" +
-                        "                                def healingApiUrl = \"${apiBaseUrl}/self-cicd/resolve\"\n" +
-                        "                                \n" +
-                        "                                // API 요청 파라미터 구성\n" +
-                        "                                def queryParams = \"projectId=${params.PROJECT_ID}&personalAccessToken=${GIT_TOKEN}&failType=BUILD\"\n" +
-                        "                                \n" +
-                        "                                // 셀프 힐링 API 호출\n" +
-                        "                                try {\n" +
-                        "                                    def healingResponse = sh(script: \"\"\"\n" +
-                        "                                        curl -X POST \\\n" +
-                        "                                        -H 'Content-Type: application/json' \\\n" +
-                        "                                        -w '\\n%{http_code}' \\\n" +
-                        "                                        \"${healingApiUrl}?${queryParams}\" \n" +
-                        "                                    \"\"\", returnStdout: true).trim()\n" +
-                        "                                    \n" +
-                        "                                    echo \"셀프 힐링 API 호출 결과: ${healingResponse}\"\n" +
-                        "                                    env.SELF_HEALING_APPLIED = 'true'\n" +
-                        "                                } catch (Exception e) {\n" +
-                        "                                    echo \"셀프 힐링 API 호출 실패: ${e.message}\"\n" +
-                        "                                }\n" +
-                        "                            } else {\n" +
-                        "                                echo \"✅ 빌드 및 헬스 체크 모두 성공 → 셀프 힐링 필요 없음\"\n" +
                         "                            }\n" +
                         "                        } else {\n" +
-                        "                            echo \"💬 원본 브랜치와 다른 브랜치 빌드 → 셀프 힐링 건너뜀\"\n" +
+                        "                            echo \"💬 원본 브랜치와 다른 브랜치 빌드 또는 첫 빌드 → 셀프 힐링 건너뜀\"\n" +
                         "                        }\n" +
                         "                        \n" +
                         "                        // 모든 작업이 완료된 후 마지막으로 빌드 로그 API 호출 (성공/실패 여부 무관)\n" +
