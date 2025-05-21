@@ -24,4 +24,4 @@ class PatchGeneratorAgent(BaseAgent):
             <the full, patched file contents>
 
             """
-        return await ask_gpt(prompt, model="gpt-4.1")
+        return await ask_gpt(prompt)
