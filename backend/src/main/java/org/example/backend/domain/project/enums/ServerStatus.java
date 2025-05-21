@@ -8,6 +8,7 @@ public enum ServerStatus {
     INSTALL_DOCKER,
     RUN_APPLICATION,
     INSTALL_NGINX,
+    CREATE_WEBHOOK,
     INSTALL_JENKINS,
     INSTALL_JENKINS_PLUGINS,
     SET_JENKINS_INFO,
@@ -15,7 +16,6 @@ public enum ServerStatus {
     CREATE_JENKINSFILE,
     CREATE_FRONTEND_DOCKERFILE,
     CREATE_BACKEND_DOCKERFILE,
-    CREATE_WEBHOOK,
     FINISH,   // 자동 배포 세팅 완료
     FAIL,     // 중간 과정 실패
     //AI CICDResolver 관련
