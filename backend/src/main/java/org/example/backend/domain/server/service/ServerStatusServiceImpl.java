@@ -13,6 +13,10 @@ public class ServerStatusServiceImpl implements ServerStatusService {
     @Override
     @Transactional
     public void updateStatus(Project project, ServerStatus serverStatus) {
+        if (ServerStatus.FINISH.equals(serverStatus)) {
+            project.enableAutoDeployment();
+        }
+
         project.updateAutoDeploymentStatus(serverStatus);
     }
 
