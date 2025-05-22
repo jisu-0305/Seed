@@ -1,13 +1,7 @@
 'use client';
 
-import GuideHeader from '@/components/Common/GuideHeader';
-import Guide from '@/components/Landing/guide';
+import Landing from '@/components/Landing/landing';
 
-export default function GuidePage() {
-  return (
-    <>
-      <GuideHeader />
-      <Guide />
-    </>
-  );
+export default function LandingPage() {
+  return <Landing />;
 }
