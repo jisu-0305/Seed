@@ -97,7 +97,34 @@ public enum ErrorCode {
     AI_REPORT_RESPONSE_MALFORMED(HttpStatus.INTERNAL_SERVER_ERROR, 6027, "AI 보고서 응답 파싱 또는 필드 누락"),
     AI_COMMUNICATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6028, "AI API 요청간 에러 발생"),
     AI_RESPONSE_SERIALIZATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6029, "AI 응답 변환 과정 에러"),
-    AUTO_DEPLOYMENT_SETTING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6029, "자동 배포 설정 실패");
+    AUTO_DEPLOYMENT_SETTING_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 6029, "자동 배포 설정 실패"),
+    ENVIRONMENT_PARSE_FAILED(HttpStatus.BAD_REQUEST, 6030, "환경변수 형식이 잘못되었습니다."),
+
+
+    // 7. 자동배포 세팅 관련
+    SET_SWAP_MEMORY_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7001, "스왑 메모리 설정에 실패했습니다."),
+    UPDATE_PACKAGE_MANAGER_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7002, "패키지 관리자 업데이트에 실패했습니다."),
+    INSTALL_JDK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7003, "JDK 설치에 실패했습니다."),
+    INSTALL_DOCKER_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7004, "Docker 설치에 실패했습니다."),
+    RUN_APPLICATIONS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7005, "사용자 애플리케이션 실행에 실패했습니다."),
+    INSTALL_NGINX_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7006, "Nginx 설치에 실패했습니다."),
+    INSTALL_JENKINS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7007, "Jenkins 설치에 실패했습니다."),
+    INSTALL_JENKINS_PLUGINS_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7008, "Jenkins 플러그인 설치에 실패했습니다."),
+    SET_JENKINS_CONFIGURATION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7002, "Jenkins 설정 적용에 실패했습니다."),
+    CREATE_JENKINS_PIPELINE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7009, "Jenkins 파이프라인 생성에 실패했습니다."),
+    CREATE_JENKINS_FILE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7010, "Jenkins 파일 생성에 실패했습니다."),
+    CREATE_FRONTEND_DOCKERFILE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7011, "프론트엔드 Dockerfile 생성에 실패했습니다."),
+    CREATE_GITLAB_WEBHOOK_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7012, "GitLab Webhook 생성에 실패했습니다."),
+    CREATE_BACKEND_DOCKERFILE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7013, "백엔드 Dockerfile 생성에 실패했습니다."),
+    CREATE_AND_SAVE_JENKINS_TOKEN_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7015, "Jenkins API 토큰 발급 및 저장에 실패했습니다."),
+    CREATE_SSH_SESSION_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7016, "SSH 세션 생성에 실패했습니다."),
+
+    // HTTPS 세팅 관련
+    INSTALL_CERTBOT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7017, "Certbot 설치에 실패했습니다."),
+    CREATE_DEFAULT_NGINX_CONF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7018, "기본 Nginx 설정 생성에 실패했습니다."),
+    RELOAD_NGINX_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7019, "Nginx 재시작에 실패했습니다."),
+    ISSUE_SSL_CERTIFICATE_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7020, "SSL 인증서 발급에 실패했습니다."),
+    EDIT_NGINX_CONF_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, 7021, "Nginx 설정 수정에 실패했습니다.");
 
     private final HttpStatus status;
     private final int code;
