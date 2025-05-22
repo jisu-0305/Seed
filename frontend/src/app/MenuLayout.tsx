@@ -36,6 +36,7 @@ export function MenuLayout({ children }: { children: ReactNode }) {
         />
         <LayoutWrapper>
           {pathName !== '/' &&
+            pathName !== '/intro' &&
             pathName !== '/landing' &&
             pathName !== '/login' &&
             pathName !== '/oauth/callback' &&
