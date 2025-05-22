@@ -35,7 +35,7 @@
 - **쉬운 접근성**: 복잡한 CLI나 GUI 없이도 직관적인 워크플로우 제공
 
 ## 2. 주요 기능
-![주요 기능](images/seed_main_funtion.png)
+![주요 기능](images/seed_main_function.png)
 
 ### 2-1 원클릭 자동 배포 파이프라인인 구축
 - EC2 서버에 Docker, Docker-Compose, Jenkins를 자동으로 설치·설정함  
