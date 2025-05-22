@@ -11,6 +11,8 @@
 ### 1-1. 서비스 개요
 > **SEED** (Super E Easy Deployment)는 EC2 서버 세팅, GitLab 자동배포 CI/CD 구축·연결, 빌드 에러 대응까지 자동화한 서비스입니다.
 
+[![영상포트폴리오](http://i.ytimg.com/vi/hQatrKALDUA/0.jpg)](https://www.youtube.com/watch?v=hQatrKALDUA)
+
 ### 1-2. 문제 정의
 - **반복되는 서버 세팅 부담**
   매번 동일한 EC2 초기 환경 구성 → 시간 소모와 휴먼 에러 발생
