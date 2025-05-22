@@ -35,10 +35,16 @@
 - **쉬운 접근성**: 복잡한 CLI나 GUI 없이도 직관적인 워크플로우 제공
 
 ## 2. 주요 기능
-### 2-1 자동 서버 세팅 및 CI/CD 구축
+![주요 기능](images/seed_main_funtion.png)
+
+### 2-1 원클릭 자동 배포 파이프라인인 구축
 - EC2 서버에 Docker, Docker-Compose, Jenkins를 자동으로 설치·설정함  
 - GitLab/GitHub 리포지토리 연동 Webhook 등록 및 Jenkins Job을 자동 생성·실행함  
 - 코드 클론부터 컨테이너 빌드·배포, Nginx 설정·헬스체크까지 한 번에 처리함  
+
+### 2-2 원클릭 HTTPS/도메인 적용
+- Nginx 설치 및 리버스 프록시 기본 설정 자동화
+- DNS 이름으로 사이트 이동 가능능  
 
 ### 2-2 AI 기반 빌드 에러 수정 지원
 - 빌드 실패 로그를 수집하여 GPT로 분석함  
@@ -64,6 +70,9 @@
    - 빌드 실패 로그 수집 → AI Agent가 GPT로 분석함.
    - 코드 또는 환경 설정 자동 수정 후 재빌드 시도함.
    - 성공 시 최종 MR 생성 및 요약 정보 제공함.
+
+### 3-2. AI 아키텍처
+![서비스 흐름](images/seed_ai_architecture.png)
 
 ### 3-2. 화면 구성
 > Light/Dark 모드 지원 (예시는 light 모드)
