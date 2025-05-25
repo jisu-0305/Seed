@@ -68,6 +68,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             serverStatusService.updateStatus(project, ServerStatus.JENKINS_BUILD_LOG);
             int buildNumber = getLastBuildInfo(projectId);
             String jenkinsErrorLog = getErrorLog(projectId, buildNumber);
+            log.warn(">>>>>>>>1-1호출완료, 1-2 호출 예정");
 
             // 1-2. 프로젝트에 포함된 앱 이름 목록 조회
             serverStatusService.updateStatus(project, ServerStatus.COLLECTING_APP_INFO);
@@ -86,6 +87,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
 
             // 1-6. 의심 앱들의 Docker 로그 수집 및 변환
             Map<String, String> appLogs = getAppLogs(project, suspectedApps, gitDiff, failType, jenkinsErrorLog);
+            log.warn(">>>>>>>>1-6호출완료, 2-1 호출 예정");
 
             // 2. suspect 파일 추론 및 AI 자동 수정 파일 수집
             List<PatchedFile> patchedFiles = new ArrayList<>();
@@ -96,6 +98,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
                         resolveFilesAndPatch(project, accessToken, gitDiff, appLogs.get(suspectApp), appTrees.get(suspectApp), patchedFiles)
                 );
             }
+            log.warn(">>>>>>>>2-4 호출완료, 3-1 호출 예정");
 
             int newBuildNumber = buildNumber + 1;
             // 3-1. GitLab에 새로운 브랜치 생성 (ex. seed/fix/65)
@@ -108,6 +111,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
             // 3-3. Jenkins 빌드 트리거 (새 브랜치 기준)
             serverStatusService.updateStatus(project, ServerStatus.JENKINS_REBUILDING);
             triggerRebuild(projectId, newBranch, project.getGitlabTargetBranchName());
+            log.warn(">>>>>>>>3-3호출완료, 4-1 호출 예정");
 
             // 4. 빌드 결과 확인 → MR 생성 → AI 리포트 요청 및 저장
             // 4-1. Jenkins 빌드 결과 상태 확인

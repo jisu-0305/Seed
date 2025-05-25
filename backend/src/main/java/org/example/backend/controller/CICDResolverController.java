@@ -47,7 +47,7 @@ public class CICDResolverController {
             @RequestParam String personalAccessToken,
             @RequestParam String failType
     ) {
-        log.info("CI/CD 셀프 힐링 트리거 API 요청은 왔다");
+        log.warn("CI/CD 셀프 힐링 트리거 API 요청은 왔다");
         cicdResolverService.handleSelfHealingCI(projectId, personalAccessToken, failType);
         String message = "셀프 힐링 작업이 트리거되었습니다.";
         return ResponseEntity.ok(ApiResponse.success(message));
