@@ -43,7 +43,7 @@ public class AIApiClientImpl implements AIApiClient {
 
         try {
             json = objectMapper.writeValueAsString(inferAppRequest);
-            log.debug(">>>>>>>>>>>[InferApp] Request JSON: {}", json);
+//            log.debug(">>>>>>>>>>>[InferApp] Request JSON: {}", json);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AI_INFER_REQUEST_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
@@ -57,6 +57,7 @@ public class AIApiClientImpl implements AIApiClient {
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
+            log.warn(">>>>>>>>>>>[InferApp] Response JSON: {}", response);
         } catch (Exception e) {
             throw new BusinessException(ErrorCode.AI_COMMUNICATION_FAILED, projectId, ServerStatus.BUILD_FAIL_WITH_AI);
         }
@@ -83,7 +84,7 @@ public class AIApiClientImpl implements AIApiClient {
         formData.add("tree", suspectFileRequest.getTree());
         formData.add("log", suspectFileRequest.getLog());
 
-        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", suspectFileRequest.getLog());
+//        log.debug(">>>>>>>> [Fast API]requestSuspectFiles: {}", suspectFileRequest.getLog());
         String response = webClient.post()
                 .uri(fastApiBaseUrl + "/ai/filepath")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -92,7 +93,7 @@ public class AIApiClientImpl implements AIApiClient {
                 .bodyToMono(String.class)
                 .block();
 
-        //log.debug(">>>>>>>> [Fast API]responseSupectedFiles: {}", response);
+        log.warn(">>>>>>>> [Fast API]responseSupectedFiles: {}", response);
 
         try {
             SuspectFileResponse dto = objectMapper.readValue(response, SuspectFileResponse.class);
