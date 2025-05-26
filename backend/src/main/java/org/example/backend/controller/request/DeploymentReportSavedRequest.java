@@ -4,6 +4,7 @@ import lombok.Data;
 import org.example.backend.domain.aireport.enums.ReportStatus;
 
 import java.util.List;
+import java.util.Set;
 
 @Data
 public class DeploymentReportSavedRequest {
@@ -15,6 +16,6 @@ public class DeploymentReportSavedRequest {
     private String commitUrl;
     private String mergeRequestUrl;
     private ReportStatus status;
-    private List<String> appliedFileNames;
+    private Set<String> appliedFileNames;
 }
 

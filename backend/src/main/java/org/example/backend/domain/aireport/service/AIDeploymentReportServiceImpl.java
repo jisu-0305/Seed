@@ -1,6 +1,7 @@
 package org.example.backend.domain.aireport.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.backend.common.auth.ProjectAccessValidator;
 import org.example.backend.controller.request.DeploymentReportSavedRequest;
 import org.example.backend.controller.response.aireport.DeploymentReportDetailResponse;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AIDeploymentReportServiceImpl implements AIDeploymentReportService {
 
     private final AppliedFileRepository appliedFileRepository;
@@ -51,6 +53,8 @@ public class AIDeploymentReportServiceImpl implements AIDeploymentReportService 
     public long saveReport(DeploymentReportSavedRequest request) {
         AIDeploymentReport report = AIDeploymentReport.fromBackofficeRequest(request);
         AIDeploymentReport saved = reportRepository.save(report);
+
+        log.warn(request.getAppliedFileNames().toString());
 
         List<AppliedFile> files = request.getAppliedFileNames().stream()
                 .map(fileName -> new AppliedFile(fileName, saved.getId()))

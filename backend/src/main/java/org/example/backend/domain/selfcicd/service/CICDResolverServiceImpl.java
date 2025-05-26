@@ -471,7 +471,7 @@ public class CICDResolverServiceImpl implements CICDResolverService {
     public void saveAIReports(Long projectId, Map<String, AIReportResponse> reportResponses, ReportStatus status, String commitUrl, String mergeRequestUrl, int newBuildNumber) {
         StringBuilder summaryBuilder = new StringBuilder();
         StringBuilder notesBuilder = new StringBuilder();
-        List<String> mergedFiles = new ArrayList<>();
+        Set<String> mergedFiles = new HashSet<>();
 
         for (Map.Entry<String, AIReportResponse> entry : reportResponses.entrySet()) {
             String appName = entry.getKey();
